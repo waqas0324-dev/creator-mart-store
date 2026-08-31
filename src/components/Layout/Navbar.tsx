@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, ShoppingCart, Heart, Package, ChevronDown, Menu, X, User } from 'lucide-react';
+import { Search, ShoppingCart, Heart, Package, ChevronDown, Menu, X } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useNavigation } from '../../context/NavigationContext';
-import { useCustomerAuth } from '../../context/CustomerAuthContext';
 import { useCategories } from '../../hooks/useProducts';
 import { TrackOrderModal } from '../TrackOrderModal';
 import { AnnouncementBar } from './AnnouncementBar';
@@ -20,7 +19,6 @@ const NAV_LINKS: { label: string; page: Page }[] = [
 export function Navbar() {
   const { totalItems, openDrawer } = useCart();
   const { nav, navigate } = useNavigation();
-  const { user } = useCustomerAuth();
   const { categories } = useCategories();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -125,13 +123,6 @@ export function Navbar() {
           {/* Actions */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(user ? 'account' : 'login')}
-              className="hidden md:flex flex-col items-center text-gray-600 hover:text-orange-500 transition-colors text-xs"
-            >
-              <User size={20} />
-              <span>{user ? 'Account' : 'Sign In'}</span>
-            </button>
-            <button
               onClick={() => setTrackOrderOpen(true)}
               className="hidden md:flex flex-col items-center text-gray-600 hover:text-orange-500 transition-colors text-xs"
             >
@@ -197,12 +188,6 @@ export function Navbar() {
               {link.label}
             </button>
           ))}
-          <button
-            onClick={() => { navigate(user ? 'account' : 'login'); setMobileOpen(false); }}
-            className="text-left text-sm font-semibold text-gray-700 hover:text-orange-500 py-2"
-          >
-            {user ? 'My Account' : 'Sign In / Sign Up'}
-          </button>
           <button
             onClick={() => { navigate('cart'); setMobileOpen(false); }}
             className="text-left text-sm font-semibold text-gray-700 hover:text-orange-500 py-2"

@@ -22,7 +22,7 @@ const BANK_DETAILS = {
 export function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const { navigate } = useNavigation();
-  const { user, loading: authLoading } = useCustomerAuth();
+  const { user } = useCustomerAuth();
   const total = subtotal;
 
   const [form, setForm] = useState({
@@ -33,12 +33,7 @@ export function Checkout() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState('');
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('login', { returnPage: 'checkout' });
-    }
-  }, [user, authLoading, navigate]);
-
+  // Auto-fill form if user is logged in
   useEffect(() => {
     if (user) {
       const meta = user.user_metadata as Record<string, string>;
@@ -78,6 +73,7 @@ export function Checkout() {
     const orderNumber = `#ABR${Date.now().toString().slice(-6)}`;
     const { data: order, error } = await supabase.from('orders').insert({
       order_number: orderNumber,
+      customer_id: user?.id || null,
       customer_name: form.fullName,
       customer_phone: form.phone,
       customer_email: form.email || null,
@@ -107,14 +103,6 @@ export function Checkout() {
     setLoading(false);
     navigate('order-success', { orderId: order.id });
   };
-
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 size={32} className="text-orange-500 animate-spin" />
-      </div>
-    );
-  }
 
   if (items.length === 0) {
     return (
@@ -189,7 +177,7 @@ export function Checkout() {
                   {/* Cash on Delivery */}
                   <div>
                     <label
-                      className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'cash_on_delivery' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200'}`}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'cash_on_delivery' ? 'border-orange-400 bg-orange-50' : 'border-gray-200'}`}
                       onClick={() => update('paymentMethod', 'cash_on_delivery')}
                     >
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${form.paymentMethod === 'cash_on_delivery' ? 'border-orange-500' : 'border-gray-300'}`}>
@@ -230,7 +218,7 @@ export function Checkout() {
                   {/* Direct Bank Transfer */}
                   <div>
                     <label
-                      className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'bank_transfer' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200'}`}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'bank_transfer' ? 'border-orange-400 bg-orange-50' : 'border-gray-200'}`}
                       onClick={() => update('paymentMethod', 'bank_transfer')}
                     >
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${form.paymentMethod === 'bank_transfer' ? 'border-orange-500' : 'border-gray-300'}`}>
