@@ -1,21 +1,8 @@
 import { Phone, Mail, MapPin, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
-import { useState } from 'react';
 
 export function Footer() {
   const { navigate } = useNavigation();
-  const [clickCount, setClickCount] = useState(0);
-  const [showAdminAccess, setShowAdminAccess] = useState(false);
-
-  // Secret admin access - click the dot 5 times
-  const handleSecretClick = () => {
-    const newCount = clickCount + 1;
-    setClickCount(newCount);
-    if (newCount === 5) {
-      setShowAdminAccess(true);
-      setClickCount(0);
-    }
-  };
 
   return (
     <footer className="bg-gray-900 text-gray-300">
@@ -127,22 +114,13 @@ export function Footer() {
       <div className="border-t border-gray-700 py-4">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
           <p className="text-sm text-gray-500">&copy; 2024 ABR Shop. All rights reserved.</p>
-          {/* Secret admin access - click dot 5 times */}
+          {/* Hidden admin access */}
           <button
-            onClick={handleSecretClick}
-            className="text-gray-700 hover:text-gray-500 text-xs transition-colors cursor-pointer select-none"
-            title={clickCount > 0 ? `Admin access: ${5 - clickCount} more clicks` : 'Secret admin access'}
+            onClick={() => navigate('admin-login')}
+            className="text-gray-700 hover:text-gray-500 text-xs transition-colors"
+            title="Admin"
           >
-            {showAdminAccess ? (
-              <span
-                onClick={() => navigate('admin-login')}
-                className="text-orange-500 hover:text-orange-400 font-semibold text-xs cursor-pointer"
-              >
-                [ADMIN]
-              </span>
-            ) : (
-              '•'
-            )}
+            &bull;
           </button>
         </div>
       </div>
