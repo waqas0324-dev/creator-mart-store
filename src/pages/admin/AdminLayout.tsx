@@ -50,9 +50,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-black text-xs">CM</span>
+              <span className="text-white font-black text-xs">ABR</span>
             </div>
-            <span className="font-black text-white">CreatorMart</span>
+            <span className="font-black text-white">ABR Shop</span>
           </div>
           <button className="md:hidden text-gray-400" onClick={() => setSidebarOpen(false)}><X size={18} /></button>
         </div>

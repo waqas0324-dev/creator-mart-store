@@ -1,11 +1,14 @@
-import { Minus, Plus, X, ShoppingBag, Tag } from 'lucide-react';
+import { Minus, Plus, X, ShoppingBag, Tag, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
+import { onImageError } from '../lib/imageFallback';
 
 export function Cart() {
   const { items, removeItem, updateQuantity, subtotal } = useCart();
   const { navigate } = useNavigation();
+  const { user } = useCustomerAuth();
   const [coupon, setCoupon] = useState('');
   const total = subtotal;
 
@@ -57,7 +60,7 @@ export function Cart() {
                     <button onClick={() => removeItem(item.product.id)} className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
                       <X size={16} />
                     </button>
-                    <img src={item.product.image_url} alt={item.product.name} className="w-12 h-12 object-cover rounded-lg flex-shrink-0" />
+                    <img src={item.product.image_url} alt={item.product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, item.product.name)} className="w-12 h-12 object-cover rounded-lg flex-shrink-0" />
                     <p className="text-sm font-semibold text-gray-900 hover:text-orange-500 cursor-pointer transition-colors line-clamp-2" onClick={() => navigate('product', { productSlug: item.product.slug })} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {item.product.name}
                     </p>
@@ -108,8 +111,9 @@ export function Cart() {
                   <span className="text-orange-500">Rs. {total.toLocaleString()}</span>
                 </div>
               </div>
-              <button onClick={() => navigate('checkout')} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition-colors">
-                Proceed to Checkout
+              <button onClick={() => navigate('checkout')} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                {user ? <ShoppingBag size={18} /> : <Lock size={18} />}
+                {user ? 'Proceed to Checkout' : 'Login to Checkout'}
               </button>
               <button onClick={() => navigate('shop')} className="w-full mt-2 border-2 border-gray-200 hover:border-orange-300 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors text-sm">
                 Continue Shopping

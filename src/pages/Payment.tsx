@@ -55,7 +55,7 @@ export function Payment() {
 
     await new Promise(r => setTimeout(r, 2000));
 
-    const orderNumber = `#CM${Date.now().toString().slice(-6)}`;
+    const orderNumber = `#ABR${Date.now().toString().slice(-6)}`;
     const { data: order, error } = await supabase.from('orders').insert({
       order_number: orderNumber,
       customer_name: pending.customer_name,

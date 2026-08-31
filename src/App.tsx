@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { CartProvider } from './context/CartContext';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
 import { ToastProvider } from './context/ToastContext';
+import { CustomerAuthProvider } from './context/CustomerAuthContext';
 import { CartDrawer } from './components/CartDrawer';
-import { TopBar } from './components/Layout/TopBar';
 import { Navbar } from './components/Layout/Navbar';
 import { Footer } from './components/Layout/Footer';
 import { Home } from './pages/Home';
@@ -13,10 +13,13 @@ import { Cart } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
 import { Payment } from './pages/Payment';
 import { OrderSuccess } from './pages/OrderSuccess';
+import { TrackOrderPage } from './pages/TrackOrderPage';
 import { FlashDeals } from './pages/FlashDeals';
 import { NewArrivals } from './pages/NewArrivals';
 import { BestSellers } from './pages/BestSellers';
 import { Contact } from './pages/Contact';
+import { CustomerLogin } from './pages/CustomerLogin';
+import { Account } from './pages/Account';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/Dashboard';
 import { AdminProducts } from './pages/admin/Products';
@@ -34,6 +37,8 @@ function Router() {
     syncAdminSession().then(() => setAuthChecked(true));
   }, []);
 
+  if (nav.page === 'login') return <CustomerLogin />;
+  if (nav.page === 'account') return <Account />;
   if (nav.page === 'admin-login') return <AdminLogin />;
 
   if (ADMIN_PAGES.includes(nav.page)) {
@@ -52,7 +57,6 @@ function Router() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <TopBar />
       <Navbar />
       <main className="flex-1">
         {nav.page === 'home' && <Home />}
@@ -62,10 +66,13 @@ function Router() {
         {nav.page === 'checkout' && <Checkout />}
         {nav.page === 'payment' && <Payment />}
         {nav.page === 'order-success' && <OrderSuccess />}
+        {nav.page === 'track-order' && <TrackOrderPage />}
         {nav.page === 'flash-deals' && <FlashDeals />}
         {nav.page === 'new-arrivals' && <NewArrivals />}
         {nav.page === 'best-sellers' && <BestSellers />}
         {nav.page === 'contact' && <Contact />}
+        {nav.page === 'login' && <CustomerLogin />}
+        {nav.page === 'account' && <Account />}
       </main>
       <Footer />
       <CartDrawer />
@@ -76,11 +83,13 @@ function Router() {
 export default function App() {
   return (
     <NavigationProvider>
-      <CartProvider>
-        <ToastProvider>
-          <Router />
-        </ToastProvider>
-      </CartProvider>
+      <CustomerAuthProvider>
+        <CartProvider>
+          <ToastProvider>
+            <Router />
+          </ToastProvider>
+        </CartProvider>
+      </CustomerAuthProvider>
     </NavigationProvider>
   );
 }

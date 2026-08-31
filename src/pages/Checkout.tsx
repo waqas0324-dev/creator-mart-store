@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { Loader2, Banknote, CreditCard, Copy, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, Banknote, CreditCard, Copy, CheckCircle, Lock } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
 import { supabase } from '../lib/supabase';
+import { onImageError } from '../lib/imageFallback';
 
 const CITIES = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
 
@@ -20,6 +22,7 @@ const BANK_DETAILS = {
 export function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const { navigate } = useNavigation();
+  const { user, loading: authLoading } = useCustomerAuth();
   const total = subtotal;
 
   const [form, setForm] = useState({
@@ -29,6 +32,24 @@ export function Checkout() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('login', { returnPage: 'checkout' });
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      const meta = user.user_metadata as Record<string, string>;
+      setForm(prev => ({
+        ...prev,
+        fullName: prev.fullName || meta?.full_name || '',
+        phone: prev.phone || meta?.phone || '',
+        email: prev.email || user.email || '',
+      }));
+    }
+  }, [user]);
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -54,7 +75,7 @@ export function Checkout() {
     if (!validate()) return;
     setLoading(true);
 
-    const orderNumber = `#CM${Date.now().toString().slice(-6)}`;
+    const orderNumber = `#ABR${Date.now().toString().slice(-6)}`;
     const { data: order, error } = await supabase.from('orders').insert({
       order_number: orderNumber,
       customer_name: form.fullName,
@@ -86,6 +107,14 @@ export function Checkout() {
     setLoading(false);
     navigate('order-success', { orderId: order.id });
   };
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 size={32} className="text-orange-500 animate-spin" />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -283,7 +312,7 @@ export function Checkout() {
                 <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
                   {items.map(item => (
                     <div key={item.product.id} className="flex gap-3">
-                      <img src={item.product.image_url} alt={item.product.name} className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
+                      <img src={item.product.image_url} alt={item.product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, item.product.name)} className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
                       <div className="flex-1 flex justify-between items-start gap-2 text-sm">
                         <span className="text-gray-700 line-clamp-2 flex-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {item.product.name}

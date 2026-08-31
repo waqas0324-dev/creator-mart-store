@@ -1,9 +1,6 @@
-import { Truck, Banknote, RotateCcw, ShieldCheck, Settings } from 'lucide-react';
-import { useNavigation } from '../../context/NavigationContext';
+import { Truck, Banknote, RotateCcw, ShieldCheck } from 'lucide-react';
 
 export function TopBar() {
-  const { navigate } = useNavigation();
-
   return (
     <div className="bg-gray-900 text-white text-xs py-2">
       <div className="max-w-7xl mx-auto px-4">
@@ -21,13 +18,6 @@ export function TopBar() {
               </div>
             ))}
           </div>
-          <button
-            onClick={() => navigate('admin-login')}
-            className="flex-shrink-0 flex items-center gap-1 text-gray-500 hover:text-orange-400 transition-colors ml-2"
-            title="Admin Panel"
-          >
-            <Settings size={13} />
-          </button>
         </div>
       </div>
     </div>

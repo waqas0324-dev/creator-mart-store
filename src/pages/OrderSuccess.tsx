@@ -57,7 +57,7 @@ export function OrderSuccess() {
           <button onClick={() => navigate('shop')} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition-colors">
             Continue Shopping
           </button>
-          <button onClick={() => navigate('admin-orders')} className="w-full border-2 border-gray-200 hover:border-orange-300 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors text-sm">
+          <button onClick={() => navigate('track-order')} className="w-full border-2 border-gray-200 hover:border-orange-300 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors text-sm">
             Track Your Order
           </button>
         </div>

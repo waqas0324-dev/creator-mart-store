@@ -32,10 +32,10 @@ export function AdminLogin() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-2xl mb-4 shadow-lg shadow-orange-500/30">
-            <span className="text-white font-black text-xl">CM</span>
+            <span className="text-white font-black text-xl">ABR</span>
           </div>
           <h1 className="text-2xl font-black text-white">Admin Panel</h1>
-          <p className="text-gray-400 text-sm mt-1">CreatorMart PK — Authorized Access Only</p>
+          <p className="text-gray-400 text-sm mt-1">ABR Shop — Authorized Access Only</p>
         </div>
 
         <div className="bg-gray-800 rounded-2xl border border-gray-700 p-6 shadow-2xl">

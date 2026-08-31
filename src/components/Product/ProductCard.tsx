@@ -4,6 +4,7 @@ import { StarRating } from '../UI/StarRating';
 import { Badge } from '../UI/Badge';
 import { useCart } from '../../context/CartContext';
 import { useNavigation } from '../../context/NavigationContext';
+import { onImageError } from '../../lib/imageFallback';
 
 interface ProductCardProps {
   product: Product;
@@ -22,6 +23,8 @@ export function ProductCard({ product }: ProductCardProps) {
         <img
           src={product.image_url}
           alt={product.name}
+          referrerPolicy="no-referrer"
+          onError={(e) => onImageError(e, product.name)}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
         {product.discount_percent && (

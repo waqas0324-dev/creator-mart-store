@@ -67,7 +67,7 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
                 type="text"
                 value={orderNumber}
                 onChange={e => setOrderNumber(e.target.value)}
-                placeholder="e.g. #CM123456"
+                placeholder="e.g. #ABR123456"
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400"
               />
               <button

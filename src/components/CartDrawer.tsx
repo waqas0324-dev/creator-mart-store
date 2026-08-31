@@ -1,6 +1,7 @@
 import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
+import { onImageError } from '../lib/imageFallback';
 
 export function CartDrawer() {
   const { items, removeItem, updateQuantity, subtotal, totalItems, drawerOpen, closeDrawer } = useCart();
@@ -68,6 +69,8 @@ export function CartDrawer() {
                   <img
                     src={item.product.image_url}
                     alt={item.product.name}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => onImageError(e, item.product.name)}
                     className="w-16 h-16 object-cover rounded-lg flex-shrink-0 border border-gray-100"
                   />
                   <div className="flex-1 min-w-0">

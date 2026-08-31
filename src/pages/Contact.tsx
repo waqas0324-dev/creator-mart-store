@@ -106,7 +106,7 @@ export function Contact() {
             {/* Google Maps Embed */}
             <div className="mt-6 rounded-2xl overflow-hidden border border-gray-200 shadow-sm h-56">
               <iframe
-                title="CreatorMart Location"
+                title="ABR Shop Location"
                 src="https://maps.google.com/maps?q=Jasmine+Block+Commercial+Bahria+Town+Lahore+Pakistan&t=&z=15&ie=UTF8&iwloc=&output=embed"
                 width="100%"
                 height="100%"

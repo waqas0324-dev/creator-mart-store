@@ -28,11 +28,11 @@ export function Footer() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-black text-sm">CM</span>
+              <span className="text-white font-black text-sm">ABR</span>
             </div>
             <div className="leading-tight">
-              <div className="font-black text-white text-base leading-none">Creator</div>
-              <div className="text-orange-500 font-black text-sm leading-none">MART</div>
+              <div className="font-black text-white text-base leading-none">ABR</div>
+              <div className="text-orange-500 font-black text-sm leading-none">SHOP</div>
             </div>
           </div>
           <p className="text-sm text-gray-400 mb-4">
@@ -113,7 +113,7 @@ export function Footer() {
 
       <div className="border-t border-gray-700 py-4">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <p className="text-sm text-gray-500">&copy; 2024 CreatorMart PK. All rights reserved.</p>
+          <p className="text-sm text-gray-500">&copy; 2024 ABR Shop. All rights reserved.</p>
           {/* Hidden admin access */}
           <button
             onClick={() => navigate('admin-login')}

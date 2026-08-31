@@ -4,6 +4,7 @@ import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
 import { supabase } from '../../lib/supabase';
+import { onImageError } from '../../lib/imageFallback';
 import type { Product } from '../../types';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -151,7 +152,7 @@ export function AdminProductForm() {
               {errors.image_url && <p className="text-red-500 text-xs mt-1">{errors.image_url}</p>}
               {form.image_url && (
                 <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-                  <img src={form.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={form.image_url} alt="Preview" referrerPolicy="no-referrer" onError={(e) => onImageError(e, 'Preview')} className="w-full h-full object-cover" />
                 </div>
               )}
             </div>

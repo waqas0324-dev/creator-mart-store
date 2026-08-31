@@ -2,6 +2,7 @@ import { Truck, Banknote, RotateCcw, ShieldCheck, ChevronRight, Zap, Star, Packa
 import { useNavigation } from '../context/NavigationContext';
 import { useProducts, useCategories } from '../hooks/useProducts';
 import { ProductCard } from '../components/Product/ProductCard';
+import { onImageError } from '../lib/imageFallback';
 
 export function Home() {
   const { navigate } = useNavigation();
@@ -28,8 +29,8 @@ export function Home() {
           <div className="max-w-lg">
             <p className="text-orange-400 text-xs font-bold uppercase tracking-widest mb-2">PAKISTAN NO.1</p>
             <h1 className="text-5xl md:text-6xl font-black leading-tight mb-2">
-              <span className="text-orange-500">CREATOR</span>{' '}
-              <span className="text-white">STORE</span>
+              <span className="text-orange-500">ABR</span>{' '}
+              <span className="text-white">SHOP</span>
             </h1>
             <p className="text-gray-300 text-base font-medium mb-0.5">Premium Quality Products</p>
             <p className="text-gray-400 text-sm mb-6">For Content Creators</p>
@@ -152,6 +153,8 @@ export function Home() {
                     <img
                       src={cat.image_url}
                       alt={cat.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => onImageError(e, cat.name)}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                   </div>
