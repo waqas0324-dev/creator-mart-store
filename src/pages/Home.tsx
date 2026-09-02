@@ -2,7 +2,9 @@ import { Truck, Banknote, RotateCcw, ShieldCheck, ChevronRight, Zap, Star, Packa
 import { useNavigation } from '../context/NavigationContext';
 import { useProducts, useCategories } from '../hooks/useProducts';
 import { ProductCard } from '../components/Product/ProductCard';
-import { onImageError } from '../lib/imageFallback';
+import { onImageError, resolveCategoryImage } from '../lib/imageFallback';
+
+const HERO_IMAGE = 'https://images.pexels.com/photos/33923588/pexels-photo-33923588.jpeg?auto=compress&cs=tinysrgb&h=420&w=600';
 
 export function Home() {
   const { navigate } = useNavigation();
@@ -17,8 +19,10 @@ export function Home() {
         {/* Full-width product image as background, right-aligned */}
         <div className="absolute inset-0 flex justify-end items-center pointer-events-none select-none">
           <img
-            src="/images/files_10673984-2026-06-24T14-23-35-667Z-image.webp"
+            src={HERO_IMAGE}
             alt=""
+            referrerPolicy="no-referrer"
+            onError={(e) => onImageError(e, 'Hero')}
             className="h-full max-h-[420px] w-auto object-contain object-right opacity-95"
           />
         </div>
@@ -151,7 +155,7 @@ export function Home() {
                 >
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 group-hover:border-orange-300 transition-colors">
                     <img
-                      src={cat.image_url}
+                      src={resolveCategoryImage(cat.image_url)}
                       alt={cat.name}
                       referrerPolicy="no-referrer"
                       onError={(e) => onImageError(e, cat.name)}

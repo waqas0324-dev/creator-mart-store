@@ -90,8 +90,6 @@ export type Page =
   | 'new-arrivals'
   | 'best-sellers'
   | 'contact'
-  | 'login'
-  | 'account'
   | 'admin'
   | 'admin-login'
   | 'admin-products'
