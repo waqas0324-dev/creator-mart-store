@@ -9,7 +9,6 @@ interface NavState {
   adminProductId?: string;
   pendingOrder?: PendingOrder;
   searchQuery?: string;
-  returnPage?: Page;
 }
 
 interface NavigationContextValue {
@@ -24,9 +23,6 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 
   const navigate = (page: Page, params?: Partial<Omit<NavState, 'page'>>) => {
     setNav({ page, ...params });
-    if (page === 'login' && params?.returnPage) {
-      sessionStorage.setItem('abr-login-return-page', params.returnPage);
-    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

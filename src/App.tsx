@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { CartProvider } from './context/CartContext';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
 import { ToastProvider } from './context/ToastContext';
-import { CustomerAuthProvider } from './context/CustomerAuthContext';
 import { CartDrawer } from './components/CartDrawer';
 import { Navbar } from './components/Layout/Navbar';
 import { Footer } from './components/Layout/Footer';
@@ -18,8 +17,6 @@ import { FlashDeals } from './pages/FlashDeals';
 import { NewArrivals } from './pages/NewArrivals';
 import { BestSellers } from './pages/BestSellers';
 import { Contact } from './pages/Contact';
-import { CustomerLogin } from './pages/CustomerLogin';
-import { Account } from './pages/Account';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/Dashboard';
 import { AdminProducts } from './pages/admin/Products';
@@ -34,11 +31,16 @@ function Router() {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
+    if (window.location.hash === '#admin') {
+      navigate('admin-login');
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     syncAdminSession().then(() => setAuthChecked(true));
   }, []);
 
-  if (nav.page === 'login') return <CustomerLogin />;
-  if (nav.page === 'account') return <Account />;
   if (nav.page === 'admin-login') return <AdminLogin />;
 
   if (ADMIN_PAGES.includes(nav.page)) {
@@ -71,8 +73,6 @@ function Router() {
         {nav.page === 'new-arrivals' && <NewArrivals />}
         {nav.page === 'best-sellers' && <BestSellers />}
         {nav.page === 'contact' && <Contact />}
-        {nav.page === 'login' && <CustomerLogin />}
-        {nav.page === 'account' && <Account />}
       </main>
       <Footer />
       <CartDrawer />
@@ -83,13 +83,11 @@ function Router() {
 export default function App() {
   return (
     <NavigationProvider>
-      <CustomerAuthProvider>
-        <CartProvider>
-          <ToastProvider>
-            <Router />
-          </ToastProvider>
-        </CartProvider>
-      </CustomerAuthProvider>
+      <CartProvider>
+        <ToastProvider>
+          <Router />
+        </ToastProvider>
+      </CartProvider>
     </NavigationProvider>
   );
 }
