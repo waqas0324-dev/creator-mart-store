@@ -72,7 +72,8 @@ export function useProduct(slug: string) {
       .then(({ data }) => {
         setProduct(data as Product);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [slug]);
 
   return { product, loading };
@@ -94,7 +95,8 @@ export function useCategories() {
         }));
         setCategories(mapped as Category[]);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   return { categories, loading };

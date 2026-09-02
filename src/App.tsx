@@ -38,7 +38,9 @@ function Router() {
   }, [navigate]);
 
   useEffect(() => {
-    syncAdminSession().then(() => setAuthChecked(true));
+    syncAdminSession()
+      .then(() => setAuthChecked(true))
+      .catch(() => setAuthChecked(true));
   }, []);
 
   if (nav.page === 'admin-login') return <AdminLogin />;
