@@ -3,6 +3,7 @@ import { useNavigation } from '../context/NavigationContext';
 import { useProducts, useCategories } from '../hooks/useProducts';
 import { ProductCard } from '../components/Product/ProductCard';
 import { onImageError, resolveCategoryImage } from '../lib/imageFallback';
+import { BRAND_LOGO } from '../lib/brand';
 
 const HERO_IMAGE = 'https://images.pexels.com/photos/33923588/pexels-photo-33923588.jpeg?auto=compress&cs=tinysrgb&h=420&w=600';
 
@@ -32,11 +33,8 @@ export function Home() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 py-10 md:py-16 w-full">
           <div className="max-w-lg">
             <p className="text-orange-400 text-xs font-bold uppercase tracking-widest mb-2">PAKISTAN NO.1</p>
-            <h1 className="text-5xl md:text-6xl font-black leading-tight mb-2">
-              <span className="text-orange-500">ABR</span>{' '}
-              <span className="text-white">SHOP</span>
-            </h1>
-            <p className="text-gray-300 text-base font-medium mb-0.5">Premium Quality Products</p>
+            <img src={BRAND_LOGO} alt="ABR Gadgets" className="w-64 md:w-80 h-auto max-h-28 object-contain object-left mix-blend-screen mb-4" />
+            <p className="text-gray-300 text-base font-medium mb-0.5">Premium quality gear for creators</p>
             <p className="text-gray-400 text-sm mb-6">For Content Creators</p>
 
             <div className="flex flex-col gap-2 mb-7">

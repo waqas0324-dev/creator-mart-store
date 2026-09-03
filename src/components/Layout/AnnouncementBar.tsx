@@ -1,15 +1,17 @@
+import { WHATSAPP_NUMBER } from '../../lib/brand';
+
 export function AnnouncementBar() {
   const message = [
-    '📦 Cash on Delivery Available — Rs. 500 Advance Required for Order Confirmation',
-    '📱 JazzCash Number: 03245240920 — Send Payment Screenshot on WhatsApp After Transfer',
-    '🚚 Fast Delivery All Over Pakistan',
-    '✅ 7 Days Easy Return Policy',
-    '🎉 Up to 40% OFF on Selected Items — Shop Now!',
-    '📦 Cash on Delivery Available — Rs. 500 Advance Required for Order Confirmation',
-    '📱 JazzCash Number: 03245240920 — Send Payment Screenshot on WhatsApp After Transfer',
-    '🚚 Fast Delivery All Over Pakistan',
-    '✅ 7 Days Easy Return Policy',
-    '🎉 Up to 40% OFF on Selected Items — Shop Now!',
+    'Cash on Delivery Available — Confirm your order with ease',
+    `WhatsApp: ${WHATSAPP_NUMBER} — Send your order details directly`,
+    'Fast delivery all over Pakistan',
+    '7 days easy return policy',
+    'Selected deals available now — shop your favourites',
+    'Cash on Delivery Available — Confirm your order with ease',
+    `WhatsApp: ${WHATSAPP_NUMBER} — Send your order details directly`,
+    'Fast delivery all over Pakistan',
+    '7 days easy return policy',
+    'Selected deals available now — shop your favourites',
   ];
 
   return (

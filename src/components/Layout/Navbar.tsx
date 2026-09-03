@@ -6,6 +6,7 @@ import { useCategories } from '../../hooks/useProducts';
 import { TrackOrderModal } from '../TrackOrderModal';
 import { AnnouncementBar } from './AnnouncementBar';
 import type { Page } from '../../types';
+import { BRAND_LOGO } from '../../lib/brand';
 
 const NAV_LINKS: { label: string; page: Page }[] = [
   { label: 'Home', page: 'home' },
@@ -54,28 +55,22 @@ export function Navbar() {
 
   return (
     <>
-    <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200">
+    <header className="sticky top-0 z-50 bg-[#111827] shadow-lg border-b border-gray-800">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center gap-4">
-          {/* Logo */}
-          <div
-            className="flex items-center gap-2 cursor-pointer flex-shrink-0"
+          <button
+            className="flex items-center cursor-pointer flex-shrink-0 rounded-xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-orange-400"
             onClick={() => navigate('home')}
+            aria-label="ABR Gadgets home"
           >
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-black text-sm leading-none">ABR</span>
-            </div>
-            <div className="leading-tight hidden sm:block">
-              <div className="font-black text-gray-900 text-base leading-none">ABR</div>
-              <div className="text-orange-500 font-black text-sm leading-none">SHOP</div>
-            </div>
-          </div>
+            <img src={BRAND_LOGO} alt="ABR Gadgets" className="w-28 sm:w-36 h-12 object-contain mix-blend-screen" />
+          </button>
 
           {/* Category Dropdown */}
           <div className="hidden md:block relative" ref={catDropdownRef}>
             <button
               onClick={() => setCatDropdownOpen(!catDropdownOpen)}
-              className="flex items-center gap-1 border border-gray-300 rounded-l-lg px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors flex-shrink-0 text-sm text-gray-700"
+              className="flex items-center gap-1 border border-gray-700 rounded-l-lg px-3 py-2 bg-gray-800 hover:bg-gray-700 transition-colors flex-shrink-0 text-sm text-gray-200"
             >
               <span>All Categories</span>
               <ChevronDown size={14} className={`transition-transform ${catDropdownOpen ? 'rotate-180' : ''}`} />
@@ -109,7 +104,7 @@ export function Navbar() {
               placeholder="Search for products..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 border border-gray-300 border-r-0 rounded-l-lg md:rounded-l-none px-4 py-2 text-sm outline-none focus:border-orange-400"
+              className="flex-1 border border-gray-700 border-r-0 rounded-l-lg md:rounded-l-none px-4 py-2 text-sm outline-none bg-gray-800 text-white placeholder-gray-400 focus:border-orange-400"
             />
             <button
               type="submit"
@@ -124,18 +119,18 @@ export function Navbar() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setTrackOrderOpen(true)}
-              className="hidden md:flex flex-col items-center text-gray-600 hover:text-orange-500 transition-colors text-xs"
+              className="hidden md:flex flex-col items-center text-gray-300 hover:text-orange-400 transition-colors text-xs"
             >
               <Package size={20} />
               <span>Track</span>
             </button>
-            <button className="hidden md:flex flex-col items-center text-gray-600 hover:text-orange-500 transition-colors text-xs">
+            <button className="hidden md:flex flex-col items-center text-gray-300 hover:text-orange-400 transition-colors text-xs">
               <Heart size={20} />
               <span>Wishlist</span>
             </button>
             <button
               onClick={openDrawer}
-              className="flex flex-col items-center text-gray-600 hover:text-orange-500 transition-colors text-xs relative"
+              className="flex flex-col items-center text-gray-300 hover:text-orange-400 transition-colors text-xs relative"
             >
               <div className="relative">
                 <ShoppingCart size={20} />
@@ -148,7 +143,7 @@ export function Navbar() {
               <span>Cart</span>
             </button>
             <button
-              className="md:hidden text-gray-600"
+              className="md:hidden text-gray-200"
               onClick={() => setMobileOpen(!mobileOpen)}
             >
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
@@ -158,7 +153,7 @@ export function Navbar() {
       </div>
 
       {/* Desktop Nav Links */}
-      <nav className="bg-white border-t border-gray-100 hidden md:block">
+      <nav className="bg-[#111827] border-t border-gray-800 hidden md:block">
         <div className="max-w-7xl mx-auto px-4 flex items-center overflow-x-auto">
           {NAV_LINKS.map(link => (
             <button
@@ -166,8 +161,8 @@ export function Navbar() {
               onClick={() => navigate(link.page)}
               className={`py-3 px-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
                 isActive(link.page)
-                  ? 'border-orange-500 text-orange-500'
-                  : 'border-transparent text-gray-700 hover:text-orange-500'
+                  ? 'border-orange-500 text-orange-400'
+                  : 'border-transparent text-gray-300 hover:text-orange-400'
               }`}
             >
               {link.label}
@@ -178,19 +173,19 @@ export function Navbar() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-2">
+        <div className="md:hidden bg-[#111827] border-t border-gray-800 px-4 py-3 flex flex-col gap-2">
           {NAV_LINKS.map(link => (
             <button
               key={link.page}
               onClick={() => { navigate(link.page); setMobileOpen(false); }}
-              className={`text-left text-sm font-semibold py-2 border-b border-gray-50 transition-colors ${isActive(link.page) ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'}`}
+              className={`text-left text-sm font-semibold py-2 border-b border-gray-800 transition-colors ${isActive(link.page) ? 'text-orange-400' : 'text-gray-200 hover:text-orange-400'}`}
             >
               {link.label}
             </button>
           ))}
           <button
             onClick={() => { navigate('cart'); setMobileOpen(false); }}
-            className="text-left text-sm font-semibold text-gray-700 hover:text-orange-500 py-2"
+            className="text-left text-sm font-semibold text-gray-200 hover:text-orange-400 py-2"
           >
             Cart ({totalItems})
           </button>

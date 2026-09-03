@@ -1,10 +1,11 @@
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, MessageCircle } from 'lucide-react';
 import type { Product } from '../../types';
 import { StarRating } from '../UI/StarRating';
 import { Badge } from '../UI/Badge';
 import { useCart } from '../../context/CartContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { onImageError, resolveProductImage } from '../../lib/imageFallback';
+import { WHATSAPP_LINK } from '../../lib/brand';
 
 interface ProductCardProps {
   product: Product;
@@ -13,6 +14,10 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const { navigate } = useNavigation();
+
+  const whatsappMsg = encodeURIComponent(
+    `Hi ABR Gadgets! I'd like to order:\n\n${product.name}\nPrice: Rs. ${product.price.toLocaleString()}\n\nIs this available?`
+  );
 
   return (
     <div className="bg-white rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg hover:border-orange-200 transition-all duration-300 group flex flex-col h-full">
@@ -40,20 +45,31 @@ export function ProductCard({ product }: ProductCardProps) {
         >
           {product.name}
         </h3>
-        <StarRating rating={product.rating} count={product.review_count} />
+        {product.review_count > 0 && <StarRating rating={product.rating} count={product.review_count} />}
         <div className="flex items-center gap-2 mt-2 mb-3">
           <span className="text-orange-500 font-bold text-base">Rs. {product.price.toLocaleString()}</span>
           {product.original_price && (
             <span className="text-gray-400 line-through text-sm">Rs. {product.original_price.toLocaleString()}</span>
           )}
         </div>
-        <button
-          onClick={() => addItem(product)}
-          className="mt-auto w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
-        >
-          <ShoppingCart size={14} />
-          Add to Cart
-        </button>
+        <div className="mt-auto flex gap-2">
+          <button
+            onClick={() => addItem(product)}
+            className="flex-1 flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+          >
+            <ShoppingCart size={14} />
+            Add to Cart
+          </button>
+          <a
+            href={`${WHATSAPP_LINK}?text=${whatsappMsg}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center w-9 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-colors"
+            aria-label="Order on WhatsApp"
+          >
+            <MessageCircle size={16} />
+          </a>
+        </div>
       </div>
     </div>
   );

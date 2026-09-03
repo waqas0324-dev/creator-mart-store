@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
 import { supabase } from '../lib/supabase';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
+import { WHATSAPP_NUMBER } from '../lib/brand';
 
 const CITIES = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
 
@@ -13,9 +14,9 @@ const BANK_DETAILS = {
   accountTitle: 'CREATORMART PK',
   iban: 'PK00NAYP0000000000000000',
   bank: 'NAYAPAY',
-  jazzCash: '03245240920',
+  jazzCash: WHATSAPP_NUMBER,
   name: 'Muhammad Waqas',
-  whatsapp: '03245240920',
+  whatsapp: WHATSAPP_NUMBER,
 };
 
 export function Checkout() {
@@ -183,16 +184,16 @@ export function Checkout() {
                         <div className="bg-green-50 border border-green-300 rounded-xl p-4 text-sm space-y-2">
                           <p className="font-bold text-green-700 text-sm uppercase tracking-wide">JazzCash Number</p>
                           <div className="flex items-center gap-3">
-                            <span className="text-2xl font-black text-gray-900 tracking-wider">03245240920</span>
+                            <span className="text-2xl font-black text-gray-900 tracking-wider">{WHATSAPP_NUMBER}</span>
                             <button
                               type="button"
-                              onClick={() => copyToClipboard('03245240920', 'cod-jc')}
+                              onClick={() => copyToClipboard(WHATSAPP_NUMBER, 'cod-jc')}
                               className="text-xs bg-green-500 hover:bg-green-600 text-white font-bold px-3 py-1.5 rounded-lg transition-colors"
                             >
                               {copied === 'cod-jc' ? 'Copied!' : 'Copy'}
                             </button>
                           </div>
-                          <p className="text-orange-700 font-semibold">Payment ke baad screenshot WhatsApp par zaroor bhejein: <strong>03245240920</strong></p>
+                          <p className="text-orange-700 font-semibold">Payment ke baad screenshot WhatsApp par zaroor bhejein: <strong>{WHATSAPP_NUMBER}</strong></p>
                           <p className="text-gray-500 text-xs">Support available: 10:30 AM – 8:00 PM</p>
                         </div>
                       </div>

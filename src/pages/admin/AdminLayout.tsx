@@ -2,6 +2,7 @@ import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X, type LucideIcon
 import { useState, useEffect } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { adminLogout, syncAdminSession } from '../../lib/adminAuth';
+import { BRAND_LOGO } from '../../lib/brand';
 import type { Page } from '../../types';
 
 interface AdminLayoutProps {
@@ -49,10 +50,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <aside className={`fixed inset-y-0 left-0 z-50 w-60 bg-gray-900 text-white flex flex-col transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-black text-xs">ABR</span>
-            </div>
-            <span className="font-black text-white">ABR Shop</span>
+            <img src={BRAND_LOGO} alt="ABR Gadgets" className="w-28 h-10 object-contain mix-blend-screen" />
           </div>
           <button className="md:hidden text-gray-400" onClick={() => setSidebarOpen(false)}><X size={18} /></button>
         </div>

@@ -1,5 +1,6 @@
 import { Phone, Mail, MapPin, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
+import { BRAND_LOGO, WHATSAPP_LINK, WHATSAPP_NUMBER } from '../../lib/brand';
 
 export function Footer() {
   const { navigate } = useNavigation();
@@ -27,19 +28,13 @@ export function Footer() {
         {/* Brand */}
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-black text-sm">ABR</span>
-            </div>
-            <div className="leading-tight">
-              <div className="font-black text-white text-base leading-none">ABR</div>
-              <div className="text-orange-500 font-black text-sm leading-none">SHOP</div>
-            </div>
+            <img src={BRAND_LOGO} alt="ABR Gadgets" className="w-40 h-16 object-contain mix-blend-screen" />
           </div>
           <p className="text-sm text-gray-400 mb-4">
             Pakistan's No.1 Creator Store. Premium quality products for content creators delivered nationwide.
           </p>
           <div className="flex gap-3">
-            <a href="https://wa.me/923245240920" target="_blank" rel="noreferrer" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
+            <a href={WHATSAPP_LINK} target="_blank" rel="noreferrer" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
               <MessageCircle size={14} />
             </a>
             {[Facebook, Instagram, Youtube].map((Icon, i) => (
@@ -97,7 +92,7 @@ export function Footer() {
           <ul className="space-y-3">
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <Phone size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
-              <a href="tel:+923245240920" className="hover:text-orange-400 transition-colors">+92 324 5240920</a>
+              <a href={`tel:+92${WHATSAPP_NUMBER.slice(1)}`} className="hover:text-orange-400 transition-colors">+92 304 4454356</a>
             </li>
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <Mail size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
@@ -113,7 +108,7 @@ export function Footer() {
 
       <div className="border-t border-gray-700 py-4">
         <div className="max-w-7xl mx-auto px-4">
-          <p className="text-sm text-gray-500 text-center">&copy; 2024 ABR Shop. All rights reserved.</p>
+          <p className="text-sm text-gray-500 text-center">&copy; 2026 ABR Gadgets. All rights reserved.</p>
         </div>
       </div>
     </footer>

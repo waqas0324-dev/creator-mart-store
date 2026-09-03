@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star } from 'lucide-react';
+import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle } from 'lucide-react';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
@@ -8,6 +8,7 @@ import { useCart } from '../context/CartContext';
 import { StarRating } from '../components/UI/StarRating';
 import { Badge } from '../components/UI/Badge';
 import { ProductCard } from '../components/Product/ProductCard';
+import { WHATSAPP_LINK } from '../lib/brand';
 
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
@@ -97,7 +98,7 @@ export function ProductDetail() {
 
             {/* Info */}
             <div>
-              <StarRating rating={product.rating} count={product.review_count} size="md" />
+              {product.review_count > 0 && <StarRating rating={product.rating} count={product.review_count} size="md" />}
               <h1 className="text-2xl font-black text-gray-900 mt-2 mb-3">{product.name}</h1>
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-3xl font-black text-orange-500">Rs. {product.price.toLocaleString()}</span>
@@ -139,9 +140,18 @@ export function ProductDetail() {
                   {added ? 'Added!' : 'Add to Cart'}
                 </button>
               </div>
-              <button onClick={() => { addItem(product, quantity); navigate('checkout'); }} className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-2.5 rounded-lg transition-colors mb-4">
+              <button onClick={() => { addItem(product, quantity); navigate('checkout'); }} className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-2.5 rounded-lg transition-colors mb-3">
                 Buy Now
               </button>
+              <a
+                href={`${WHATSAPP_LINK}?text=${encodeURIComponent(`Hi ABR Gadgets! I'd like to order:\n\n${product.name}\nPrice: Rs. ${product.price.toLocaleString()}\nQuantity: ${quantity}\n\nIs this available?`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition-colors mb-4"
+              >
+                <MessageCircle size={18} />
+                Order on WhatsApp
+              </a>
               <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 transition-colors mb-5">
                 <Heart size={16} />Add to Wishlist
               </button>
@@ -183,7 +193,7 @@ export function ProductDetail() {
                   {[
                     ['Category', product.categories?.name || 'General'],
                     ['Stock', `${product.stock} units`],
-                    ['Rating', `${product.rating}/5 (${product.review_count} reviews)`],
+                    ['Rating', product.review_count > 0 ? `${product.rating}/5 (${product.review_count} reviews)` : 'No reviews yet'],
                   ].map(([key, val]) => (
                     <tr key={key} className="border-b border-gray-100">
                       <td className="py-2 pr-8 font-semibold text-gray-900 w-40">{key}</td>

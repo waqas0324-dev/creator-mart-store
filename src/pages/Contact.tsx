@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle, MessageCircle } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
+import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '../lib/brand';
 
 export function Contact() {
   const { navigate } = useNavigation();
@@ -37,7 +38,7 @@ export function Contact() {
           <h1 className="text-4xl font-black mb-2">CONTACT US</h1>
           <p className="text-gray-400">We're here to help! Reach out anytime.</p>
           <a
-            href="https://wa.me/923245240920"
+            href={WHATSAPP_LINK}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 mt-4 bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl transition-colors"
@@ -60,8 +61,8 @@ export function Contact() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-900 mb-1">Phone / WhatsApp</p>
-                  <a href="tel:+923245240920" className="text-sm text-orange-500 font-semibold hover:underline">
-                    +92 324 5240920
+                  <a href={`tel:+92${WHATSAPP_NUMBER.slice(1)}`} className="text-sm text-orange-500 font-semibold hover:underline">
+                    +92 304 4454356
                   </a>
                   <p className="text-xs text-gray-400 mt-0.5">Available 10:30 AM – 8:00 PM</p>
                 </div>
@@ -139,7 +140,7 @@ export function Contact() {
                 <h3 className="text-xl font-black text-gray-900 mb-2">Message Sent!</h3>
                 <p className="text-gray-500 mb-4">Thank you for reaching out. We'll get back to you shortly.</p>
                 <a
-                  href="https://wa.me/923245240920"
+                  href={WHATSAPP_LINK}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl transition-colors text-sm mb-3"
@@ -207,7 +208,7 @@ export function Contact() {
                 </button>
                 <p className="text-center text-xs text-gray-400">
                   Or{' '}
-                  <a href="https://wa.me/923245240920" target="_blank" rel="noreferrer" className="text-green-600 font-semibold hover:underline">
+                  <a href={WHATSAPP_LINK} target="_blank" rel="noreferrer" className="text-green-600 font-semibold hover:underline">
                     chat directly on WhatsApp
                   </a>
                 </p>
