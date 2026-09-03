@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star } from 'lucide-react';
-import { onImageError } from '../lib/imageFallback';
+import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
 import { useCart } from '../context/CartContext';
-import { useCustomerAuth } from '../context/CustomerAuthContext';
+
 import { StarRating } from '../components/UI/StarRating';
 import { Badge } from '../components/UI/Badge';
 import { ProductCard } from '../components/Product/ProductCard';
@@ -13,7 +13,6 @@ export function ProductDetail() {
   const { nav, navigate } = useNavigation();
   const { product, loading } = useProduct(nav.productSlug || '');
   const { addItem } = useCart();
-  const { user } = useCustomerAuth();
   const { products: related } = useProducts({ categorySlug: product?.categories?.slug });
   const { reviews, loading: reviewsLoading, submitReview } = useReviews(product?.id || '');
   const [quantity, setQuantity] = useState(1);
@@ -83,13 +82,13 @@ export function ProductDetail() {
             {/* Images */}
             <div>
               <div className="bg-gray-50 rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
-                <img src={images[activeImage]} alt={product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="max-h-72 object-contain" />
+                <img src={resolveProductImage(images[activeImage])} alt={product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="max-h-72 object-contain" />
               </div>
               {images.length > 1 && (
                 <div className="flex gap-2">
                   {images.map((img, i) => (
                     <button key={i} onClick={() => setActiveImage(i)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${activeImage === i ? 'border-orange-500' : 'border-gray-200'}`}>
-                      <img src={img} alt="" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full object-cover" />
+                      <img src={resolveProductImage(img)} alt="" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -143,9 +142,6 @@ export function ProductDetail() {
               <button onClick={() => { addItem(product, quantity); navigate('checkout'); }} className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-2.5 rounded-lg transition-colors mb-4">
                 Buy Now
               </button>
-              {!user && (
-                <p className="text-xs text-gray-500 text-center mb-4">You'll need to sign in to complete your purchase</p>
-              )}
               <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 transition-colors mb-5">
                 <Heart size={16} />Add to Wishlist
               </button>

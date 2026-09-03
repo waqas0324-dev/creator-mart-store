@@ -3,7 +3,7 @@ import { Plus, Search, Pencil, Trash2, Star } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useAdminProducts } from '../../hooks/useProducts';
-import { onImageError } from '../../lib/imageFallback';
+import { onImageError, resolveProductImage } from '../../lib/imageFallback';
 
 export function AdminProducts() {
   const { navigate } = useNavigation();
@@ -55,7 +55,7 @@ export function AdminProducts() {
                     <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <img src={product.image_url} alt={product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
+                          <img src={resolveProductImage(product.image_url)} alt={product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-900 truncate max-w-[180px]">{product.name}</p>
                             {product.discount_percent && <span className="text-xs text-orange-500 font-bold">-{product.discount_percent}% OFF</span>}

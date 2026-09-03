@@ -112,16 +112,8 @@ export function Footer() {
       </div>
 
       <div className="border-t border-gray-700 py-4">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <p className="text-sm text-gray-500">&copy; 2024 ABR Shop. All rights reserved.</p>
-          {/* Hidden admin access */}
-          <button
-            onClick={() => navigate('admin-login')}
-            className="text-gray-700 hover:text-gray-500 text-xs transition-colors"
-            title="Admin"
-          >
-            &bull;
-          </button>
+        <div className="max-w-7xl mx-auto px-4">
+          <p className="text-sm text-gray-500 text-center">&copy; 2024 ABR Shop. All rights reserved.</p>
         </div>
       </div>
     </footer>

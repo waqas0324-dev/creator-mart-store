@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Package, Truck, CheckCircle, Clock, MapPin, ShoppingBag, Home as HomeIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '../context/NavigationContext';
-import { onImageError } from '../lib/imageFallback';
+import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import type { Order } from '../types';
 
 const statusSteps = [
@@ -245,7 +245,7 @@ export function TrackOrderPage() {
                     <div key={item.id} className="flex items-center gap-3 pb-3 last:pb-0 border-b border-gray-50 last:border-0">
                       {item.product_image && (
                         <img
-                          src={item.product_image}
+                          src={resolveProductImage(item.product_image)}
                           alt={item.product_name}
                           referrerPolicy="no-referrer"
                           onError={(e) => onImageError(e, item.product_name)}

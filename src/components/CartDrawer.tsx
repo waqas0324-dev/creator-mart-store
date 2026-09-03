@@ -1,7 +1,7 @@
 import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
-import { onImageError } from '../lib/imageFallback';
+import { onImageError, resolveProductImage } from '../lib/imageFallback';
 
 export function CartDrawer() {
   const { items, removeItem, updateQuantity, subtotal, totalItems, drawerOpen, closeDrawer } = useCart();
@@ -67,7 +67,7 @@ export function CartDrawer() {
               {items.map(item => (
                 <div key={item.product.id} className="flex gap-3 px-5 py-4 hover:bg-gray-50/50 transition-colors">
                   <img
-                    src={item.product.image_url}
+                    src={resolveProductImage(item.product.image_url)}
                     alt={item.product.name}
                     referrerPolicy="no-referrer"
                     onError={(e) => onImageError(e, item.product.name)}

@@ -5,7 +5,7 @@ import { useCategories } from '../hooks/useProducts';
 import { ProductCard } from '../components/Product/ProductCard';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types';
-import { onImageError } from '../lib/imageFallback';
+import { onImageError, resolveProductImage } from '../lib/imageFallback';
 
 const SORT_OPTIONS = [
   { label: 'Default sorting', value: 'default' },
@@ -111,7 +111,7 @@ export function Shop() {
         <div className="space-y-3">
           {topRated.map(product => (
             <button key={product.id} onClick={() => navigate('product', { productSlug: product.slug })} className="flex items-center gap-2 w-full hover:opacity-80 transition-opacity">
-              <img src={product.image_url} alt={product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-10 h-10 object-cover rounded flex-shrink-0" />
+              <img src={resolveProductImage(product.image_url)} alt={product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-10 h-10 object-cover rounded flex-shrink-0" />
               <div className="text-left flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-800 truncate">{product.name}</p>
                 <div className="flex">

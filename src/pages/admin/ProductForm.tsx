@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Save, ArrowLeft, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Save, ArrowLeft, Loader2, Upload, Link as LinkIcon } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
@@ -13,6 +13,7 @@ export function AdminProductForm() {
   const { nav, navigate } = useNavigation();
   const { categories } = useCategories();
   const isEdit = !!nav.adminProductId;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: '', slug: '', description: '', price: '', original_price: '', category_id: '',
@@ -23,6 +24,8 @@ export function AdminProductForm() {
   const [fetchLoading, setFetchLoading] = useState(isEdit);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
 
   useEffect(() => {
     if (!isEdit || !nav.adminProductId) return;
@@ -37,6 +40,7 @@ export function AdminProductForm() {
           stock: String(p.stock), is_featured: p.is_featured, is_bestseller: p.is_bestseller,
           discount_percent: String(p.discount_percent || ''),
         });
+        if (p.image_url) setImageMode('url');
       }
       setFetchLoading(false);
     });
@@ -44,11 +48,47 @@ export function AdminProductForm() {
 
   const update = (field: string, value: string | boolean) => setForm(prev => ({ ...prev, [field]: value }));
 
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, image_url: 'Please select an image file' }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, image_url: 'Image must be under 5MB' }));
+      return;
+    }
+
+    setUploading(true);
+    setErrors(prev => { const { image_url, ...rest } = prev; return rest; });
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filePath = `products/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+    if (uploadError) {
+      setErrors(prev => ({ ...prev, image_url: 'Upload failed. Please try again.' }));
+      setUploading(false);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    update('image_url', publicUrl);
+    setUploading(false);
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Product name is required';
     if (!form.price || isNaN(Number(form.price))) e.price = 'Valid price is required';
-    if (!form.image_url.trim()) e.image_url = 'Image URL is required';
+    if (!form.image_url.trim()) e.image_url = 'Image is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -145,17 +185,67 @@ export function AdminProductForm() {
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Media</h3>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Image URL <span className="text-red-500">*</span></label>
-              <input type="text" value={form.image_url} onChange={e => update('image_url', e.target.value)} className={inputCls('image_url')} placeholder="https://images.pexels.com/..." />
-              {errors.image_url && <p className="text-red-500 text-xs mt-1">{errors.image_url}</p>}
-              {form.image_url && (
-                <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-                  <img src={form.image_url} alt="Preview" referrerPolicy="no-referrer" onError={(e) => onImageError(e, 'Preview')} className="w-full h-full object-cover" />
-                </div>
-              )}
+            <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Product Image</h3>
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setImageMode('upload')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${imageMode === 'upload' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <Upload size={14} /> Upload
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageMode('url')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${imageMode === 'url' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <LinkIcon size={14} /> URL
+              </button>
             </div>
+
+            {imageMode === 'upload' ? (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-xl py-8 flex flex-col items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                >
+                  {uploading ? (
+                    <><Loader2 size={24} className="animate-spin text-orange-500" /><span className="text-sm font-semibold text-gray-600">Uploading...</span></>
+                  ) : (
+                    <><Upload size={24} className="text-gray-400" /><span className="text-sm font-semibold text-gray-600">Click to upload image</span><span className="text-xs text-gray-400">JPG, PNG, WebP up to 5MB</span></>
+                  )}
+                </button>
+                {form.image_url && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                      <img src={form.image_url} alt="Preview" onError={(e) => onImageError(e, 'Preview')} className="w-full h-full object-cover" />
+                    </div>
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm text-orange-500 hover:text-orange-600 font-semibold">Change</button>
+                  </div>
+                )}
+                {errors.image_url && <p className="text-red-500 text-xs mt-1">{errors.image_url}</p>}
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Image URL <span className="text-red-500">*</span></label>
+                <input type="text" value={form.image_url} onChange={e => update('image_url', e.target.value)} className={inputCls('image_url')} placeholder="https://images.pexels.com/..." />
+                {errors.image_url && <p className="text-red-500 text-xs mt-1">{errors.image_url}</p>}
+                {form.image_url && (
+                  <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                    <img src={form.image_url} alt="Preview" onError={(e) => onImageError(e, 'Preview')} className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">

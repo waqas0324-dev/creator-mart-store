@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Trash2, Eye, X } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useOrders } from '../../hooks/useOrders';
-import { onImageError } from '../../lib/imageFallback';
+import { onImageError, resolveProductImage } from '../../lib/imageFallback';
 import type { Order } from '../../types';
 
 const ORDER_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -127,7 +127,7 @@ export function AdminOrders() {
                 <div className="space-y-2">
                   {viewOrder.order_items.map(item => (
                     <div key={item.id} className="flex items-center gap-3">
-                      {item.product_image && <img src={item.product_image} alt="" referrerPolicy="no-referrer" onError={(e) => onImageError(e, item.product_name)} className="w-10 h-10 object-cover rounded-lg" />}
+                      {item.product_image && <img src={resolveProductImage(item.product_image)} alt="" referrerPolicy="no-referrer" onError={(e) => onImageError(e, item.product_name)} className="w-10 h-10 object-cover rounded-lg" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-800 truncate">{item.product_name}</p>
                         <p className="text-xs text-gray-500">Rs. {item.price.toLocaleString()} x {item.quantity}</p>
