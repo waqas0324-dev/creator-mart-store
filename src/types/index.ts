@@ -47,7 +47,9 @@ export interface Order {
   total: number;
   status: string;
   coupon_code: string | null;
+  advance_amount: number;
   notes: string | null;
+  owner_note: string | null;
   created_at: string;
   order_items?: OrderItem[];
 }
@@ -62,6 +64,37 @@ export interface OrderItem {
   quantity: number;
   subtotal: number;
   created_at: string;
+}
+
+export interface SiteSettings {
+  id: number;
+  hero_eyebrow: string;
+  hero_title: string;
+  hero_title_accent: string;
+  hero_subtitle_1: string;
+  hero_subtitle_2: string;
+  hero_image_url: string;
+  hero_badge_text: string;
+  trust_item_1: string;
+  trust_item_2: string;
+  trust_item_3: string;
+  logo_url: string | null;
+  logo_size: 'sm' | 'md' | 'lg' | 'xl';
+  shipping_fee: number;
+  advance_flat_amount: number;
+  advance_threshold: number;
+  advance_percent: number;
+  full_advance_discount_percent: number;
+  bank_title: string;
+  bank_account_number: string;
+  bank_name: string;
+  wallet_name: string;
+  wallet_number: string;
+  payment_support_hours: string;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  youtube_url: string | null;
 }
 
 export interface PendingOrder {
@@ -82,16 +115,23 @@ export type Page =
   | 'shop'
   | 'product'
   | 'cart'
+  | 'wishlist'
   | 'checkout'
   | 'payment'
   | 'order-success'
   | 'track-order'
-  | 'flash-deals'
   | 'new-arrivals'
   | 'best-sellers'
   | 'contact'
+  | 'about'
+  | 'return-policy'
+  | 'privacy-policy'
   | 'admin'
   | 'admin-login'
   | 'admin-products'
+  | 'admin-categories'
   | 'admin-orders'
-  | 'admin-product-form';
+  | 'admin-settings'
+  | 'admin-product-form'
+  | 'dev-login'
+  | 'dev-panel';

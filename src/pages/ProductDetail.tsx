@@ -4,16 +4,18 @@ import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 
 import { StarRating } from '../components/UI/StarRating';
 import { Badge } from '../components/UI/Badge';
 import { ProductCard } from '../components/Product/ProductCard';
-import { WHATSAPP_LINK } from '../lib/brand';
+import { WHATSAPP_LINK, BRAND_NAME } from '../lib/brand';
 
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
   const { product, loading } = useProduct(nav.productSlug || '');
   const { addItem } = useCart();
+  const { toggleItem, isInWishlist } = useWishlist();
   const { products: related } = useProducts({ categorySlug: product?.categories?.slug });
   const { reviews, loading: reviewsLoading, submitReview } = useReviews(product?.id || '');
   const [quantity, setQuantity] = useState(1);
@@ -109,9 +111,15 @@ export function ProductDetail() {
                   </>
                 )}
               </div>
-              <p className={`text-sm font-semibold mb-4 ${product.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
+              <p className={`text-sm font-semibold mb-1 ${product.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
                 {product.stock > 0 ? '● In Stock' : '● Out of Stock'}
               </p>
+              {product.stock > 0 && product.stock <= 10 && (
+                <p className="text-sm font-bold text-orange-600 mb-4 animate-pulse">
+                  Only {product.stock} left — order soon!
+                </p>
+              )}
+              {(product.stock === 0 || product.stock > 10) && <div className="mb-4" />}
               <ul className="space-y-1 mb-5">
                 {product.description?.split('.').filter(s => s.trim().length > 10).slice(0, 4).map((point, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
@@ -144,7 +152,7 @@ export function ProductDetail() {
                 Buy Now
               </button>
               <a
-                href={`${WHATSAPP_LINK}?text=${encodeURIComponent(`Hi ABR Gadgets! I'd like to order:\n\n${product.name}\nPrice: Rs. ${product.price.toLocaleString()}\nQuantity: ${quantity}\n\nIs this available?`)}`}
+                href={`${WHATSAPP_LINK}?text=${encodeURIComponent(`Hi ${BRAND_NAME}! I'd like to order:\n\n${product.name}\nPrice: Rs. ${product.price.toLocaleString()}\nQuantity: ${quantity}\n\nIs this available?`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition-colors mb-4"
@@ -152,8 +160,12 @@ export function ProductDetail() {
                 <MessageCircle size={18} />
                 Order on WhatsApp
               </a>
-              <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 transition-colors mb-5">
-                <Heart size={16} />Add to Wishlist
+              <button
+                onClick={() => toggleItem(product)}
+                className={`flex items-center gap-2 text-sm transition-colors mb-5 ${isInWishlist(product.id) ? 'text-orange-500 font-semibold' : 'text-gray-600 hover:text-orange-500'}`}
+              >
+                <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                {isInWishlist(product.id) ? 'Added to Wishlist' : 'Add to Wishlist'}
               </button>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-gray-100">

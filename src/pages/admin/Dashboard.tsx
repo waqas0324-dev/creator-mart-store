@@ -3,15 +3,8 @@ import { Package, ShoppingBag, DollarSign, TrendingUp, Plus } from 'lucide-react
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { supabase } from '../../lib/supabase';
+import { STATUS_COLORS, STATUS_LABELS } from '../../lib/orderStatus';
 import type { Order } from '../../types';
-
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  processing: 'bg-blue-100 text-blue-700',
-  shipped: 'bg-purple-100 text-purple-700',
-  delivered: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-700',
-};
 
 export function AdminDashboard() {
   const { navigate } = useNavigation();
@@ -21,18 +14,18 @@ export function AdminDashboard() {
 
   useEffect(() => {
     const fetch = async () => {
-      const [{ count: products }, { data: orderData }] = await Promise.all([
+      const [{ count: products }, { data: allOrdersData }] = await Promise.all([
         supabase.from('products').select('*', { count: 'exact', head: true }),
-        supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(5),
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
       ]);
-      const orders = (orderData as Order[]) || [];
+      const allOrders = (allOrdersData as Order[]) || [];
       setStats({
         totalProducts: products || 0,
-        totalOrders: orders.length,
-        totalRevenue: orders.reduce((s, o) => s + o.total, 0),
-        pendingOrders: orders.filter(o => o.status === 'pending').length,
+        totalOrders: allOrders.length,
+        totalRevenue: allOrders.reduce((s, o) => s + o.total, 0),
+        pendingOrders: allOrders.filter(o => o.status === 'new').length,
       });
-      setRecentOrders(orders);
+      setRecentOrders(allOrders.slice(0, 5));
       setLoading(false);
     };
     fetch();
@@ -42,7 +35,7 @@ export function AdminDashboard() {
     { label: 'Total Products', value: stats.totalProducts, Icon: Package, color: 'bg-blue-50 text-blue-600' },
     { label: 'Total Orders', value: stats.totalOrders, Icon: ShoppingBag, color: 'bg-orange-50 text-orange-600' },
     { label: 'Revenue', value: `Rs. ${stats.totalRevenue.toLocaleString()}`, Icon: DollarSign, color: 'bg-green-50 text-green-600' },
-    { label: 'Pending Orders', value: stats.pendingOrders, Icon: TrendingUp, color: 'bg-yellow-50 text-yellow-600' },
+    { label: 'New Orders', value: stats.pendingOrders, Icon: TrendingUp, color: 'bg-yellow-50 text-yellow-600' },
   ];
 
   return (
@@ -101,8 +94,8 @@ export function AdminDashboard() {
                       <td className="px-4 py-3 font-semibold">{order.customer_name}</td>
                       <td className="px-4 py-3 font-bold">Rs. {order.total.toLocaleString()}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded capitalize ${statusColors[order.status] || 'bg-gray-100 text-gray-700'}`}>
-                          {order.status}
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-700'}`}>
+                          {STATUS_LABELS[order.status] || order.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-500">{new Date(order.created_at).toLocaleDateString()}</td>

@@ -20,6 +20,9 @@ export function AdminProductForm() {
     image_url: '', rating: '4.0', review_count: '0', stock: '100',
     is_featured: false, is_bestseller: false, discount_percent: '',
   });
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(isEdit);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,6 +44,7 @@ export function AdminProductForm() {
           discount_percent: String(p.discount_percent || ''),
         });
         if (p.image_url) setImageMode('url');
+        setGalleryImages(Array.isArray(p.images) ? p.images : []);
       }
       setFetchLoading(false);
     });
@@ -60,7 +64,7 @@ export function AdminProductForm() {
     }
 
     setUploading(true);
-    setErrors(prev => { const { image_url, ...rest } = prev; return rest; });
+    setErrors(prev => { const { image_url: _unused, ...rest } = prev; return rest; });
 
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -84,6 +88,28 @@ export function AdminProductForm() {
     setUploading(false);
   };
 
+  const handleGalleryUpload = async (files: FileList) => {
+    setGalleryUploading(true);
+    const uploaded: string[] = [];
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) continue;
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const filePath = `products/${fileName}`;
+      const { error } = await supabase.storage.from('product-images').upload(filePath, file, { cacheControl: '3600', upsert: false });
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
+        uploaded.push(publicUrl);
+      }
+    }
+    setGalleryImages(prev => [...prev, ...uploaded]);
+    setGalleryUploading(false);
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setGalleryImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Product name is required';
@@ -103,6 +129,7 @@ export function AdminProductForm() {
       description: form.description.trim(), price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null, image_url: form.image_url.trim(),
+      images: galleryImages,
       rating: Number(form.rating), review_count: Number(form.review_count),
       stock: Number(form.stock), is_featured: form.is_featured, is_bestseller: form.is_bestseller,
       discount_percent: form.discount_percent ? Number(form.discount_percent) : null,
@@ -246,6 +273,51 @@ export function AdminProductForm() {
                 )}
               </div>
             )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Additional Photos (Gallery)</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Add more angles/photos of this product — shown as thumbnails on the product page.</p>
+            </div>
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={e => { if (e.target.files && e.target.files.length > 0) handleGalleryUpload(e.target.files); }}
+            />
+            <div className="flex flex-wrap gap-3">
+              {galleryImages.map((img, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 group">
+                  <img src={img} alt={`Gallery ${i + 1}`} onError={(e) => onImageError(e, 'Preview')} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeGalleryImage(i)}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-xs transition-colors"
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={galleryUploading}
+                className="w-20 h-20 border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors disabled:opacity-50"
+              >
+                {galleryUploading ? (
+                  <Loader2 size={18} className="animate-spin text-orange-500" />
+                ) : (
+                  <>
+                    <Upload size={16} className="text-gray-400" />
+                    <span className="text-[10px] text-gray-400 font-semibold">Add</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">

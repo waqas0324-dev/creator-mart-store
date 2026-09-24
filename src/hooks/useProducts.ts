@@ -83,13 +83,14 @@ export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase
+  const fetchCategories = () => {
+    setLoading(true);
+    return supabase
       .from('categories')
       .select('*, products(id)')
       .order('name')
       .then(({ data }) => {
-        const mapped = (data || []).map((cat: any) => ({
+        const mapped = (data || []).map((cat: Category & { products?: { id: string }[] }) => ({
           ...cat,
           product_count: Array.isArray(cat.products) ? cat.products.length : 0,
         }));
@@ -97,9 +98,29 @@ export function useCategories() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  };
 
-  return { categories, loading };
+  useEffect(() => { fetchCategories(); }, []);
+
+  const addCategory = async (payload: { name: string; slug: string; image_url: string }) => {
+    const { error } = await supabase.from('categories').insert(payload);
+    await fetchCategories();
+    return error?.message || null;
+  };
+
+  const updateCategory = async (id: string, payload: Partial<{ name: string; slug: string; image_url: string }>) => {
+    const { error } = await supabase.from('categories').update(payload).eq('id', id);
+    await fetchCategories();
+    return error?.message || null;
+  };
+
+  const deleteCategory = async (id: string) => {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    await fetchCategories();
+    return error?.message || null;
+  };
+
+  return { categories, loading, refetch: fetchCategories, addCategory, updateCategory, deleteCategory };
 }
 
 export interface Review {
@@ -136,7 +157,7 @@ export function useReviews(productId: string) {
       // update product rating & review_count
       const all = await supabase.from('reviews').select('rating').eq('product_id', productId);
       if (all.data) {
-        const avg = all.data.reduce((s: number, r: any) => s + r.rating, 0) / all.data.length;
+        const avg = all.data.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / all.data.length;
         await supabase.from('products').update({ rating: Math.round(avg * 10) / 10, review_count: all.data.length }).eq('id', productId);
       }
     }

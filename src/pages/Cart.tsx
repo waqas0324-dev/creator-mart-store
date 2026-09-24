@@ -1,5 +1,4 @@
-import { Minus, Plus, X, ShoppingBag, Tag } from 'lucide-react';
-import { useState } from 'react';
+import { Minus, Plus, X, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
@@ -7,7 +6,6 @@ import { onImageError, resolveProductImage } from '../lib/imageFallback';
 export function Cart() {
   const { items, removeItem, updateQuantity, subtotal } = useCart();
   const { navigate } = useNavigation();
-  const [coupon, setCoupon] = useState('');
   const total = subtotal;
 
   if (items.length === 0) {
@@ -82,13 +80,6 @@ export function Cart() {
                   </div>
                 </div>
               ))}
-              <div className="flex items-center gap-3 px-4 py-4 border-t border-gray-100">
-                <div className="flex flex-1 items-center border border-gray-200 rounded-lg overflow-hidden">
-                  <Tag size={14} className="ml-3 text-gray-400" />
-                  <input type="text" placeholder="Coupon Code" value={coupon} onChange={e => setCoupon(e.target.value)} className="flex-1 px-3 py-2 text-sm outline-none" />
-                </div>
-                <button className="bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">Apply Coupon</button>
-              </div>
             </div>
           </div>
 

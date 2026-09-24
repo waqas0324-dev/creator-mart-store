@@ -1,9 +1,21 @@
-import { Phone, Mail, MapPin, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook, Instagram, Youtube } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
-import { BRAND_LOGO, WHATSAPP_LINK, WHATSAPP_NUMBER } from '../../lib/brand';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { WHATSAPP_LINK, WHATSAPP_NUMBER, BRAND_NAME } from '../../lib/brand';
+import { Logo } from '../UI/Logo';
+import { WhatsAppIcon } from '../UI/WhatsAppIcon';
+import { TikTokIcon } from '../UI/TikTokIcon';
 
 export function Footer() {
   const { navigate } = useNavigation();
+  const { settings } = useSiteSettings();
+
+  const socialLinks = [
+    { url: settings.facebook_url, Icon: Facebook, label: 'Facebook' },
+    { url: settings.instagram_url, Icon: Instagram, label: 'Instagram' },
+    { url: settings.tiktok_url, Icon: TikTokIcon, label: 'TikTok' },
+    { url: settings.youtube_url, Icon: Youtube, label: 'YouTube' },
+  ].filter(s => s.url);
 
   return (
     <footer className="bg-gray-900 text-gray-300">
@@ -27,20 +39,27 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Brand */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <img src={BRAND_LOGO} alt="ABR Gadgets" className="w-40 h-16 object-contain mix-blend-screen" />
+          <div className="mb-4">
+            <Logo size="lg" showTagline={false} />
           </div>
           <p className="text-sm text-gray-400 mb-4">
             Pakistan's No.1 Creator Store. Premium quality products for content creators delivered nationwide.
           </p>
           <div className="flex gap-3">
             <a href={WHATSAPP_LINK} target="_blank" rel="noreferrer" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
-              <MessageCircle size={14} />
+              <WhatsAppIcon size={14} />
             </a>
-            {[Facebook, Instagram, Youtube].map((Icon, i) => (
-              <button key={i} className="w-8 h-8 bg-gray-700 hover:bg-orange-500 rounded-full flex items-center justify-center transition-colors">
+            {socialLinks.map(({ url, Icon, label }) => (
+              <a
+                key={label}
+                href={url!}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={label}
+                className="w-8 h-8 bg-gray-700 hover:bg-orange-500 rounded-full flex items-center justify-center transition-colors"
+              >
                 <Icon size={14} />
-              </button>
+              </a>
             ))}
           </div>
         </div>
@@ -52,10 +71,12 @@ export function Footer() {
             {[
               { label: 'Home', page: 'home' as const },
               { label: 'Shop', page: 'shop' as const },
-              { label: 'Flash Deals', page: 'flash-deals' as const },
               { label: 'New Arrivals', page: 'new-arrivals' as const },
               { label: 'Best Sellers', page: 'best-sellers' as const },
               { label: 'Contact Us', page: 'contact' as const },
+              { label: 'About Us', page: 'about' as const },
+              { label: 'Return & Refund Policy', page: 'return-policy' as const },
+              { label: 'Privacy Policy', page: 'privacy-policy' as const },
             ].map(link => (
               <li key={link.label}>
                 <button
@@ -96,7 +117,7 @@ export function Footer() {
             </li>
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <Mail size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
-              <a href="mailto:info@creatormart.pk" className="hover:text-orange-400 transition-colors">info@creatormart.pk</a>
+              <a href="mailto:info@abrgadgets.pk" className="hover:text-orange-400 transition-colors">info@abrgadgets.pk</a>
             </li>
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <MapPin size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
@@ -108,7 +129,7 @@ export function Footer() {
 
       <div className="border-t border-gray-700 py-4">
         <div className="max-w-7xl mx-auto px-4">
-          <p className="text-sm text-gray-500 text-center">&copy; 2026 ABR Gadgets. All rights reserved.</p>
+          <p className="text-sm text-gray-500 text-center">&copy; 2026 {BRAND_NAME}. All rights reserved.</p>
         </div>
       </div>
     </footer>

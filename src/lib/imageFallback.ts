@@ -1,4 +1,4 @@
-const FALLBACK = 'https://images.pexels.com/photos/1212829/pexels-photo-1212829.jpeg?auto=compress&cs=tinysrgb&h=650&w=940';
+const FALLBACK = '/images/placeholder.jpg';
 
 export function resolveProductImage(url: string | null | undefined): string {
   if (!url) return FALLBACK;

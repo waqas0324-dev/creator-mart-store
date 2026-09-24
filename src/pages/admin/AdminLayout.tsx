@@ -1,8 +1,8 @@
-import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X, type LucideIcon, Store, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X, type LucideIcon, Store, Loader2, Tags } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { adminLogout, syncAdminSession } from '../../lib/adminAuth';
-import { BRAND_LOGO } from '../../lib/brand';
+import { Logo } from '../../components/UI/Logo';
 import type { Page } from '../../types';
 
 interface AdminLayoutProps {
@@ -12,6 +12,7 @@ interface AdminLayoutProps {
 const NAV_ITEMS: { label: string; icon: LucideIcon; page: Page }[] = [
   { label: 'Dashboard', icon: LayoutDashboard, page: 'admin' },
   { label: 'Products', icon: Package, page: 'admin-products' },
+  { label: 'Categories', icon: Tags, page: 'admin-categories' },
   { label: 'Orders', icon: ShoppingBag, page: 'admin-orders' },
 ];
 
@@ -50,7 +51,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <aside className={`fixed inset-y-0 left-0 z-50 w-60 bg-gray-900 text-white flex flex-col transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
-            <img src={BRAND_LOGO} alt="ABR Gadgets" className="w-28 h-10 object-contain mix-blend-screen" />
+            <Logo size="sm" showTagline={false} />
           </div>
           <button className="md:hidden text-gray-400" onClick={() => setSidebarOpen(false)}><X size={18} /></button>
         </div>

@@ -1,28 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, ShoppingCart, Heart, Package, ChevronDown, Menu, X } from 'lucide-react';
+import { Search, ShoppingCart, Heart, Package, ChevronDown, Menu, X, LayoutGrid } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
 import { TrackOrderModal } from '../TrackOrderModal';
 import { AnnouncementBar } from './AnnouncementBar';
 import type { Page } from '../../types';
-import { BRAND_LOGO } from '../../lib/brand';
+import { Logo } from '../UI/Logo';
 
+// Below `lg` (1024px) — phones AND tablets — everything collapses into the
+// hamburger menu. Only screens 1024px+ get the full desktop nav bar.
 const NAV_LINKS: { label: string; page: Page }[] = [
   { label: 'Home', page: 'home' },
   { label: 'Shop', page: 'shop' },
-  { label: 'Flash Deals', page: 'flash-deals' },
   { label: 'New Arrivals', page: 'new-arrivals' },
   { label: 'Best Sellers', page: 'best-sellers' },
-  { label: 'Contact Us', page: 'contact' },
 ];
 
 export function Navbar() {
   const { totalItems, openDrawer } = useCart();
+  const { totalItems: wishlistCount } = useWishlist();
   const { nav, navigate } = useNavigation();
   const { categories } = useCategories();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileCatOpen, setMobileCatOpen] = useState(false);
   const [catDropdownOpen, setCatDropdownOpen] = useState(false);
   const [trackOrderOpen, setTrackOrderOpen] = useState(false);
   const catDropdownRef = useRef<HTMLDivElement>(null);
@@ -37,6 +40,16 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close the mobile menu automatically if the window is resized past the
+  // tablet breakpoint (e.g. rotating a tablet, or a device toolbar resize).
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) setMobileOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -44,11 +57,14 @@ export function Navbar() {
     } else {
       navigate('shop');
     }
+    setMobileOpen(false);
   };
 
   const handleCategorySelect = (slug: string) => {
     navigate('shop', { categorySlug: slug });
     setCatDropdownOpen(false);
+    setMobileCatOpen(false);
+    setMobileOpen(false);
   };
 
   const isActive = (page: Page) => nav.page === page;
@@ -56,21 +72,22 @@ export function Navbar() {
   return (
     <>
     <header className="sticky top-0 z-50 bg-[#111827] shadow-lg border-b border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 py-3">
-        <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
-            className="flex items-center cursor-pointer flex-shrink-0 rounded-xl overflow-hidden focus:outline-none focus:ring-2 focus:ring-orange-400"
+            className="flex items-center cursor-pointer flex-shrink-0 focus:outline-none"
             onClick={() => navigate('home')}
             aria-label="ABR Gadgets home"
           >
-            <img src={BRAND_LOGO} alt="ABR Gadgets" className="w-28 sm:w-36 h-12 object-contain mix-blend-screen" />
+            <Logo size="sm" className="sm:hidden" showTagline={false} />
+            <Logo size="md" className="hidden sm:block" showTagline={false} />
           </button>
 
-          {/* Category Dropdown */}
-          <div className="hidden md:block relative" ref={catDropdownRef}>
+          {/* Category Dropdown — desktop/laptop only (1024px+) */}
+          <div className="hidden lg:block relative flex-shrink-0" ref={catDropdownRef}>
             <button
               onClick={() => setCatDropdownOpen(!catDropdownOpen)}
-              className="flex items-center gap-1 border border-gray-700 rounded-l-lg px-3 py-2 bg-gray-800 hover:bg-gray-700 transition-colors flex-shrink-0 text-sm text-gray-200"
+              className="flex items-center gap-1 border border-gray-700 rounded-l-lg px-3 py-2 bg-gray-800 hover:bg-gray-700 transition-colors text-sm text-gray-200 whitespace-nowrap"
             >
               <span>All Categories</span>
               <ChevronDown size={14} className={`transition-transform ${catDropdownOpen ? 'rotate-180' : ''}`} />
@@ -97,39 +114,51 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Search */}
-          <form onSubmit={handleSearch} className="flex-1 flex">
+          {/* Search — grows on small screens, capped on wide desktops so it doesn't stretch the whole row */}
+          <form onSubmit={handleSearch} className="flex-1 max-w-xl flex min-w-0">
             <input
               type="text"
-              placeholder="Search for products..."
+              placeholder="Search products..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 border border-gray-700 border-r-0 rounded-l-lg md:rounded-l-none px-4 py-2 text-sm outline-none bg-gray-800 text-white placeholder-gray-400 focus:border-orange-400"
+              className="flex-1 min-w-0 border border-gray-700 border-r-0 rounded-l-lg lg:rounded-l-none px-3 sm:px-4 py-2 text-sm outline-none bg-gray-800 text-white placeholder-gray-400 focus:border-orange-400"
             />
             <button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-r-lg text-sm font-semibold transition-colors flex items-center gap-2"
+              aria-label="Search"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-5 py-2 rounded-r-lg text-sm font-semibold transition-colors flex items-center gap-2 flex-shrink-0"
             >
               <Search size={16} />
-              <span className="hidden sm:inline">Search</span>
+              <span className="hidden md:inline">Search</span>
             </button>
           </form>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3">
+          {/* Actions — full icon row only on desktop/laptop (1024px+) */}
+          <div className="flex items-center gap-3 flex-shrink-0 ml-auto lg:ml-0">
             <button
               onClick={() => setTrackOrderOpen(true)}
-              className="hidden md:flex flex-col items-center text-gray-300 hover:text-orange-400 transition-colors text-xs"
+              className="hidden lg:flex flex-col items-center text-gray-300 hover:text-orange-400 transition-colors text-xs"
             >
               <Package size={20} />
-              <span>Track</span>
+              <span>Track Order</span>
             </button>
-            <button className="hidden md:flex flex-col items-center text-gray-300 hover:text-orange-400 transition-colors text-xs">
-              <Heart size={20} />
+            <button
+              onClick={() => navigate('wishlist')}
+              className="hidden lg:flex flex-col items-center text-gray-300 hover:text-orange-400 transition-colors text-xs relative"
+            >
+              <div className="relative">
+                <Heart size={20} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {wishlistCount}
+                  </span>
+                )}
+              </div>
               <span>Wishlist</span>
             </button>
             <button
               onClick={openDrawer}
+              aria-label="Cart"
               className="flex flex-col items-center text-gray-300 hover:text-orange-400 transition-colors text-xs relative"
             >
               <div className="relative">
@@ -140,10 +169,11 @@ export function Navbar() {
                   </span>
                 )}
               </div>
-              <span>Cart</span>
+              <span className="hidden sm:inline">Cart</span>
             </button>
             <button
-              className="md:hidden text-gray-200"
+              className="lg:hidden text-gray-200"
+              aria-label="Menu"
               onClick={() => setMobileOpen(!mobileOpen)}
             >
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
@@ -152,42 +182,100 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Desktop Nav Links */}
-      <nav className="bg-[#111827] border-t border-gray-800 hidden md:block">
-        <div className="max-w-7xl mx-auto px-4 flex items-center overflow-x-auto">
+      {/* Desktop/Laptop Nav Links (1024px+) */}
+      <nav className="bg-[#111827] border-t border-gray-800 hidden lg:block">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-1">
           {NAV_LINKS.map(link => (
             <button
               key={link.page}
               onClick={() => navigate(link.page)}
-              className={`py-3 px-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+              className={`py-3 px-5 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${
                 isActive(link.page)
                   ? 'border-orange-500 text-orange-400'
-                  : 'border-transparent text-gray-300 hover:text-orange-400'
+                  : 'border-transparent text-gray-200 hover:text-orange-400'
               }`}
             >
               {link.label}
             </button>
           ))}
+          <button
+            onClick={() => navigate('contact')}
+            className={`py-3 px-5 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+              isActive('contact')
+                ? 'border-orange-500 text-orange-400'
+                : 'border-transparent text-gray-200 hover:text-orange-400'
+            }`}
+          >
+            Contact Us
+          </button>
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile + Tablet Menu (below 1024px) — has EVERYTHING: nav links,
+          category browsing, wishlist, track order, contact, cart */}
       {mobileOpen && (
-        <div className="md:hidden bg-[#111827] border-t border-gray-800 px-4 py-3 flex flex-col gap-2">
+        <div className="lg:hidden bg-[#111827] border-t border-gray-800 px-4 py-3 flex flex-col gap-1 max-h-[75vh] overflow-y-auto">
           {NAV_LINKS.map(link => (
             <button
               key={link.page}
               onClick={() => { navigate(link.page); setMobileOpen(false); }}
-              className={`text-left text-sm font-semibold py-2 border-b border-gray-800 transition-colors ${isActive(link.page) ? 'text-orange-400' : 'text-gray-200 hover:text-orange-400'}`}
+              className={`text-left text-sm font-semibold py-2.5 border-b border-gray-800 transition-colors ${isActive(link.page) ? 'text-orange-400' : 'text-gray-200 hover:text-orange-400'}`}
             >
               {link.label}
             </button>
           ))}
+
+          {/* Category browsing */}
+          <div className="border-b border-gray-800">
+            <button
+              onClick={() => setMobileCatOpen(v => !v)}
+              className="w-full flex items-center justify-between text-left text-sm font-semibold py-2.5 text-gray-200 hover:text-orange-400 transition-colors"
+            >
+              <span className="flex items-center gap-2"><LayoutGrid size={16} /> Categories</span>
+              <ChevronDown size={16} className={`transition-transform ${mobileCatOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {mobileCatOpen && (
+              <div className="pb-2 pl-6 flex flex-col gap-1.5">
+                <button onClick={() => handleCategorySelect('')} className="text-left text-sm text-gray-400 hover:text-orange-400 py-1 transition-colors">
+                  All Categories
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat.slug)}
+                    className="text-left text-sm text-gray-400 hover:text-orange-400 py-1 flex items-center justify-between transition-colors"
+                  >
+                    <span>{cat.name}</span>
+                    <span className="text-xs text-gray-500">({cat.product_count})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => { setTrackOrderOpen(true); setMobileOpen(false); }}
+            className="flex items-center gap-2 text-left text-sm font-semibold py-2.5 border-b border-gray-800 text-gray-200 hover:text-orange-400 transition-colors"
+          >
+            <Package size={16} /> Track Order
+          </button>
+          <button
+            onClick={() => { navigate('wishlist'); setMobileOpen(false); }}
+            className="flex items-center gap-2 text-left text-sm font-semibold py-2.5 border-b border-gray-800 text-gray-200 hover:text-orange-400 transition-colors"
+          >
+            <Heart size={16} /> Wishlist{wishlistCount > 0 ? ` (${wishlistCount})` : ''}
+          </button>
+          <button
+            onClick={() => { navigate('contact'); setMobileOpen(false); }}
+            className={`text-left text-sm font-semibold py-2.5 border-b border-gray-800 transition-colors ${isActive('contact') ? 'text-orange-400' : 'text-gray-200 hover:text-orange-400'}`}
+          >
+            Contact Us
+          </button>
           <button
             onClick={() => { navigate('cart'); setMobileOpen(false); }}
-            className="text-left text-sm font-semibold text-gray-200 hover:text-orange-400 py-2"
+            className="flex items-center gap-2 text-left text-sm font-semibold text-gray-200 hover:text-orange-400 py-2.5"
           >
-            Cart ({totalItems})
+            <ShoppingCart size={16} /> Cart ({totalItems})
           </button>
         </div>
       )}

@@ -13,8 +13,12 @@ export function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.name.trim() || !form.message.trim()) return;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
+
+    const text = `New Contact Form Message\n\nName: ${form.name}\nPhone: ${form.phone || '-'}\nEmail: ${form.email || '-'}\nSubject: ${form.subject || '-'}\n\nMessage:\n${form.message}`;
+    window.open(`${WHATSAPP_LINK}?text=${encodeURIComponent(text)}`, '_blank');
+
     setLoading(false);
     setSubmitted(true);
   };
@@ -74,9 +78,9 @@ export function Contact() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-900 mb-1">Email</p>
-                  <a href="mailto:info@creatormart.pk" className="text-sm text-blue-500 hover:underline">info@creatormart.pk</a>
+                  <a href="mailto:info@abrgadgets.pk" className="text-sm text-blue-500 hover:underline">info@abrgadgets.pk</a>
                   <br />
-                  <a href="mailto:support@creatormart.pk" className="text-sm text-blue-500 hover:underline">support@creatormart.pk</a>
+                  <a href="mailto:support@abrgadgets.pk" className="text-sm text-blue-500 hover:underline">support@abrgadgets.pk</a>
                 </div>
               </div>
 
@@ -138,7 +142,7 @@ export function Contact() {
                   <CheckCircle size={32} className="text-green-500" />
                 </div>
                 <h3 className="text-xl font-black text-gray-900 mb-2">Message Sent!</h3>
-                <p className="text-gray-500 mb-4">Thank you for reaching out. We'll get back to you shortly.</p>
+                <p className="text-gray-500 mb-4">WhatsApp has opened with your message ready — just hit send there to reach us.</p>
                 <a
                   href={WHATSAPP_LINK}
                   target="_blank"

@@ -3,22 +3,16 @@ import { Search, Package, Truck, CheckCircle, Clock, MapPin, ShoppingBag, Home a
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '../context/NavigationContext';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
+import { STATUS_LABELS, STATUS_COLORS } from '../lib/orderStatus';
 import type { Order } from '../types';
 
 const statusSteps = [
-  { key: 'pending', label: 'Order Placed', desc: 'Your order has been received and is being confirmed.', icon: Clock },
+  { key: 'new', label: 'Order Placed', desc: 'Your order has been received and is being confirmed.', icon: Clock },
+  { key: 'confirmed', label: 'Confirmed', desc: 'Your order has been confirmed by the store.', icon: CheckCircle },
   { key: 'processing', label: 'Processing', desc: 'Your order is being prepared for shipment.', icon: Package },
   { key: 'shipped', label: 'Shipped', desc: 'Your order is on the way to your address.', icon: Truck },
   { key: 'delivered', label: 'Delivered', desc: 'Your order has been delivered successfully.', icon: CheckCircle },
 ];
-
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  processing: 'bg-blue-100 text-blue-700',
-  shipped: 'bg-purple-100 text-purple-700',
-  delivered: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-700',
-};
 
 export function TrackOrderPage() {
   const { navigate } = useNavigation();
@@ -37,10 +31,13 @@ export function TrackOrderPage() {
     setOrder(null);
     setSearched(true);
 
+    // Be forgiving about "#" and casing — customers often type it differently
+    const normalized = orderNumber.trim().replace(/^#/, '').toUpperCase();
+
     const { data, error: fetchError } = await supabase
       .from('orders')
       .select('*, order_items(*)')
-      .eq('order_number', orderNumber.trim())
+      .ilike('order_number', `%${normalized}`)
       .maybeSingle();
 
     setLoading(false);
@@ -135,8 +132,8 @@ export function TrackOrderPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-orange-100 uppercase tracking-wide">Status</p>
-                    <span className={`inline-block text-sm font-bold px-3 py-1 rounded-full ${statusColors[order.status] || 'bg-gray-100 text-gray-700'}`}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    <span className={`inline-block text-sm font-bold px-3 py-1 rounded-full ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-700'}`}>
+                      {STATUS_LABELS[order.status] || order.status}
                     </span>
                   </div>
                 </div>
@@ -304,7 +301,7 @@ export function TrackOrderPage() {
               Enter your order tracking ID above to see real-time updates on your order status — from processing to shipping to delivery.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              {statusSteps.map((step, i) => {
+              {statusSteps.map((step, _i) => {
                 const Icon = step.icon;
                 return (
                   <div key={step.key} className="flex items-center gap-2 bg-gray-50 rounded-full px-4 py-2">

@@ -23,12 +23,17 @@ export function useOrders() {
     await fetchOrders();
   };
 
+  const updateOwnerNote = async (id: string, owner_note: string) => {
+    await supabase.from('orders').update({ owner_note }).eq('id', id);
+    await fetchOrders();
+  };
+
   const deleteOrder = async (id: string) => {
     await supabase.from('orders').delete().eq('id', id);
     await fetchOrders();
   };
 
-  return { orders, loading, refetch: fetchOrders, updateOrderStatus, deleteOrder };
+  return { orders, loading, refetch: fetchOrders, updateOrderStatus, updateOwnerNote, deleteOrder };
 }
 
 export function useOrder(id: string) {

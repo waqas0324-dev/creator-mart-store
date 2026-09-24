@@ -1,0 +1,309 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- this file mimics the
+   Supabase JS client's dynamic query-builder shape (rows of arbitrary table
+   schemas), the same reason the real @supabase/supabase-js types rely on
+   generics/any internally. Every consumer of `supabase.from(...)` still gets
+   full type safety because it casts results to the app's real types. */
+// ---------------------------------------------------------------------------
+// LOCAL DATABASE (no external account / no internet backend required)
+// ---------------------------------------------------------------------------
+// This file used to connect to Supabase (a cloud database). It now stores
+// everything inside the browser's own storage (localStorage) instead, using
+// the SAME function names/shapes the rest of the app already calls
+// (supabase.from('table').select()...). That means every other file in this
+// project works unchanged -- only this file is different.
+//
+// Data lives in the browser it was created in. If you want a real shared
+// cloud database later (multiple devices/staff seeing the same data), you
+// can reconnect Supabase by restoring the original client here -- everything
+// else in the app already speaks that exact query shape.
+// ---------------------------------------------------------------------------
+
+type Row = Record<string, any>;
+
+const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+const now = () => new Date().toISOString();
+
+type TableName = 'products' | 'categories' | 'orders' | 'order_items' | 'reviews' | 'admin_users';
+
+function loadTable(table: string): Row[] {
+  try {
+    const raw = localStorage.getItem(`ccm_db_${table}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTable(table: string, rows: Row[]) {
+  localStorage.setItem(`ccm_db_${table}`, JSON.stringify(rows));
+}
+
+// ---------------------------------------------------------------------------
+// Seed data -- versioned so that whenever the demo catalog changes in code,
+// every browser automatically picks up the fresh data on next load instead
+// of being stuck with whatever was first saved (this was the #1 cause of
+// "my changes aren't showing up" confusion during development).
+// Bump SEED_VERSION any time the seed data below is changed.
+// ---------------------------------------------------------------------------
+const SEED_VERSION = 'v4-abr-2026-09-12';
+
+function seedIfEmpty() {
+  if (localStorage.getItem('ccm_db_seed_version') === SEED_VERSION) return;
+
+  // Clear everything and reseed fresh. (Safe during setup/testing; once the
+  // store is live with real orders, stop bumping SEED_VERSION casually.)
+  ['products', 'categories', 'orders', 'order_items', 'reviews', 'admin_users'].forEach(t =>
+    localStorage.removeItem(`ccm_db_${t}`)
+  );
+
+  const categories: Row[] = [
+    { id: uid(), name: 'Microphones', slug: 'microphones', image_url: '/images/categories/microphones.jpg', created_at: now() },
+    { id: uid(), name: 'Tripods', slug: 'tripods', image_url: '/images/categories/tripods.jpg', created_at: now() },
+    { id: uid(), name: 'Ring Lights', slug: 'ring-lights', image_url: '/images/categories/ring-lights.jpg', created_at: now() },
+    { id: uid(), name: 'Power Banks', slug: 'power-banks', image_url: '/images/categories/power-banks.jpg', created_at: now() },
+    { id: uid(), name: 'Phone Holders', slug: 'phone-holders', image_url: '/images/categories/phone-holders.jpg', created_at: now() },
+    { id: uid(), name: 'Earbuds', slug: 'earbuds', image_url: '/images/categories/earbuds.jpg', created_at: now() },
+    { id: uid(), name: 'Cables', slug: 'cables', image_url: '/images/categories/cables.jpg', created_at: now() },
+    { id: uid(), name: 'Speakers', slug: 'speakers', image_url: '/images/categories/speakers.jpg', created_at: now() },
+  ];
+  const catId = (slug: string) => categories.find(c => c.slug === slug)!.id;
+
+  const products: Row[] = [
+    { id: uid(), name: 'Lavalier Collar Microphone', slug: 'lavalier-collar-microphone', description: 'Omni-directional lavalier microphone, perfect for video recording, interviews, YouTube, and vlogging. Delivers high-quality sound and is compatible with smartphones, DSLR cameras, and PCs.', price: 1490, original_price: 1990, category_id: catId('microphones'), image_url: '/images/categories/microphones.jpg', images: ['/images/categories/microphones.jpg', '/images/products/mic-illustration.jpg'], rating: 5.0, review_count: 2, stock: 50, is_featured: true, is_bestseller: true, discount_percent: 25, created_at: now() },
+    { id: uid(), name: 'Aluminum Tripod Stand 3366', slug: 'aluminum-tripod-stand-3366', description: 'Lightweight aluminum tripod stand, adjustable height, ideal for cameras and phones.', price: 1699, original_price: 1999, category_id: catId('tripods'), image_url: '/images/categories/tripods.jpg', images: ['/images/categories/tripods.jpg', '/images/products/df06491e.jpg'], rating: 4.5, review_count: 1, stock: 40, is_featured: true, is_bestseller: true, discount_percent: 15, created_at: now() },
+    { id: uid(), name: '26cm Ring Light With Stand', slug: '26cm-ring-light-with-stand', description: 'Adjustable brightness ring light with tripod stand, perfect for content creators and video calls.', price: 2199, original_price: 2699, category_id: catId('ring-lights'), image_url: '/images/categories/ring-lights.jpg', images: ['/images/categories/ring-lights.jpg', '/images/products/ringlight-illustration.jpg'], rating: 5.0, review_count: 3, stock: 6, is_featured: true, is_bestseller: true, discount_percent: 10, created_at: now() },
+    { id: uid(), name: '10000mAh Power Bank', slug: '10000mah-power-bank', description: 'Fast-charging compact power bank with dual USB output, keeps your devices charged on the go.', price: 1899, original_price: 2299, category_id: catId('power-banks'), image_url: '/images/categories/power-banks.jpg', images: ['/images/categories/power-banks.jpg', '/images/products/5a8d426b.jpg'], rating: 4.5, review_count: 2, stock: 60, is_featured: true, is_bestseller: true, discount_percent: 25, created_at: now() },
+    { id: uid(), name: 'Mobile Holder Stand', slug: 'mobile-holder-stand', description: 'Adjustable desktop mobile holder stand, great for video calls and content recording.', price: 650, original_price: 850, category_id: catId('phone-holders'), image_url: '/images/categories/phone-holders.jpg', images: ['/images/categories/phone-holders.jpg', '/images/products/phoneholder-illustration.jpg'], rating: 4.0, review_count: 1, stock: 70, is_featured: false, is_bestseller: true, discount_percent: null, created_at: now() },
+    { id: uid(), name: 'Wireless Earbuds Pro', slug: 'wireless-earbuds-pro', description: 'True wireless earbuds with noise isolation and long battery life.', price: 2999, original_price: 3999, category_id: catId('earbuds'), image_url: '/images/categories/earbuds.jpg', images: ['/images/categories/earbuds.jpg', '/images/products/69d27c5c.jpg'], rating: 5.0, review_count: 1, stock: 45, is_featured: true, is_bestseller: false, discount_percent: null, created_at: now() },
+    { id: uid(), name: '3-in-1 Fast Charging Cable', slug: '3-in-1-fast-charging-cable', description: 'Durable braided charging cable with three connector types — charge any device with one cable.', price: 799, original_price: 1099, category_id: catId('cables'), image_url: '/images/categories/cables.jpg', images: ['/images/categories/cables.jpg', '/images/products/eec31136.jpg'], rating: 4.5, review_count: 1, stock: 90, is_featured: false, is_bestseller: false, discount_percent: 27, created_at: now() },
+    { id: uid(), name: 'Portable Bluetooth Speaker', slug: 'portable-bluetooth-speaker', description: 'Compact wireless speaker with rich bass, perfect for content creation and on-the-go listening.', price: 2499, original_price: 3199, category_id: catId('speakers'), image_url: '/images/categories/speakers.jpg', images: ['/images/categories/speakers.jpg', '/images/products/speaker-illustration.jpg'], rating: 5.0, review_count: 2, stock: 30, is_featured: true, is_bestseller: false, discount_percent: 22, created_at: now() },
+  ];
+
+  saveTable('categories', categories);
+  saveTable('products', products);
+  saveTable('orders', []);
+  saveTable('order_items', []);
+  saveTable('reviews', []);
+  saveTable('admin_users', [{ id: uid(), email: 'owner@abrgadgets.pk', created_at: now() }]);
+  localStorage.setItem('ccm_db_auth_users', JSON.stringify([{ email: 'owner@abrgadgets.pk', password: 'AbrGadgets2026' }]));
+  localStorage.setItem('ccm_db_seed_version', SEED_VERSION);
+}
+seedIfEmpty();
+
+// ---------------------------------------------------------------------------
+// Tiny query-builder that mimics the subset of the Supabase JS client this
+// project uses: .from().select().eq().gte().lte().ilike().order().limit()
+// .single()/.maybeSingle()/.insert()/.update()/.delete() -- all awaitable.
+// ---------------------------------------------------------------------------
+type Filter = { field: string; op: 'eq' | 'gte' | 'lte' | 'ilike'; value: any };
+
+class QueryBuilder implements PromiseLike<{ data: any; error: any; count?: number }> {
+  private filters: Filter[] = [];
+  private orFilters: Filter[] = [];
+  private orderField?: string;
+  private orderAsc = true;
+  private limitN?: number;
+  private mode: 'select' | 'insert' | 'update' | 'delete' = 'select';
+  private payload?: any;
+  private singleMode: 'one' | 'maybe' | null = null;
+  private wantCount = false;
+
+  constructor(private table: TableName, private cols: string = '*') {}
+
+  select(cols: string = '*', opts?: { count?: string; head?: boolean }) {
+    this.cols = cols;
+    if (opts?.count) this.wantCount = true;
+    return this;
+  }
+  eq(field: string, value: any) { this.filters.push({ field, op: 'eq', value }); return this; }
+  gte(field: string, value: any) { this.filters.push({ field, op: 'gte', value }); return this; }
+  lte(field: string, value: any) { this.filters.push({ field, op: 'lte', value }); return this; }
+  ilike(field: string, value: string) { this.filters.push({ field, op: 'ilike', value: String(value).replace(/%/g, '') }); return this; }
+  /**
+   * Supabase-style OR filter: a comma-separated string of "field.op.value"
+   * conditions, e.g. "name.ilike.%phone%,description.ilike.%phone%" — a row
+   * matches if it satisfies ALL regular filters AND AT LEAST ONE of these.
+   */
+  or(condition: string) {
+    condition.split(',').forEach(part => {
+      const [field, op, rawValue] = part.split('.');
+      if (!field || !op) return;
+      const value = op === 'ilike' ? rawValue.replace(/%/g, '') : rawValue;
+      this.orFilters.push({ field, op: op as Filter['op'], value });
+    });
+    return this;
+  }
+  order(field: string, opts?: { ascending?: boolean }) { this.orderField = field; this.orderAsc = opts?.ascending !== false; return this; }
+  limit(n: number) { this.limitN = n; return this; }
+  single() { this.singleMode = 'one'; return this; }
+  maybeSingle() { this.singleMode = 'maybe'; return this; }
+  insert(payload: any) { this.mode = 'insert'; this.payload = payload; return this; }
+  update(payload: any) { this.mode = 'update'; this.payload = payload; return this; }
+  delete() { this.mode = 'delete'; return this; }
+
+  private matchesFilter(row: Row, f: Filter): boolean {
+    const v = row[f.field];
+    if (f.op === 'eq') return v === f.value;
+    if (f.op === 'gte') return v >= f.value;
+    if (f.op === 'lte') return v <= f.value;
+    if (f.op === 'ilike') return String(v ?? '').toLowerCase().includes(String(f.value).toLowerCase());
+    return true;
+  }
+
+  private applyFilters(rows: Row[]): Row[] {
+    return rows.filter(row => {
+      const passesAnd = this.filters.every(f => this.matchesFilter(row, f));
+      if (!passesAnd) return false;
+      if (this.orFilters.length === 0) return true;
+      return this.orFilters.some(f => this.matchesFilter(row, f));
+    });
+  }
+
+  private attachRelations(row: Row): Row {
+    const out = { ...row };
+    if (this.table === 'products' && this.cols.includes('categories')) {
+      const cats = loadTable('categories');
+      out.categories = cats.find(c => c.id === row.category_id) || null;
+    }
+    if (this.table === 'categories' && this.cols.includes('products')) {
+      const prods = loadTable('products');
+      out.products = prods.filter(p => p.category_id === row.id).map(p => ({ id: p.id }));
+    }
+    if (this.table === 'orders' && this.cols.includes('order_items')) {
+      const items = loadTable('order_items');
+      out.order_items = items.filter(i => i.order_id === row.id);
+    }
+    return out;
+  }
+
+  private async execute(): Promise<{ data: any; error: any; count?: number }> {
+    try {
+      let rows = loadTable(this.table);
+
+      if (this.mode === 'insert') {
+        const items = Array.isArray(this.payload) ? this.payload : [this.payload];
+        const inserted = items.map(item => ({ id: uid(), created_at: now(), ...item }));
+        saveTable(this.table, [...rows, ...inserted]);
+        const result = inserted.map(r => this.attachRelations(r));
+        return { data: this.singleMode ? result[0] : result, error: null };
+      }
+
+      if (this.mode === 'update') {
+        const matched = this.applyFilters(rows);
+        const matchedIds = new Set(matched.map(r => r.id));
+        rows = rows.map(r => (matchedIds.has(r.id) ? { ...r, ...this.payload } : r));
+        saveTable(this.table, rows);
+        const result = matched.map(r => this.attachRelations({ ...r, ...this.payload }));
+        return { data: this.singleMode ? result[0] ?? null : result, error: null };
+      }
+
+      if (this.mode === 'delete') {
+        const matched = this.applyFilters(rows);
+        const matchedIds = new Set(matched.map(r => r.id));
+        saveTable(this.table, rows.filter(r => !matchedIds.has(r.id)));
+        return { data: matched, error: null };
+      }
+
+      // select
+      let result = this.applyFilters(rows);
+      const count = result.length;
+      if (this.orderField) {
+        const field = this.orderField;
+        result = [...result].sort((a, b) => {
+          const av = a[field]; const bv = b[field];
+          if (av < bv) return this.orderAsc ? -1 : 1;
+          if (av > bv) return this.orderAsc ? 1 : -1;
+          return 0;
+        });
+      }
+      if (this.limitN !== undefined) result = result.slice(0, this.limitN);
+      result = result.map(r => this.attachRelations(r));
+
+      if (this.singleMode === 'one') {
+        return { data: result[0] ?? null, error: result[0] ? null : { message: 'Row not found' } };
+      }
+      if (this.singleMode === 'maybe') {
+        return { data: result[0] ?? null, error: null };
+      }
+      return { data: result, error: null, count: this.wantCount ? count : undefined };
+    } catch (e: any) {
+      return { data: null, error: { message: e?.message || 'Local database error' } };
+    }
+  }
+
+  then<R1 = any, R2 = never>(
+    onfulfilled?: ((value: { data: any; error: any; count?: number }) => R1 | PromiseLike<R1>) | null,
+    onrejected?: ((reason: any) => R2 | PromiseLike<R2>) | null
+  ): PromiseLike<R1 | R2> {
+    return this.execute().then(onfulfilled as any, onrejected as any);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Auth (local, browser-only) -- replaces supabase.auth.*
+// Default admin login: owner@abrgadgets.pk / AbrGadgets2026
+// ---------------------------------------------------------------------------
+const auth = {
+  async signInWithPassword({ email, password }: { email: string; password: string }) {
+    const users: { email: string; password: string }[] = JSON.parse(localStorage.getItem('ccm_db_auth_users') || '[]');
+    const match = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim() && u.password === password);
+    if (!match) return { data: { session: null }, error: { message: 'Invalid email or password.' } };
+    const session = { user: { email: match.email } };
+    localStorage.setItem('ccm_db_session', JSON.stringify(session));
+    return { data: { session }, error: null };
+  },
+  async signOut() {
+    localStorage.removeItem('ccm_db_session');
+    return { error: null };
+  },
+  async getSession() {
+    const raw = localStorage.getItem('ccm_db_session');
+    return { data: { session: raw ? JSON.parse(raw) : null }, error: null };
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Storage (local, browser-only) -- replaces supabase.storage.*
+// Uploaded images are converted to base64 data URLs and kept in localStorage.
+// ---------------------------------------------------------------------------
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+const storage = {
+  from(_bucket: string) {
+    return {
+      async upload(path: string, file: File, _opts?: any) {
+        try {
+          const dataUrl = await fileToDataUrl(file);
+          const map = JSON.parse(localStorage.getItem('ccm_db_files') || '{}');
+          map[path] = dataUrl;
+          localStorage.setItem('ccm_db_files', JSON.stringify(map));
+          return { data: { path }, error: null };
+        } catch (e: any) {
+          return { data: null, error: { message: e?.message || 'Upload failed' } };
+        }
+      },
+      getPublicUrl(path: string) {
+        const map = JSON.parse(localStorage.getItem('ccm_db_files') || '{}');
+        return { data: { publicUrl: map[path] || '' } };
+      },
+    };
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Public client -- same shape the rest of the app already imports
+// ---------------------------------------------------------------------------
+export const supabase = {
+  from(table: TableName) {
+    return new QueryBuilder(table);
+  },
+  auth,
+  storage,
+};

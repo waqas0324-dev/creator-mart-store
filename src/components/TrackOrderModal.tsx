@@ -9,7 +9,8 @@ interface TrackOrderModalProps {
 }
 
 const statusSteps = [
-  { key: 'pending', label: 'Order Placed', icon: Clock },
+  { key: 'new', label: 'Order Placed', icon: Clock },
+  { key: 'confirmed', label: 'Confirmed', icon: CheckCircle },
   { key: 'processing', label: 'Processing', icon: Package },
   { key: 'shipped', label: 'Shipped', icon: Truck },
   { key: 'delivered', label: 'Delivered', icon: CheckCircle },
@@ -31,10 +32,12 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
     setError('');
     setOrder(null);
 
+    const normalized = orderNumber.trim().replace(/^#/, '').toUpperCase();
+
     const { data, error: fetchError } = await supabase
       .from('orders')
       .select('*, order_items(*)')
-      .eq('order_number', orderNumber.trim())
+      .ilike('order_number', `%${normalized}`)
       .single();
 
     setLoading(false);
@@ -103,6 +106,11 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
               {/* Status Tracker */}
               <div>
                 <p className="text-xs font-bold text-gray-700 mb-3">Order Status</p>
+                {order.status === 'cancelled' ? (
+                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-semibold">
+                    This order has been cancelled.
+                  </div>
+                ) : (
                 <div className="relative">
                   {statusSteps.map((step, index) => {
                     const Icon = step.icon;
@@ -135,6 +143,7 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
                     );
                   })}
                 </div>
+                )}
               </div>
 
               <div className="text-xs text-gray-500 text-center pt-2 border-t border-gray-100">

@@ -1,28 +1,20 @@
 import { useState } from 'react';
-import { Loader2, Banknote, CreditCard, Copy, CheckCircle } from 'lucide-react';
+import { Loader2, Banknote, Wallet, Sparkles, Copy, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 import { supabase } from '../lib/supabase';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { WHATSAPP_NUMBER } from '../lib/brand';
 
 const CITIES = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
 
-type PayMethod = 'cash_on_delivery' | 'bank_transfer';
-
-const BANK_DETAILS = {
-  accountTitle: 'CREATORMART PK',
-  iban: 'PK00NAYP0000000000000000',
-  bank: 'NAYAPAY',
-  jazzCash: WHATSAPP_NUMBER,
-  name: 'Muhammad Waqas',
-  whatsapp: WHATSAPP_NUMBER,
-};
+type PayMethod = 'cash_on_delivery' | 'partial_advance' | 'full_advance';
 
 export function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const { navigate } = useNavigation();
-  const total = subtotal;
+  const { settings } = useSiteSettings();
 
   const [form, setForm] = useState({
     fullName: '', phone: '', email: '', address: '',
@@ -31,6 +23,16 @@ export function Checkout() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState('');
+  const [submitError, setSubmitError] = useState('');
+
+  const isFullAdvance = form.paymentMethod === 'full_advance';
+  const shippingFee = isFullAdvance ? 0 : settings.shipping_fee;
+  const discount = isFullAdvance ? Math.round(subtotal * (settings.full_advance_discount_percent / 100)) : 0;
+  const total = subtotal + shippingFee - discount;
+  const advanceRequired = subtotal < settings.advance_threshold
+    ? settings.advance_flat_amount
+    : Math.round(subtotal * (settings.advance_percent / 100));
+  const amountToPayNow = form.paymentMethod === 'partial_advance' ? advanceRequired : form.paymentMethod === 'full_advance' ? total : 0;
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -55,6 +57,7 @@ export function Checkout() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
+    setSubmitError('');
 
     const orderNumber = `#ABR${Date.now().toString().slice(-6)}`;
     const { data: order, error } = await supabase.from('orders').insert({
@@ -66,11 +69,16 @@ export function Checkout() {
       customer_city: form.city,
       customer_area: form.area || null,
       payment_method: form.paymentMethod,
-      subtotal, shipping: 0, total,
-      status: form.paymentMethod === 'bank_transfer' ? 'processing' : 'pending',
+      subtotal, shipping: shippingFee, total,
+      advance_amount: amountToPayNow,
+      status: 'new',
     }).select().single();
 
-    if (error || !order) { setLoading(false); return; }
+    if (error || !order) {
+      setLoading(false);
+      setSubmitError('Something went wrong while placing your order. Please try again, or send your order details directly via WhatsApp.');
+      return;
+    }
 
     await supabase.from('order_items').insert(
       items.map(item => ({
@@ -101,6 +109,58 @@ export function Checkout() {
   const inputCls = (field: string) =>
     `w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors[field] ? 'border-red-400' : 'border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-100'}`;
 
+  const PaymentBankBox = ({ amountLabel }: { amountLabel: string }) => (
+    <div className="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+      <div className="bg-orange-500 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg">
+        {amountLabel}: Rs. {amountToPayNow.toLocaleString()}
+      </div>
+      <div>
+        <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Bank Account Details</p>
+        <div className="space-y-2 text-sm">
+          {[
+            { label: 'Title', value: settings.bank_title, copyKey: '' },
+            { label: 'Account No', value: settings.bank_account_number, copyKey: 'bank-acc' },
+            { label: 'Bank', value: settings.bank_name, copyKey: '' },
+          ].map(row => (
+            <div key={row.label} className="flex items-center justify-between">
+              <span className="text-gray-500 w-20 flex-shrink-0">{row.label}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-900 break-all text-right">{row.value}</span>
+                {row.copyKey && (
+                  <button type="button" onClick={() => copyToClipboard(row.value, row.copyKey)} className="text-gray-400 hover:text-orange-500 transition-colors flex-shrink-0">
+                    {copied === row.copyKey ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="border-t border-gray-200 pt-3">
+        <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Wallet (Easypaisa / JazzCash)</p>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500 w-20 flex-shrink-0">Number</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-900">{settings.wallet_number}</span>
+              <button type="button" onClick={() => copyToClipboard(settings.wallet_number, 'wallet')} className="text-gray-400 hover:text-orange-500 transition-colors">
+                {copied === 'wallet' ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500 w-20 flex-shrink-0">Name</span>
+            <span className="font-semibold text-gray-900">{settings.wallet_name}</span>
+          </div>
+        </div>
+      </div>
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
+        📸 After sending the payment, please share the screenshot on WhatsApp <strong>{WHATSAPP_NUMBER}</strong>.
+        Support available: <strong>{settings.payment_support_hours}</strong>.
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="bg-white border-b border-gray-200">
@@ -114,7 +174,6 @@ export function Checkout() {
         <h1 className="text-2xl font-black text-gray-900 uppercase mb-6">Checkout</h1>
         <form onSubmit={handleSubmit}>
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Billing Details */}
             <div className="space-y-4">
               <div className="bg-white rounded-xl border border-gray-100 p-5">
                 <h3 className="font-black text-gray-900 uppercase text-sm tracking-wide mb-5">Billing Details</h3>
@@ -155,11 +214,9 @@ export function Checkout() {
                 </div>
               </div>
 
-              {/* Payment Method */}
               <div className="bg-white rounded-xl border border-gray-100 p-5">
                 <h4 className="text-xs font-bold uppercase text-gray-700 tracking-wide mb-4">Payment Method</h4>
                 <div className="space-y-3">
-                  {/* Cash on Delivery */}
                   <div>
                     <label
                       className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'cash_on_delivery' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200'}`}
@@ -170,112 +227,62 @@ export function Checkout() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Banknote size={18} className="text-gray-600" />
-                        <span className="text-sm font-bold text-gray-900">Cash on delivery</span>
+                        <span className="text-sm font-bold text-gray-900">Cash on Delivery</span>
                       </div>
                     </label>
-                    {form.paymentMethod === 'cash_on_delivery' && (
-                      <div className="mt-2 space-y-2">
-                        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-gray-800 space-y-1.5">
-                          <p className="font-bold text-orange-600 text-base">Cash on Delivery — Rs. 500 Advance Required</p>
-                          <p>Order confirm karne ke liye <strong>Rs. 500 advance</strong> JazzCash par bhejein.</p>
-                          <p>Agar parcel <strong>Rs. 1500+</strong> ka hai aur aap <strong>100% advance</strong> den to delivery charges maaf aur extra discount milegi.</p>
-                          <p>Parcels above <strong>Rs. 15,000</strong> — 20% advance mandatory hai.</p>
-                        </div>
-                        <div className="bg-green-50 border border-green-300 rounded-xl p-4 text-sm space-y-2">
-                          <p className="font-bold text-green-700 text-sm uppercase tracking-wide">JazzCash Number</p>
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl font-black text-gray-900 tracking-wider">{WHATSAPP_NUMBER}</span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(WHATSAPP_NUMBER, 'cod-jc')}
-                              className="text-xs bg-green-500 hover:bg-green-600 text-white font-bold px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              {copied === 'cod-jc' ? 'Copied!' : 'Copy'}
-                            </button>
-                          </div>
-                          <p className="text-orange-700 font-semibold">Payment ke baad screenshot WhatsApp par zaroor bhejein: <strong>{WHATSAPP_NUMBER}</strong></p>
-                          <p className="text-gray-500 text-xs">Support available: 10:30 AM – 8:00 PM</p>
-                        </div>
+                  </div>
+
+                  <div>
+                    <label
+                      className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'partial_advance' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200'}`}
+                      onClick={() => update('paymentMethod', 'partial_advance')}
+                    >
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${form.paymentMethod === 'partial_advance' ? 'border-orange-500' : 'border-gray-300'}`}>
+                        {form.paymentMethod === 'partial_advance' && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Wallet size={18} className="text-gray-600" />
+                        <span className="text-sm font-bold text-gray-900">Partial Advance Payment</span>
+                      </div>
+                    </label>
+                    {form.paymentMethod === 'partial_advance' && (
+                      <>
+                        <div className="mt-2 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-gray-800">
+                          <p className="font-bold text-blue-700 mb-1">Why an advance?</p>
+                          <p>Most COD refusals happen after the parcel has already been shipped. A small advance simply confirms your order is genuine — the rest is paid on delivery. If we ever cancel your order, your advance is refunded in full.</p>
+                          <table className="w-full mt-3 text-xs">
+                            <thead><tr className="border-b border-blue-200 text-left"><th className="py-1">Order Total</th><th className="py-1">Advance Required</th></tr></thead>
+                            <tbody>
+                              <tr><td className="py-1">Under Rs. {settings.advance_threshold.toLocaleString()}</td><td className="py-1">Rs. {settings.advance_flat_amount} flat</td></tr>
+                              <tr><td className="py-1">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-1">{settings.advance_percent}% of order total</td></tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <PaymentBankBox amountLabel="Advance to Pay Now" />
+                      </>
                     )}
                   </div>
 
-                  {/* Direct Bank Transfer */}
                   <div>
                     <label
-                      className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'bank_transfer' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200'}`}
-                      onClick={() => update('paymentMethod', 'bank_transfer')}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'full_advance' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200'}`}
+                      onClick={() => update('paymentMethod', 'full_advance')}
                     >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${form.paymentMethod === 'bank_transfer' ? 'border-orange-500' : 'border-gray-300'}`}>
-                        {form.paymentMethod === 'bank_transfer' && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${form.paymentMethod === 'full_advance' ? 'border-orange-500' : 'border-gray-300'}`}>
+                        {form.paymentMethod === 'full_advance' && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
                       </div>
                       <div className="flex items-center gap-2">
-                        <CreditCard size={18} className="text-gray-600" />
-                        <span className="text-sm font-bold text-gray-900">Direct bank transfer</span>
+                        <Sparkles size={18} className="text-gray-600" />
+                        <span className="text-sm font-bold text-gray-900">Full Advance Payment</span>
+                        <span className="text-xs bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">Free Delivery + {settings.full_advance_discount_percent}% Off</span>
                       </div>
                     </label>
-                    {form.paymentMethod === 'bank_transfer' && (
-                      <div className="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
-                        <div>
-                          <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Bank Account Details</p>
-                          <div className="space-y-2 text-sm">
-                            {[
-                              { label: 'Title', value: BANK_DETAILS.accountTitle },
-                              { label: 'IBAN', value: BANK_DETAILS.iban, copyKey: 'iban' },
-                              { label: 'Bank', value: BANK_DETAILS.bank },
-                            ].map(row => (
-                              <div key={row.label} className="flex items-center justify-between">
-                                <span className="text-gray-500 w-16 flex-shrink-0">{row.label}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-gray-900">{row.value}</span>
-                                  {row.copyKey && (
-                                    <button
-                                      type="button"
-                                      onClick={() => copyToClipboard(row.value, row.copyKey!)}
-                                      className="text-gray-400 hover:text-orange-500 transition-colors"
-                                    >
-                                      {copied === row.copyKey ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="border-t border-gray-200 pt-3">
-                          <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Mobile Wallet Details</p>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-500 w-20 flex-shrink-0">JazzCash</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-gray-900">{BANK_DETAILS.jazzCash}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => copyToClipboard(BANK_DETAILS.jazzCash, 'jc')}
-                                  className="text-gray-400 hover:text-orange-500 transition-colors"
-                                >
-                                  {copied === 'jc' ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
-                                </button>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-gray-500 w-20 flex-shrink-0">Name</span>
-                              <span className="font-semibold text-gray-900">{BANK_DETAILS.name}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-                          📸 After sending the payment, please share the screenshot on WhatsApp{' '}
-                          <strong>{BANK_DETAILS.whatsapp}</strong>
-                        </div>
-                      </div>
-                    )}
+                    {form.paymentMethod === 'full_advance' && <PaymentBankBox amountLabel="Full Amount to Pay Now" />}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Order Summary */}
             <div>
               <div className="bg-white rounded-xl border border-gray-100 p-5 sticky top-24">
                 <h3 className="font-black text-gray-900 uppercase text-sm tracking-wide mb-5">Your Order</h3>
@@ -287,7 +294,7 @@ export function Checkout() {
                     <div key={item.product.id} className="flex gap-3">
                       <img src={resolveProductImage(item.product.image_url)} alt={item.product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, item.product.name)} className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
                       <div className="flex-1 flex justify-between items-start gap-2 text-sm">
-                        <span className="text-gray-700 line-clamp-2 flex-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <span className="text-gray-700 flex-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {item.product.name}
                           {item.quantity > 1 && <span className="text-gray-400 ml-1">×{item.quantity}</span>}
                         </span>
@@ -298,11 +305,35 @@ export function Checkout() {
                 </div>
                 <div className="space-y-2 pt-3 border-t border-gray-100 text-sm">
                   <div className="flex justify-between"><span className="text-gray-600">Subtotal</span><span className="font-semibold">Rs. {subtotal.toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-600">Shipping</span><span className="font-semibold text-green-600">Free Shipping</span></div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Shipping</span>
+                    <span className={`font-semibold ${shippingFee === 0 ? 'text-green-600' : ''}`}>{shippingFee === 0 ? 'Free' : `Rs. ${shippingFee.toLocaleString()}`}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Advance Payment Discount ({settings.full_advance_discount_percent}%)</span><span className="font-semibold">-Rs. {discount.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between pt-2 border-t border-gray-200 font-black text-base">
                     <span>Total</span><span className="text-orange-500">Rs. {total.toLocaleString()}</span>
                   </div>
+                  {amountToPayNow > 0 && (
+                    <div className="flex justify-between pt-2 border-t border-gray-200 text-sm">
+                      <span className="text-gray-600">Pay Now</span><span className="font-bold text-orange-600">Rs. {amountToPayNow.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {form.paymentMethod === 'partial_advance' && (
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Remaining (Cash on Delivery)</span><span>Rs. {(total - amountToPayNow).toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
+
+                {submitError && (
+                  <div className="mt-4 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-3 py-2.5">
+                    {submitError}
+                  </div>
+                )}
 
                 <button
                   type="submit"

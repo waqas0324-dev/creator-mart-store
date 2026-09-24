@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Lock, Eye, EyeOff, Loader2, LogIn } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
 import { adminLogin } from '../../lib/adminAuth';
-import { BRAND_LOGO } from '../../lib/brand';
+import { Logo } from '../../components/UI/Logo';
 
 export function AdminLogin() {
   const { navigate } = useNavigation();
@@ -32,7 +32,7 @@ export function AdminLogin() {
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <img src={BRAND_LOGO} alt="ABR Gadgets" className="w-40 h-16 object-contain mix-blend-screen mx-auto mb-4" />
+          <div className="flex justify-center mb-4"><Logo size="lg" showTagline={false} /></div>
           <h1 className="text-2xl font-black text-white">Admin Panel</h1>
           <p className="text-gray-400 text-sm mt-1">Authorized Access Only</p>
         </div>
