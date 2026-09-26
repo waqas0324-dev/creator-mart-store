@@ -118,6 +118,9 @@ export interface SiteSettings {
   footer_stat_3_label: string;
   footer_stat_4_value: string;
   footer_stat_4_label: string;
+  footer_quick_title: string;
+  footer_categories_title: string;
+  footer_contact_title: string;
   footer_quick_home: string;
   footer_quick_shop: string;
   footer_quick_new_arrivals: string;
