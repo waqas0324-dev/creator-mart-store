@@ -34,8 +34,8 @@ export function Checkout() {
   const discount = isFullAdvance ? Math.round(subtotal * (settings.full_advance_discount_percent / 100)) : 0;
   const total = subtotal + shippingFee - discount;
   const advanceRequired = !isAboveThreshold
-    ? settings.advance_flat_amount
-    : Math.round(subtotal * (settings.advance_percent / 100));
+    ? shippingFee
+    : Math.round(subtotal * (settings.advance_percent / 100)) + shippingFee;
   const amountToPayNow = isFullAdvance ? total : advanceRequired;
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
@@ -262,7 +262,9 @@ export function Checkout() {
                     {form.paymentMethod === 'cash_on_delivery' && (
                       <>
                         <div className="mt-2 bg-teal-50 border-2 border-teal-600 rounded-xl p-4 text-sm text-gray-900">
-                          <p className="font-urdu text-teal-800 mb-1 text-base">{settings.cod_policy_urdu}</p>
+                          <p className="font-urdu text-teal-800 mb-1 text-base">
+                            {settings.cod_language === 'en' ? settings.cod_policy_english : settings.cod_policy_urdu}
+                          </p>
                           <table className="w-full mt-3 text-xs">
                             <thead><tr className="border-b border-teal-300 text-left"><th className="py-1">Order Total</th><th className="py-1">Advance Required</th></tr></thead>
                             <tbody>
@@ -273,7 +275,9 @@ export function Checkout() {
                           <p className="mt-2 text-xs text-gray-600">Support: {settings.payment_support_hours}</p>
                           <div className="mt-3 pt-3 border-t border-teal-300">
                             <p className="font-bold text-teal-800 text-xs mb-1">Why Advance Payment?</p>
-                            <p className="text-xs text-gray-700 leading-relaxed">{settings.why_advance_note}</p>
+                            <p className={settings.cod_language === 'ur' ? 'font-urdu text-xs text-gray-700 leading-relaxed' : 'text-xs text-gray-700 leading-relaxed'}>
+                              {settings.cod_language === 'ur' ? settings.why_advance_note_urdu : settings.why_advance_note}
+                            </p>
                           </div>
                         </div>
                         <CODPaymentBox />
