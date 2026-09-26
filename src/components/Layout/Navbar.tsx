@@ -8,6 +8,7 @@ import { TrackOrderModal } from '../TrackOrderModal';
 import { AnnouncementBar } from './AnnouncementBar';
 import type { Page } from '../../types';
 import { Logo } from '../UI/Logo';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 // Below `lg` (1024px) — phones AND tablets — everything collapses into the
 // hamburger menu. Only screens 1024px+ get the full desktop nav bar.
@@ -23,6 +24,8 @@ export function Navbar() {
   const { totalItems: wishlistCount } = useWishlist();
   const { nav, navigate } = useNavigation();
   const { categories } = useCategories();
+  const { settings } = useSiteSettings();
+  const hd = settings.design_settings.header;
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
@@ -71,8 +74,8 @@ export function Navbar() {
 
   return (
     <>
-    <header className="sticky top-0 z-50 bg-[#111827] shadow-lg border-b border-gray-800">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3">
+    <header className="sticky top-0 z-50 shadow-lg" style={{ backgroundColor: hd.bgColor, borderBottom: hd.borderWidth + "px solid " + hd.borderColor, color: hd.textColor }}>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3" style={{ minHeight: hd.height }}>
         <div className="flex items-center gap-2 sm:gap-4">
           <button
             className="flex items-center cursor-pointer flex-shrink-0 focus:outline-none"
@@ -183,7 +186,7 @@ export function Navbar() {
       </div>
 
       {/* Desktop/Laptop Nav Links (1024px+) */}
-      <nav className="bg-[#111827] border-t border-gray-800 hidden lg:block">
+      <nav className="border-t hidden lg:block" style={{ backgroundColor: hd.bgColor, borderColor: hd.borderColor }}>
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-center gap-1">
           {NAV_LINKS.map(link => (
             <button
