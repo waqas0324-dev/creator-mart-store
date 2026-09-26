@@ -10,13 +10,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Current supabase-js uses a lockless auth coordination path by default.
+// Keep the client on that path instead of injecting a legacy custom lock.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: false,
-    // Do not let another browser tab hold the login operation hostage.
-    // Each tab can authenticate immediately; Supabase still persists the session.
-    lock: async (_name, _acquireTimeout, fn) => await fn(),
   },
 });
