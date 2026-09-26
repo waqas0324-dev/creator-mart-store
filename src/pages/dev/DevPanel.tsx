@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink } from 'lucide-react';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
@@ -20,18 +20,33 @@ export function DevPanel() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setForm(settings); }, [settings]);
+
+  const queueAutoSave = (field: keyof typeof form, value: string | number | null) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaveStatus('saving');
+    saveTimer.current = setTimeout(async () => {
+      const error = await updateSettings({ [field]: value } as Partial<typeof form>);
+      setSaveStatus(error ? 'error' : 'saved');
+      if (!error) setSaved(true);
+    }, 500);
+  };
 
   const update = (field: keyof typeof form, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setSaved(false);
+    queueAutoSave(field, value);
   };
 
   const updateNumber = (field: keyof typeof form, value: string) => {
     const num = value === '' ? 0 : Number(value);
-    setForm(prev => ({ ...prev, [field]: Number.isNaN(num) ? 0 : num }));
+    const next = Number.isNaN(num) ? 0 : num;
+    setForm(prev => ({ ...prev, [field]: next }));
     setSaved(false);
+    queueAutoSave(field, next);
   };
 
   const uploadTo = async (file: File, folder: string): Promise<string | null> => {
@@ -58,10 +73,10 @@ export function DevPanel() {
 
   const handleSave = async () => {
     setSaving(true);
-    await updateSettings(form);
+    const error = await updateSettings(form);
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setSaveStatus(error ? 'error' : 'saved');
+    setSaved(!error);
   };
 
   const handleLogout = async () => {
@@ -232,8 +247,15 @@ export function DevPanel() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">COD / Advance note shown to customer (Urdu, Nastaliq font)</label>
+            <label className="block text-xs font-bold text-gray-400 mb-1">COD policy language shown on checkout</label>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <button type="button" onClick={() => update('cod_language', 'ur')} className={`py-2 rounded-lg border font-bold text-sm ${form.cod_language === 'ur' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}>Urdu</button>
+              <button type="button" onClick={() => update('cod_language', 'en')} className={`py-2 rounded-lg border font-bold text-sm ${form.cod_language === 'en' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}>English</button>
+            </div>
+            <label className="block text-xs font-bold text-gray-400 mb-1">COD policy — Urdu</label>
             <textarea dir="rtl" value={form.cod_policy_urdu} onChange={e => update('cod_policy_urdu', e.target.value)} rows={3} className={`${inputCls} font-urdu text-base`} />
+            <label className="block text-xs font-bold text-gray-400 mb-1 mt-3">COD policy — English</label>
+            <textarea value={form.cod_policy_english} onChange={e => update('cod_policy_english', e.target.value)} rows={3} className={inputCls} />
           </div>
 
           <div className="border-t border-gray-800 pt-4">
@@ -293,9 +315,44 @@ export function DevPanel() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">"Why Advance Payment?" explanation (shown on COD)</label>
-            <textarea value={form.why_advance_note} onChange={e => update('why_advance_note', e.target.value)} rows={3} className={inputCls} />
+            <label className="block text-xs font-bold text-gray-400 mb-1">"Why Advance Payment?" — Urdu</label>
+            <textarea dir="rtl" value={form.why_advance_note_urdu} onChange={e => update('why_advance_note_urdu', e.target.value)} rows={4} className={`${inputCls} font-urdu text-base`} />
+            <label className="block text-xs font-bold text-gray-400 mb-1 mt-3">"Why Advance Payment?" — English</label>
+            <textarea value={form.why_advance_note} onChange={e => update('why_advance_note', e.target.value)} rows={4} className={inputCls} />
           </div>
+        </div>
+
+        {/* FOOTER */}
+        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
+          <div>
+            <h3 className="font-bold text-white text-sm uppercase tracking-wide">Footer — Editable</h3>
+            <p className="text-xs text-gray-500 mt-0.5">All footer text below saves automatically as you edit.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input value={form.footer_stat_1_value} onChange={e => update('footer_stat_1_value', e.target.value)} placeholder="10,000+" className={inputCls} />
+            <input value={form.footer_stat_1_label} onChange={e => update('footer_stat_1_label', e.target.value)} placeholder="Happy Customers" className={inputCls} />
+            <input value={form.footer_stat_2_value} onChange={e => update('footer_stat_2_value', e.target.value)} placeholder="300+" className={inputCls} />
+            <input value={form.footer_stat_2_label} onChange={e => update('footer_stat_2_label', e.target.value)} placeholder="Quality Products" className={inputCls} />
+            <input value={form.footer_stat_3_value} onChange={e => update('footer_stat_3_value', e.target.value)} placeholder="99%" className={inputCls} />
+            <input value={form.footer_stat_3_label} onChange={e => update('footer_stat_3_label', e.target.value)} placeholder="Positive Reviews" className={inputCls} />
+            <input value={form.footer_stat_4_value} onChange={e => update('footer_stat_4_value', e.target.value)} placeholder="24/7" className={inputCls} />
+            <input value={form.footer_stat_4_label} onChange={e => update('footer_stat_4_label', e.target.value)} placeholder="Customer Support" className={inputCls} />
+          </div>
+          <textarea value={form.footer_description} onChange={e => update('footer_description', e.target.value)} rows={3} className={inputCls} placeholder="Footer description" />
+          <input value={form.footer_email} onChange={e => update('footer_email', e.target.value)} className={inputCls} placeholder="Footer email" />
+          <div>
+            <label className="block text-xs font-bold text-gray-400 mb-1">Quick Links</label>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {(['footer_quick_home','footer_quick_shop','footer_quick_new_arrivals','footer_quick_best_sellers','footer_quick_contact','footer_quick_about','footer_quick_return','footer_quick_privacy'] as const).map(k => (
+                <input key={k} value={form[k]} onChange={e => update(k, e.target.value)} className={inputCls} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-400 mb-1">Footer Categories (separate with |)</label>
+            <textarea value={form.footer_categories} onChange={e => update('footer_categories', e.target.value)} rows={2} className={inputCls} />
+          </div>
+          <input value={form.footer_copyright} onChange={e => update('footer_copyright', e.target.value)} className={inputCls} placeholder="All rights reserved." />
         </div>
 
         {/* CONTACT */}
@@ -349,14 +406,18 @@ export function DevPanel() {
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white font-bold px-6 py-3 rounded-xl transition-colors flex items-center gap-2"
-        >
-          {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <CheckCircle size={16} /> : null}
-          {saving ? 'Saving...' : saved ? 'Saved! Live now.' : 'Save Changes'}
-        </button>
+        <div className="sticky bottom-4 bg-gray-950/95 backdrop-blur border border-gray-800 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            {saveStatus === 'saving' && <Loader2 size={15} className="animate-spin text-purple-400" />}
+            {saveStatus === 'saved' && <CheckCircle size={15} className="text-green-400" />}
+            <span className={saveStatus === 'error' ? 'text-red-400' : 'text-gray-400'}>
+              {saveStatus === 'saving' ? 'Saving automatically…' : saveStatus === 'saved' ? 'Saved — live settings updated.' : saveStatus === 'error' ? 'Save failed — please try again.' : 'Changes save automatically.'}
+            </span>
+          </div>
+          <button onClick={handleSave} disabled={saving} className="text-xs font-bold text-gray-300 hover:text-white border border-gray-700 px-3 py-2 rounded-lg">
+            {saving ? 'Saving…' : 'Save All Now'}
+          </button>
+        </div>
       </div>
     </div>
   );
