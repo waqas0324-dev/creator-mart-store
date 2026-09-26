@@ -26,10 +26,10 @@ export function Footer() {
       <div className="border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
-            { value: '10,000+', label: 'Happy Customers' },
-            { value: '300+', label: 'Quality Products' },
-            { value: '99%', label: 'Positive Reviews' },
-            { value: '24/7', label: 'Customer Support' },
+            { value: settings.footer_stat_1_value, label: settings.footer_stat_1_label },
+            { value: settings.footer_stat_2_value, label: settings.footer_stat_2_label },
+            { value: settings.footer_stat_3_value, label: settings.footer_stat_3_label },
+            { value: settings.footer_stat_4_value, label: settings.footer_stat_4_label },
           ].map(s => (
             <div key={s.label}>
               <div className="text-2xl font-black text-white">{s.value}</div>
@@ -46,7 +46,7 @@ export function Footer() {
             <Logo size="lg" showTagline={false} />
           </div>
           <p className="text-sm text-gray-400 mb-4">
-            Pakistan's No.1 Creator Store. Premium quality products for content creators delivered nationwide.
+            {settings.footer_description}
           </p>
           <div className="flex gap-3">
             <a href={waLink} target="_blank" rel="noreferrer" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
@@ -72,14 +72,14 @@ export function Footer() {
           <h4 className="text-white font-bold mb-4">Quick Links</h4>
           <ul className="space-y-2">
             {[
-              { label: 'Home', page: 'home' as const },
-              { label: 'Shop', page: 'shop' as const },
-              { label: 'New Arrivals', page: 'new-arrivals' as const },
-              { label: 'Best Sellers', page: 'best-sellers' as const },
-              { label: 'Contact Us', page: 'contact' as const },
-              { label: 'About Us', page: 'about' as const },
-              { label: 'Return & Refund Policy', page: 'return-policy' as const },
-              { label: 'Privacy Policy', page: 'privacy-policy' as const },
+              { label: settings.footer_quick_home, page: 'home' as const },
+              { label: settings.footer_quick_shop, page: 'shop' as const },
+              { label: settings.footer_quick_new_arrivals, page: 'new-arrivals' as const },
+              { label: settings.footer_quick_best_sellers, page: 'best-sellers' as const },
+              { label: settings.footer_quick_contact, page: 'contact' as const },
+              { label: settings.footer_quick_about, page: 'about' as const },
+              { label: settings.footer_quick_return, page: 'return-policy' as const },
+              { label: settings.footer_quick_privacy, page: 'privacy-policy' as const },
             ].map(link => (
               <li key={link.label}>
                 <button
@@ -97,7 +97,7 @@ export function Footer() {
         <div>
           <h4 className="text-white font-bold mb-4">Categories</h4>
           <ul className="space-y-2">
-            {['Microphones', 'Tripods', 'Ring Lights', 'Power Banks', 'Earbuds', 'Speakers'].map(cat => (
+            {settings.footer_categories.split('|').map(cat => cat.trim()).filter(Boolean).map(cat => (
               <li key={cat}>
                 <button
                   onClick={() => navigate('shop', { categorySlug: cat.toLowerCase().replace(/ /g, '-') })}
@@ -120,7 +120,7 @@ export function Footer() {
             </li>
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <Mail size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
-              <a href="mailto:info@abrgadgets.pk" className="hover:text-orange-400 transition-colors">info@abrgadgets.pk</a>
+              <a href={`mailto:${settings.footer_email}`} className="hover:text-orange-400 transition-colors">{settings.footer_email}</a>
             </li>
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <MapPin size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
@@ -132,7 +132,7 @@ export function Footer() {
 
       <div className="border-t border-gray-700 py-4">
         <div className="max-w-7xl mx-auto px-4">
-          <p className="text-sm text-gray-500 text-center">&copy; 2026 {BRAND_NAME}. All rights reserved.</p>
+          <p className="text-sm text-gray-500 text-center">&copy; 2026 {BRAND_NAME}. {settings.footer_copyright}</p>
         </div>
       </div>
     </footer>
