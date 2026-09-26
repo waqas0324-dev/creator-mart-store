@@ -114,25 +114,23 @@ export function Checkout() {
     `w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors[field] ? 'border-red-400' : 'border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-100'}`;
 
   const CopyRow = ({ label, value, copyKey }: { label: string; value: string; copyKey: string }) => (
-    <div className="flex items-center justify-between">
-      <span className="text-gray-500 w-20 flex-shrink-0">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className="font-semibold text-gray-900 break-all text-right">{value}</span>
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-gray-500 text-xs flex-shrink-0">{label}</span>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-bold text-gray-900 text-base whitespace-nowrap">{value}</span>
         <button type="button" onClick={() => copyToClipboard(value, copyKey)} className="text-gray-400 hover:text-orange-500 transition-colors flex-shrink-0">
-          {copied === copyKey ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
+          {copied === copyKey ? <CheckCircle size={15} className="text-green-500" /> : <Copy size={15} />}
         </button>
       </div>
     </div>
   );
 
   const ChannelCard = ({ icon, name, rows, theme }: { icon: ReactNode; name: string; rows: { label: string; value: string; copyKey: string }[]; theme: 'cod' | 'advance' }) => (
-    <div className={theme === 'cod'
-      ? 'bg-white border-2 border-teal-200 rounded-xl p-3 shadow-sm'
-      : 'bg-gradient-to-b from-white to-orange-50 border-2 border-amber-300 rounded-xl p-3 shadow-sm'}>
-      <p className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wide mb-2 ${theme === 'cod' ? 'text-teal-700' : 'text-amber-700'}`}>
+    <div className="bg-white border-2 rounded-xl overflow-hidden shadow-sm" style={{ borderColor: theme === 'cod' ? '#0d9488' : '#d97706' }}>
+      <p className={`flex items-center gap-2 text-sm font-black uppercase tracking-wide px-4 py-2 text-white ${theme === 'cod' ? 'bg-teal-600' : 'bg-amber-600'}`}>
         {icon} {name}
       </p>
-      <div className="space-y-1.5 text-sm">
+      <div className="space-y-2 px-4 py-3">
         {rows.map(r => <CopyRow key={r.copyKey} label={r.label} value={r.value} copyKey={r.copyKey} />)}
       </div>
     </div>
@@ -149,11 +147,11 @@ export function Checkout() {
      cool teal theme so it visually reads as "quick advance", separate from
      the premium gold look used for Full Advance below. */
   const CODPaymentBox = () => (
-    <div className="mt-2 bg-teal-50/60 border border-teal-200 rounded-xl p-4 space-y-4">
-      <div className="bg-teal-600 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg">
+    <div className="mt-2 bg-teal-50 border-2 border-teal-500 rounded-xl p-4 space-y-4">
+      <div className="bg-teal-600 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg shadow">
         Advance to Pay Now: Rs. {amountToPayNow.toLocaleString()}
       </div>
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="space-y-3">
         <ChannelCard theme="cod" icon={<Smartphone size={14} />} name="JazzCash" rows={[
           { label: 'Number', value: settings.wallet_number, copyKey: 'cod-jazzcash-num' },
           { label: 'Title', value: settings.wallet_name, copyKey: 'cod-jazzcash-title' },
@@ -170,11 +168,11 @@ export function Checkout() {
   /* Full Advance Payment — all 3 channels including the bank, warm gold/amber
      "premium" theme to match the Free Delivery + Discount incentive. */
   const FullAdvancePaymentBox = () => (
-    <div className="mt-2 bg-amber-50/60 border border-amber-200 rounded-xl p-4 space-y-4">
+    <div className="mt-2 bg-amber-50 border-2 border-amber-500 rounded-xl p-4 space-y-4">
       <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg shadow">
         Full Amount to Pay Now: Rs. {amountToPayNow.toLocaleString()}
       </div>
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="space-y-3">
         <ChannelCard theme="advance" icon={<Smartphone size={14} />} name="JazzCash" rows={[
           { label: 'Number', value: settings.wallet_number, copyKey: 'fa-jazzcash-num' },
           { label: 'Title', value: settings.wallet_name, copyKey: 'fa-jazzcash-title' },
@@ -263,16 +261,20 @@ export function Checkout() {
                     </label>
                     {form.paymentMethod === 'cash_on_delivery' && (
                       <>
-                        <div className="mt-2 bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-gray-800">
-                          <p className="font-urdu text-orange-700 mb-1 text-base">{settings.cod_policy_urdu}</p>
+                        <div className="mt-2 bg-teal-50 border-2 border-teal-600 rounded-xl p-4 text-sm text-gray-900">
+                          <p className="font-urdu text-teal-800 mb-1 text-base">{settings.cod_policy_urdu}</p>
                           <table className="w-full mt-3 text-xs">
-                            <thead><tr className="border-b border-orange-200 text-left"><th className="py-1">Order Total</th><th className="py-1">Advance Required</th></tr></thead>
+                            <thead><tr className="border-b border-teal-300 text-left"><th className="py-1">Order Total</th><th className="py-1">Advance Required</th></tr></thead>
                             <tbody>
-                              <tr><td className="py-1">Under Rs. {settings.advance_threshold.toLocaleString()}</td><td className="py-1">Rs. {settings.advance_flat_amount} flat</td></tr>
-                              <tr><td className="py-1">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-1">{settings.advance_percent}% of order total + Rs. {settings.delivery_charge_above_threshold} delivery</td></tr>
+                              <tr><td className="py-1 font-semibold">Under Rs. {settings.advance_threshold.toLocaleString()}</td><td className="py-1 font-semibold">Rs. {settings.advance_flat_amount} flat</td></tr>
+                              <tr><td className="py-1 font-semibold">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-1 font-semibold">{settings.advance_percent}% of order total + Rs. {settings.delivery_charge_above_threshold} delivery</td></tr>
                             </tbody>
                           </table>
-                          <p className="mt-2 text-xs text-gray-500">Support: {settings.payment_support_hours}</p>
+                          <p className="mt-2 text-xs text-gray-600">Support: {settings.payment_support_hours}</p>
+                          <div className="mt-3 pt-3 border-t border-teal-300">
+                            <p className="font-bold text-teal-800 text-xs mb-1">Why Advance Payment?</p>
+                            <p className="text-xs text-gray-700 leading-relaxed">{settings.why_advance_note}</p>
+                          </div>
                         </div>
                         <CODPaymentBox />
                       </>
@@ -321,8 +323,13 @@ export function Checkout() {
                 </div>
                 <div className="space-y-2 pt-3 border-t border-gray-100 text-sm">
                   <div className="flex justify-between"><span className="text-gray-600">Subtotal</span><span className="font-semibold">Rs. {subtotal.toLocaleString()}</span></div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">
+                      {isFullAdvance ? 'Shipping' : 'Delivery Charges'}
+                      {!isFullAdvance && (
+                        <span className="ml-1.5 inline-block bg-orange-100 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full align-middle">ADVANCE REQUIRED</span>
+                      )}
+                    </span>
                     <span className={`font-semibold ${shippingFee === 0 ? 'text-green-600' : ''}`}>{shippingFee === 0 ? 'Free' : `Rs. ${shippingFee.toLocaleString()}`}</span>
                   </div>
                   {discount > 0 && (
@@ -340,7 +347,7 @@ export function Checkout() {
                   )}
                   {!isFullAdvance ? (
                     <div className="flex justify-between text-xs text-gray-500">
-                      <span>Remaining (Cash on Delivery)</span><span>Rs. {(total - amountToPayNow).toLocaleString()}</span>
+                      <span>Remaining (Cash on Delivery)</span><span>Rs. {subtotal.toLocaleString()}</span>
                     </div>
                   ) : null}
                 </div>

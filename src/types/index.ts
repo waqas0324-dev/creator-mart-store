@@ -96,6 +96,7 @@ export interface SiteSettings {
   wallet_number: string;
   payment_support_hours: string;
   payment_screenshot_note: string;
+  why_advance_note: string;
   cod_policy_urdu: string;
   whatsapp_number: string;
   store_address: string;

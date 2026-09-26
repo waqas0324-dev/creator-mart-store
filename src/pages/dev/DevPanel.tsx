@@ -291,6 +291,11 @@ export function DevPanel() {
             <label className="block text-xs font-bold text-gray-400 mb-1">Payment screenshot note (shown under every payment box)</label>
             <input value={form.payment_screenshot_note} onChange={e => update('payment_screenshot_note', e.target.value)} className={inputCls} />
           </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 mb-1">"Why Advance Payment?" explanation (shown on COD)</label>
+            <textarea value={form.why_advance_note} onChange={e => update('why_advance_note', e.target.value)} rows={3} className={inputCls} />
+          </div>
         </div>
 
         {/* CONTACT */}
