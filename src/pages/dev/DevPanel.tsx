@@ -339,6 +339,11 @@ export function DevPanel() {
             <input value={form.footer_stat_4_label} onChange={e => update('footer_stat_4_label', e.target.value)} placeholder="Customer Support" className={inputCls} />
           </div>
           <textarea value={form.footer_description} onChange={e => update('footer_description', e.target.value)} rows={3} className={inputCls} placeholder="Footer description" />
+          <div className="grid sm:grid-cols-3 gap-3">
+            <input value={form.footer_quick_title} onChange={e => update('footer_quick_title', e.target.value)} placeholder="Quick Links" className={inputCls} />
+            <input value={form.footer_categories_title} onChange={e => update('footer_categories_title', e.target.value)} placeholder="Categories" className={inputCls} />
+            <input value={form.footer_contact_title} onChange={e => update('footer_contact_title', e.target.value)} placeholder="Contact Us" className={inputCls} />
+          </div>
           <input value={form.footer_email} onChange={e => update('footer_email', e.target.value)} className={inputCls} placeholder="Footer email" />
           <div>
             <label className="block text-xs font-bold text-gray-400 mb-1">Quick Links</label>
