@@ -16,12 +16,18 @@ export function DevLogin() {
     if (!email.trim() || !password.trim()) { setError('Please fill in all fields'); return; }
     setLoading(true);
     setError('');
-    const err = await devLogin(email.trim(), password);
-    if (err) {
-      setError(err);
+    try {
+      const err = await devLogin(email.trim(), password);
+      if (err) {
+        setError(err);
+        return;
+      }
       setLoading(false);
-    } else {
       navigate('dev-panel');
+    } catch {
+      setError('Unable to sign in right now. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
