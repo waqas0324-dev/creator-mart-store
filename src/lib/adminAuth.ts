@@ -10,7 +10,7 @@ export async function adminLogin(email: string, password: string): Promise<strin
   const { data: adminRow } = await supabase
     .from('admin_users')
     .select('id')
-    .eq('email', email.toLowerCase().trim())
+    .eq('user_id', data.session.user.id)
     .maybeSingle();
 
   if (!adminRow) {
@@ -39,7 +39,7 @@ export async function syncAdminSession(): Promise<boolean> {
   const { data: adminRow } = await supabase
     .from('admin_users')
     .select('id')
-    .eq('email', user.email.toLowerCase())
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (!adminRow) {
