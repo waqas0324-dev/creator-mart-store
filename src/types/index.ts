@@ -177,5 +177,6 @@ export type Page =
   | 'admin-orders'
   | 'admin-settings'
   | 'admin-product-form'
+  | 'admin-account'
   | 'dev-login'
   | 'dev-panel';
