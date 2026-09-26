@@ -192,11 +192,12 @@ export function Navbar() {
             <button
               key={link.page}
               onClick={() => navigate(link.page)}
-              className={`py-3 px-5 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${
+              className={`py-3 px-5 uppercase tracking-wide border-b-2 transition-colors whitespace-nowrap ${
                 isActive(link.page)
-                  ? 'border-orange-500 text-orange-400'
-                  : 'border-transparent text-gray-200 hover:text-orange-400'
+                  ? 'border-orange-500'
+                  : 'border-transparent'
               }`}
+              style={{ color: isActive(link.page) ? hd.hoverColor : hd.textColor, fontSize: hd.fontSize, fontWeight: hd.fontWeight }}
             >
               {link.label}
             </button>
