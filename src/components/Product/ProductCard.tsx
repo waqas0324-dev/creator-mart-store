@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import type { Product } from '../../types';
@@ -88,8 +89,8 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="mt-auto flex gap-1.5 sm:gap-2">
           <button
             onClick={() => { addItem(product); showToast('Your product has been added to cart', 'cart'); }}
-            className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 transition-all active:scale-[0.98] hover:-translate-y-0.5"
-            style={{ backgroundColor: design.buttons.bgColor, color: design.buttons.textColor, borderRadius: design.buttons.radius, fontWeight: design.buttons.fontWeight, transitionDuration: design.buttons.transitionMs + 'ms' }}
+            className={design.animations.enabled ? "flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 design-interactive" : "flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3"}
+            style={{ backgroundColor: design.buttons.bgColor, color: design.buttons.textColor, borderRadius: design.buttons.radius, fontWeight: design.buttons.fontWeight, transitionDuration: design.buttons.transitionMs + 'ms', '--design-hover-scale': design.buttons.hoverScale, '--design-click-scale': design.animations.clickScale, '--design-hover-lift': design.animations.hoverLift, '--design-transition': design.buttons.transitionMs + 'ms' } as React.CSSProperties}
           >
             <ShoppingCart size={13} className="flex-shrink-0" />
             <span className="truncate">Add to Cart</span>
