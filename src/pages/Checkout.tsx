@@ -148,7 +148,7 @@ export function Checkout() {
      the premium gold look used for Full Advance below. */
   const CODPaymentBox = () => (
     <div className="mt-2 bg-teal-50 border-2 border-teal-500 rounded-xl p-4 space-y-4">
-      <div className="bg-teal-600 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg shadow">
+      <div className="cod-advance-pulse bg-teal-600 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg shadow">
         Advance to Pay Now: Rs. {amountToPayNow.toLocaleString()}
       </div>
       <div className="space-y-3">
@@ -265,11 +265,11 @@ export function Checkout() {
                           <p className="font-urdu text-teal-800 mb-1 text-base">
                             {settings.cod_language === 'en' ? settings.cod_policy_english : settings.cod_policy_urdu}
                           </p>
-                          <table className="w-full mt-3 text-xs">
-                            <thead><tr className="border-b border-teal-300 text-left"><th className="py-1">Order Total</th><th className="py-1">Advance Required</th></tr></thead>
+                          <table className="w-full mt-4 text-xs table-fixed">
+                            <thead><tr className="border-b border-teal-300 text-left"><th className="w-[52%] py-2 pr-4">Order Total</th><th className="w-[48%] py-2 pl-4">Advance Required</th></tr></thead>
                             <tbody>
-                              <tr><td className="py-1 font-semibold">Under Rs. {settings.advance_threshold.toLocaleString()}</td><td className="py-1 font-semibold">Rs. {settings.advance_flat_amount} flat</td></tr>
-                              <tr><td className="py-1 font-semibold">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-1 font-semibold">{settings.advance_percent}% of order total + Rs. {settings.delivery_charge_above_threshold} delivery</td></tr>
+                              <tr><td className="py-2 pr-4 font-semibold">Under Rs. {settings.advance_threshold.toLocaleString()}</td><td className="py-2 pl-4 font-semibold">Rs. {settings.advance_flat_amount} flat</td></tr>
+                              <tr><td className="py-2 pr-4 font-semibold">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-2 pl-4 font-semibold">{settings.advance_percent}% of order total</td></tr>
                             </tbody>
                           </table>
                           <p className="mt-2 text-xs text-gray-600">Support: {settings.payment_support_hours}</p>
