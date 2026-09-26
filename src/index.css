@@ -65,3 +65,15 @@
 .design-interactive:active {
   transform: scale(var(--design-click-scale, 0.98));
 }
+
+/* COD advance-payment highlight — subtle attention animation without moving the text */
+@keyframes cod-advance-glow {
+  0%, 100% { box-shadow: 0 4px 14px rgba(13, 148, 136, 0.16); }
+  50% { box-shadow: 0 6px 20px rgba(13, 148, 136, 0.32); }
+}
+.cod-advance-pulse {
+  animation: cod-advance-glow 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cod-advance-pulse { animation: none; }
+}
