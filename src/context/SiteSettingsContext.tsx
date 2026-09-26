@@ -41,6 +41,16 @@ const DEFAULTS: SiteSettings = {
   instagram_url: null,
   tiktok_url: null,
   youtube_url: null,
+  footer_description: "Pakistan's No.1 Creator Store. Premium quality products for content creators delivered nationwide.",
+  footer_email: 'info@abrgadgets.pk',
+  footer_stat_1_value: '10,000+', footer_stat_1_label: 'Happy Customers',
+  footer_stat_2_value: '300+', footer_stat_2_label: 'Quality Products',
+  footer_stat_3_value: '99%', footer_stat_3_label: 'Positive Reviews',
+  footer_stat_4_value: '24/7', footer_stat_4_label: 'Customer Support',
+  footer_quick_home: 'Home', footer_quick_shop: 'Shop', footer_quick_new_arrivals: 'New Arrivals', footer_quick_best_sellers: 'Best Sellers',
+  footer_quick_contact: 'Contact Us', footer_quick_about: 'About Us', footer_quick_return: 'Return & Refund Policy', footer_quick_privacy: 'Privacy Policy',
+  footer_categories: 'Microphones|Tripods|Ring Lights|Power Banks|Earbuds|Speakers',
+  footer_copyright: 'All rights reserved.',
 };
 
 interface SiteSettingsContextValue {
