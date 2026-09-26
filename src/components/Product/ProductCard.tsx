@@ -9,6 +9,7 @@ import { useNavigation } from '../../context/NavigationContext';
 import { onImageError, resolveProductImage } from '../../lib/imageFallback';
 import { BRAND_NAME, toWhatsAppNumber } from '../../lib/brand';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { useToast } from '../../context/ToastContext';
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +19,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const { navigate } = useNavigation();
   const { settings } = useSiteSettings();
+  const { showToast } = useToast();
   const design = settings.design_settings;
   const whatsappLink = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
 
@@ -85,7 +87,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
         <div className="mt-auto flex gap-1.5 sm:gap-2">
           <button
-            onClick={() => addItem(product)}
+            onClick={() => { addItem(product); showToast('Your product has been added to cart', 'cart'); }}
             className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 transition-all active:scale-[0.98] hover:-translate-y-0.5"
             style={{ backgroundColor: design.buttons.bgColor, color: design.buttons.textColor, borderRadius: design.buttons.radius, fontWeight: design.buttons.fontWeight, transitionDuration: design.buttons.transitionMs + 'ms' }}
           >
