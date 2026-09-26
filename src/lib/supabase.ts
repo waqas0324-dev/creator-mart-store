@@ -10,4 +10,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+    // Do not let another browser tab hold the login operation hostage.
+    // Each tab can authenticate immediately; Supabase still persists the session.
+    lock: async (_name, _acquireTimeout, fn) => await fn(),
+  },
+});
