@@ -2,43 +2,43 @@ import { supabase } from './supabase';
 
 const ADMIN_KEY = 'cm_admin_auth';
 
-async function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
+async function fetchWithTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) =>
-      window.setTimeout(() => reject(new Error('Request timed out')), ms)
-    ),
+    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('Request timed out')), ms)),
   ]);
 }
 
 export async function adminLogin(email: string, password: string): Promise<string | null> {
   try {
-    const { data, error } = await withTimeout(
-      supabase.auth.signInWithPassword({ email, password })
-    );
-    if (error) return error.message || 'Invalid email or password.';
-    if (!data.session) return 'Login failed. Please try again.';
-
-    const { data: adminRow, error: adminError } = await withTimeout(
-      supabase
-        .from('admin_users')
-        .select('id')
-        .eq('user_id', data.session.user.id)
-        .maybeSingle()
+    const response = await fetchWithTimeout(
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fast-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password, role: 'admin' }),
+      }),
     );
 
-    if (adminError) return 'Could not verify Admin Panel access. Please try again.';
+    const payload = await response.json();
+    if (!response.ok) return payload.error || 'Unable to sign in right now. Please try again.';
 
-    if (!adminRow) {
-      await supabase.auth.signOut();
-      return 'Access denied. You are not authorized to access the admin panel.';
-    }
+    const { error } = await fetchWithTimeout(
+      supabase.auth.setSession({
+        access_token: payload.session.access_token,
+        refresh_token: payload.session.refresh_token,
+      }),
+    );
+
+    if (error) return error.message || 'Login failed. Please try again.';
 
     localStorage.setItem(ADMIN_KEY, 'true');
     return null;
   } catch (error) {
     if (error instanceof Error && error.message === 'Request timed out') {
-      return 'Login is taking too long. Please check your internet connection and try again.';
+      return 'Login server did not respond in time. Please try again.';
     }
     return 'Unable to sign in right now. Please try again.';
   }
@@ -50,7 +50,7 @@ export async function adminLogout() {
 }
 
 export async function syncAdminSession(): Promise<boolean> {
-  const { data: sessionData } = await supabase.auth.getSession();
+  const { data: sessionData } = await fetchWithTimeout(supabase.auth.getSession());
   const user = sessionData.session?.user;
 
   if (!user?.email) {
@@ -58,11 +58,9 @@ export async function syncAdminSession(): Promise<boolean> {
     return false;
   }
 
-  const { data: adminRow } = await supabase
-    .from('admin_users')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: adminRow } = await fetchWithTimeout(
+    supabase.from('admin_users').select('id').eq('user_id', user.id).maybeSingle()
+  );
 
   if (!adminRow) {
     await supabase.auth.signOut();
