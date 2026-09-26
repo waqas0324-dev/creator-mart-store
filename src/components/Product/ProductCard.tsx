@@ -7,7 +7,8 @@ import { WhatsAppIcon } from '../UI/WhatsAppIcon';
 import { useCart } from '../../context/CartContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { onImageError, resolveProductImage } from '../../lib/imageFallback';
-import { WHATSAPP_LINK, BRAND_NAME } from '../../lib/brand';
+import { BRAND_NAME, toWhatsAppNumber } from '../../lib/brand';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 interface ProductCardProps {
   product: Product;
@@ -16,6 +17,8 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const { navigate } = useNavigation();
+  const { settings } = useSiteSettings();
+  const whatsappLink = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
 
   // When a product has more than one photo, auto-cycle through them so
   // shoppers see every angle without needing to open the product page.
@@ -88,7 +91,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <span className="truncate">Add to Cart</span>
           </button>
           <a
-            href={`${WHATSAPP_LINK}?text=${whatsappMsg}`}
+            href={`${whatsappLink}?text=${whatsappMsg}`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-center w-9 flex-shrink-0 bg-[#25D366] hover:bg-[#1fbd5a] text-white rounded-lg transition-colors"

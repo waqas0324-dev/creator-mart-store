@@ -1,12 +1,15 @@
-import { WHATSAPP_LINK, BRAND_NAME } from '../../lib/brand';
+import { BRAND_NAME, toWhatsAppNumber } from '../../lib/brand';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 export function FloatingWhatsApp() {
+  const { settings } = useSiteSettings();
   const message = encodeURIComponent(`Hi ${BRAND_NAME}! I have a question.`);
+  const link = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
 
   return (
     <a
-      href={`${WHATSAPP_LINK}?text=${message}`}
+      href={`${link}?text=${message}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"

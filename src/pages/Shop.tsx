@@ -6,6 +6,8 @@ import { ProductCard } from '../components/Product/ProductCard';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
+import { useSEO } from '../hooks/useSEO';
+import { BRAND_NAME } from '../lib/brand';
 
 const SORT_OPTIONS = [
   { label: 'Default sorting', value: 'default' },
@@ -55,6 +57,18 @@ export function Shop() {
   };
 
   useEffect(() => { fetchProducts(); }, [selectedCategory, searchQuery, maxPrice, sortBy]);
+
+  const activeCategoryName = categories.find(c => c.slug === selectedCategory)?.name;
+  useSEO({
+    title: activeCategoryName
+      ? `${activeCategoryName} - Buy Online in Pakistan | ${BRAND_NAME}`
+      : searchQuery
+        ? `Search: ${searchQuery} | ${BRAND_NAME}`
+        : `Shop All Products | ${BRAND_NAME}`,
+    description: activeCategoryName
+      ? `Shop ${activeCategoryName} online in Pakistan at the best price. Cash on Delivery, fast shipping, easy returns.`
+      : `Browse all content-creator gear at ${BRAND_NAME} — microphones, ring lights, tripods, earbuds and more. Cash on Delivery across Pakistan.`,
+  });
 
   useEffect(() => {
     if (nav.categorySlug !== undefined) setSelectedCategory(nav.categorySlug || '');

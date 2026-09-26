@@ -1,5 +1,6 @@
 import type { Order } from '../../types';
-import { BRAND_NAME, WHATSAPP_NUMBER } from '../../lib/brand';
+import { BRAND_NAME } from '../../lib/brand';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 interface Props {
   order: Order;
@@ -12,6 +13,8 @@ interface Props {
  * else needs to be printed separately.
  */
 export function DeliveryLabel({ order }: Props) {
+  const { settings } = useSiteSettings();
+  const WHATSAPP_NUMBER = settings.whatsapp_number;
   const itemCount = order.order_items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
   const amountDue = order.total - (order.advance_amount || 0);
   const showCollect = amountDue > 0;

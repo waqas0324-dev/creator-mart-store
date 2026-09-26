@@ -2,10 +2,17 @@ import { Star, Trophy } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/Product/ProductCard';
+import { useSEO } from '../hooks/useSEO';
+import { BRAND_NAME } from '../lib/brand';
 
 export function BestSellers() {
   const { navigate } = useNavigation();
   const { products, loading } = useProducts({ bestseller: true });
+
+  useSEO({
+    title: `Best Sellers - Top Rated Creator Gear | ${BRAND_NAME}`,
+    description: `Our most loved and highest rated content-creator gear in Pakistan. Cash on Delivery, fast shipping, easy returns.`,
+  });
 
   return (
     <div className="bg-gray-50 min-h-screen">

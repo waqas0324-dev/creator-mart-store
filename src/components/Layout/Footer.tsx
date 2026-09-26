@@ -1,7 +1,7 @@
 import { Phone, Mail, MapPin, Facebook, Instagram, Youtube } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
-import { WHATSAPP_LINK, WHATSAPP_NUMBER, BRAND_NAME } from '../../lib/brand';
+import { BRAND_NAME, toWhatsAppNumber } from '../../lib/brand';
 import { Logo } from '../UI/Logo';
 import { WhatsAppIcon } from '../UI/WhatsAppIcon';
 import { TikTokIcon } from '../UI/TikTokIcon';
@@ -16,6 +16,9 @@ export function Footer() {
     { url: settings.tiktok_url, Icon: TikTokIcon, label: 'TikTok' },
     { url: settings.youtube_url, Icon: Youtube, label: 'YouTube' },
   ].filter(s => s.url);
+
+  const waNumber = toWhatsAppNumber(settings.whatsapp_number);
+  const waLink = `https://wa.me/${waNumber}`;
 
   return (
     <footer className="bg-gray-900 text-gray-300">
@@ -46,7 +49,7 @@ export function Footer() {
             Pakistan's No.1 Creator Store. Premium quality products for content creators delivered nationwide.
           </p>
           <div className="flex gap-3">
-            <a href={WHATSAPP_LINK} target="_blank" rel="noreferrer" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
+            <a href={waLink} target="_blank" rel="noreferrer" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
               <WhatsAppIcon size={14} />
             </a>
             {socialLinks.map(({ url, Icon, label }) => (
@@ -113,7 +116,7 @@ export function Footer() {
           <ul className="space-y-3">
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <Phone size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
-              <a href={`tel:+92${WHATSAPP_NUMBER.slice(1)}`} className="hover:text-orange-400 transition-colors">+92 304 4454356</a>
+              <a href={`tel:+${waNumber}`} className="hover:text-orange-400 transition-colors">{settings.whatsapp_number}</a>
             </li>
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <Mail size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
@@ -121,7 +124,7 @@ export function Footer() {
             </li>
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <MapPin size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
-              <span>Plaza 145-B Commercial, Jasmine Block, Bahria Town, Lahore</span>
+              <span>{settings.store_address}</span>
             </li>
           </ul>
         </div>

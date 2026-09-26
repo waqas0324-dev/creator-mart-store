@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
@@ -9,11 +9,44 @@ import { useWishlist } from '../context/WishlistContext';
 import { StarRating } from '../components/UI/StarRating';
 import { Badge } from '../components/UI/Badge';
 import { ProductCard } from '../components/Product/ProductCard';
-import { WHATSAPP_LINK, BRAND_NAME } from '../lib/brand';
+import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
+import { useSEO } from '../hooks/useSEO';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
   const { product, loading } = useProduct(nav.productSlug || '');
+  const { settings: waSettings } = useSiteSettings();
+  const WHATSAPP_LINK = `https://wa.me/${toWhatsAppNumber(waSettings.whatsapp_number)}`;
+
+  useSEO({
+    title: product ? `${product.name} - Buy Online in Pakistan | ${BRAND_NAME}` : `Loading... | ${BRAND_NAME}`,
+    description: product
+      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${(product.description || '').slice(0, 100)}`
+      : `Buy premium content-creator gear online in Pakistan. Cash on Delivery available.`,
+    image: product?.image_url || undefined,
+    jsonLd: product
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.name,
+          image: product.image_url ? [product.image_url] : undefined,
+          description: product.description || undefined,
+          sku: product.id,
+          brand: { '@type': 'Brand', name: BRAND_NAME },
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: 'PKR',
+            price: product.price,
+            availability:
+              product.stock && product.stock > 0
+                ? 'https://schema.org/InStock'
+                : 'https://schema.org/OutOfStock',
+            areaServed: 'PK',
+          },
+        }
+      : undefined,
+  });
   const { addItem } = useCart();
   const { toggleItem, isInWishlist } = useWishlist();
   const { products: related } = useProducts({ categorySlug: product?.categories?.slug });
@@ -26,6 +59,16 @@ export function ProductDetail() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
+
+  const images = product?.images && product.images.length > 0 ? product.images : product ? [product.image_url] : [];
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveImage(prev => (prev + 1) % images.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [images.length]);
 
   if (loading) {
     return (
@@ -52,8 +95,6 @@ export function ProductDetail() {
       </div>
     );
   }
-
-  const images = product.images?.length > 0 ? product.images : [product.image_url];
 
   const handleAddToCart = () => {
     addItem(product, quantity);
@@ -84,8 +125,28 @@ export function ProductDetail() {
           <div className="grid md:grid-cols-2 gap-8">
             {/* Images */}
             <div>
-              <div className="bg-gray-50 rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
+              <div className="relative bg-gray-50 rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
                 <img src={resolveProductImage(images[activeImage])} alt={product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="max-h-72 object-contain" />
+                {images.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Previous image"
+                      onClick={() => setActiveImage(prev => (prev - 1 + images.length) % images.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center text-gray-700 hover:bg-white hover:text-orange-500 transition-colors"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next image"
+                      onClick={() => setActiveImage(prev => (prev + 1) % images.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md flex items-center justify-center text-gray-700 hover:bg-white hover:text-orange-500 transition-colors"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </>
+                )}
               </div>
               {images.length > 1 && (
                 <div className="flex gap-2">

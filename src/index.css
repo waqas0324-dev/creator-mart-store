@@ -10,6 +10,13 @@
   }
 }
 
+/* Urdu text (COD/payment policy notes) — Nastaliq calligraphic style */
+.font-urdu {
+  font-family: 'Noto Nastaliq Urdu', serif;
+  direction: rtl;
+  line-height: 2.1;
+}
+
 /* Announcement bar — continuous right-to-left scrolling ticker */
 @keyframes marquee {
   from { transform: translateX(0); }

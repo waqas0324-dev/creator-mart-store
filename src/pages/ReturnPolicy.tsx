@@ -1,5 +1,6 @@
 import { useNavigation } from '../context/NavigationContext';
-import { BRAND_NAME, WHATSAPP_LINK } from '../lib/brand';
+import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 const SECTIONS = [
   {
@@ -26,6 +27,8 @@ const SECTIONS = [
 
 export function ReturnPolicy() {
   const { navigate } = useNavigation();
+  const { settings } = useSiteSettings();
+  const WHATSAPP_LINK = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
 
   return (
     <div className="bg-gray-50 min-h-screen">

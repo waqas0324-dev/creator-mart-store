@@ -207,7 +207,7 @@ export function DevPanel() {
             <input type="number" value={form.shipping_fee} onChange={e => updateNumber('shipping_fee', e.target.value)} className={`${inputCls} w-32`} />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-400 mb-1">Advance below threshold (Rs. flat)</label>
               <input type="number" value={form.advance_flat_amount} onChange={e => updateNumber('advance_flat_amount', e.target.value)} className={inputCls} />
@@ -220,6 +220,10 @@ export function DevPanel() {
               <label className="block text-xs font-bold text-gray-400 mb-1">Advance above threshold (%)</label>
               <input type="number" value={form.advance_percent} onChange={e => updateNumber('advance_percent', e.target.value)} className={inputCls} />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Delivery charge above threshold (Rs.)</label>
+              <input type="number" value={form.delivery_charge_above_threshold} onChange={e => updateNumber('delivery_charge_above_threshold', e.target.value)} className={inputCls} />
+            </div>
           </div>
 
           <div>
@@ -227,32 +231,93 @@ export function DevPanel() {
             <input type="number" value={form.full_advance_discount_percent} onChange={e => updateNumber('full_advance_discount_percent', e.target.value)} className={`${inputCls} w-32`} />
           </div>
 
-          <div className="border-t border-gray-800 pt-4 grid sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bank Account Title</label>
-              <input value={form.bank_title} onChange={e => update('bank_title', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bank Name</label>
-              <input value={form.bank_name} onChange={e => update('bank_name', e.target.value)} className={inputCls} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bank Account Number / IBAN</label>
-              <input value={form.bank_account_number} onChange={e => update('bank_account_number', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Wallet Name (Easypaisa/JazzCash)</label>
-              <input value={form.wallet_name} onChange={e => update('wallet_name', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Wallet Number</label>
-              <input value={form.wallet_number} onChange={e => update('wallet_number', e.target.value)} className={inputCls} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-gray-400 mb-1">Support Hours (shown after payment)</label>
-              <input value={form.payment_support_hours} onChange={e => update('payment_support_hours', e.target.value)} className={inputCls} />
+          <div>
+            <label className="block text-xs font-bold text-gray-400 mb-1">COD / Advance note shown to customer (Urdu, Nastaliq font)</label>
+            <textarea dir="rtl" value={form.cod_policy_urdu} onChange={e => update('cod_policy_urdu', e.target.value)} rows={3} className={`${inputCls} font-urdu text-base`} />
+          </div>
+
+          <div className="border-t border-gray-800 pt-4">
+            <p className="text-xs font-bold text-purple-400 uppercase tracking-wide mb-3">Channel 1 — JazzCash <span className="text-gray-500 font-normal normal-case">(shown on both COD and Full Advance)</span></p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1">Account Title</label>
+                <input value={form.wallet_name} onChange={e => update('wallet_name', e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1">JazzCash Number</label>
+                <input value={form.wallet_number} onChange={e => update('wallet_number', e.target.value)} className={inputCls} />
+              </div>
             </div>
           </div>
+
+          <div className="border-t border-gray-800 pt-4">
+            <p className="text-xs font-bold text-purple-400 uppercase tracking-wide mb-3">Channel 2 — NayaPay <span className="text-gray-500 font-normal normal-case">(shown on both COD and Full Advance)</span></p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1">Account Title</label>
+                <input value={form.bank_title} onChange={e => update('bank_title', e.target.value)} className={inputCls} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-gray-400 mb-1">NayaPay Account Number</label>
+                <input value={form.bank_account_number} onChange={e => update('bank_account_number', e.target.value)} className={inputCls} />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 pt-4">
+            <p className="text-xs font-bold text-purple-400 uppercase tracking-wide mb-3">Channel 3 — Bank <span className="text-gray-500 font-normal normal-case">(shown only on Full Advance Payment)</span></p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1">Account Title</label>
+                <input value={form.bank2_title} onChange={e => update('bank2_title', e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1">Bank Name</label>
+                <input value={form.bank2_name} onChange={e => update('bank2_name', e.target.value)} className={inputCls} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-gray-400 mb-1">Account Number / IBAN</label>
+                <input value={form.bank2_account_number} onChange={e => update('bank2_account_number', e.target.value)} className={inputCls} />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 pt-4">
+            <label className="block text-xs font-bold text-gray-400 mb-1">Support Hours (shown after payment)</label>
+            <input value={form.payment_support_hours} onChange={e => update('payment_support_hours', e.target.value)} className={inputCls} />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-400 mb-1">Payment screenshot note (shown under every payment box)</label>
+            <input value={form.payment_screenshot_note} onChange={e => update('payment_screenshot_note', e.target.value)} className={inputCls} />
+          </div>
+        </div>
+
+        {/* CONTACT */}
+        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
+          <h3 className="font-bold text-white text-sm uppercase tracking-wide">WhatsApp &amp; Address</h3>
+          <p className="text-xs text-gray-500 -mt-2">This WhatsApp number appears on the floating button, product pages, checkout, footer and contact page.</p>
+          <div>
+            <label className="block text-xs font-bold text-gray-400 mb-1">Official WhatsApp Number</label>
+            <input value={form.whatsapp_number} onChange={e => update('whatsapp_number', e.target.value)} className={`${inputCls} w-48`} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-400 mb-1">Store Address (shown in footer)</label>
+            <input value={form.store_address} onChange={e => update('store_address', e.target.value)} className={inputCls} />
+          </div>
+        </div>
+
+        {/* TOP ANNOUNCEMENT BAR (scrolling strip) */}
+        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
+          <h3 className="font-bold text-white text-sm uppercase tracking-wide">Top Scrolling Bar</h3>
+          <p className="text-xs text-gray-500 -mt-2">The black scrolling strip at the very top of the site. The WhatsApp message is added automatically — write your other messages here, separated by <strong>|</strong> (pipe).</p>
+          <textarea
+            value={form.announcement_messages}
+            onChange={e => update('announcement_messages', e.target.value)}
+            rows={3}
+            className={inputCls}
+            placeholder="Free Delivery All Over Pakistan|New Products Added Every Week|Follow Us for Daily Deals & Discounts"
+          />
         </div>
 
         {/* SOCIAL MEDIA LINKS */}

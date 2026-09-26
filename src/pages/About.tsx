@@ -1,10 +1,19 @@
 import { ShieldCheck, Truck, Users, Award } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
-import { BRAND_NAME, WHATSAPP_LINK } from '../lib/brand';
+import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { Logo } from '../components/UI/Logo';
+import { useSEO } from '../hooks/useSEO';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export function About() {
   const { navigate } = useNavigation();
+  const { settings } = useSiteSettings();
+  const WHATSAPP_LINK = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
+
+  useSEO({
+    title: `About Us | ${BRAND_NAME}`,
+    description: `Learn about ${BRAND_NAME} — Pakistan's trusted store for content-creator gear. Premium quality, affordable prices, fast delivery nationwide.`,
+  });
 
   return (
     <div className="bg-gray-50 min-h-screen">

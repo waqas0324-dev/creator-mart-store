@@ -1,15 +1,14 @@
-import { useState } from 'react';
-import { Loader2, Banknote, Wallet, Sparkles, Copy, CheckCircle } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { Loader2, Banknote, Wallet, Smartphone, Landmark, Sparkles, Copy, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { supabase } from '../lib/supabase';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
-import { WHATSAPP_NUMBER } from '../lib/brand';
 
 const CITIES = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
 
-type PayMethod = 'cash_on_delivery' | 'partial_advance' | 'full_advance';
+type PayMethod = 'cash_on_delivery' | 'full_advance';
 
 export function Checkout() {
   const { items, subtotal, clearCart } = useCart();
@@ -26,13 +25,18 @@ export function Checkout() {
   const [submitError, setSubmitError] = useState('');
 
   const isFullAdvance = form.paymentMethod === 'full_advance';
-  const shippingFee = isFullAdvance ? 0 : settings.shipping_fee;
+  const isAboveThreshold = subtotal >= settings.advance_threshold;
+  const shippingFee = isFullAdvance
+    ? 0
+    : isAboveThreshold
+      ? settings.delivery_charge_above_threshold
+      : settings.shipping_fee;
   const discount = isFullAdvance ? Math.round(subtotal * (settings.full_advance_discount_percent / 100)) : 0;
   const total = subtotal + shippingFee - discount;
-  const advanceRequired = subtotal < settings.advance_threshold
+  const advanceRequired = !isAboveThreshold
     ? settings.advance_flat_amount
     : Math.round(subtotal * (settings.advance_percent / 100));
-  const amountToPayNow = form.paymentMethod === 'partial_advance' ? advanceRequired : form.paymentMethod === 'full_advance' ? total : 0;
+  const amountToPayNow = isFullAdvance ? total : advanceRequired;
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -109,55 +113,82 @@ export function Checkout() {
   const inputCls = (field: string) =>
     `w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors[field] ? 'border-red-400' : 'border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-100'}`;
 
-  const PaymentBankBox = ({ amountLabel }: { amountLabel: string }) => (
-    <div className="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
-      <div className="bg-orange-500 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg">
-        {amountLabel}: Rs. {amountToPayNow.toLocaleString()}
+  const CopyRow = ({ label, value, copyKey }: { label: string; value: string; copyKey: string }) => (
+    <div className="flex items-center justify-between">
+      <span className="text-gray-500 w-20 flex-shrink-0">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-gray-900 break-all text-right">{value}</span>
+        <button type="button" onClick={() => copyToClipboard(value, copyKey)} className="text-gray-400 hover:text-orange-500 transition-colors flex-shrink-0">
+          {copied === copyKey ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
+        </button>
       </div>
-      <div>
-        <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Bank Account Details</p>
-        <div className="space-y-2 text-sm">
-          {[
-            { label: 'Title', value: settings.bank_title, copyKey: '' },
-            { label: 'Account No', value: settings.bank_account_number, copyKey: 'bank-acc' },
-            { label: 'Bank', value: settings.bank_name, copyKey: '' },
-          ].map(row => (
-            <div key={row.label} className="flex items-center justify-between">
-              <span className="text-gray-500 w-20 flex-shrink-0">{row.label}</span>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900 break-all text-right">{row.value}</span>
-                {row.copyKey && (
-                  <button type="button" onClick={() => copyToClipboard(row.value, row.copyKey)} className="text-gray-400 hover:text-orange-500 transition-colors flex-shrink-0">
-                    {copied === row.copyKey ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+    </div>
+  );
+
+  const ChannelCard = ({ icon, name, rows, theme }: { icon: ReactNode; name: string; rows: { label: string; value: string; copyKey: string }[]; theme: 'cod' | 'advance' }) => (
+    <div className={theme === 'cod'
+      ? 'bg-white border-2 border-teal-200 rounded-xl p-3 shadow-sm'
+      : 'bg-gradient-to-b from-white to-orange-50 border-2 border-amber-300 rounded-xl p-3 shadow-sm'}>
+      <p className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wide mb-2 ${theme === 'cod' ? 'text-teal-700' : 'text-amber-700'}`}>
+        {icon} {name}
+      </p>
+      <div className="space-y-1.5 text-sm">
+        {rows.map(r => <CopyRow key={r.copyKey} label={r.label} value={r.value} copyKey={r.copyKey} />)}
       </div>
-      <div className="border-t border-gray-200 pt-3">
-        <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Wallet (Easypaisa / JazzCash)</p>
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-500 w-20 flex-shrink-0">Number</span>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{settings.wallet_number}</span>
-              <button type="button" onClick={() => copyToClipboard(settings.wallet_number, 'wallet')} className="text-gray-400 hover:text-orange-500 transition-colors">
-                {copied === 'wallet' ? <CheckCircle size={13} className="text-green-500" /> : <Copy size={13} />}
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-500 w-20 flex-shrink-0">Name</span>
-            <span className="font-semibold text-gray-900">{settings.wallet_name}</span>
-          </div>
-        </div>
+    </div>
+  );
+
+  const PaymentNote = () => (
+    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
+      📸 {settings.payment_screenshot_note} <strong>{settings.whatsapp_number}</strong>.
+      Support available: <strong>{settings.payment_support_hours}</strong>.
+    </div>
+  );
+
+  /* Cash on Delivery — only the 2 mobile-wallet channels (JazzCash, NayaPay),
+     cool teal theme so it visually reads as "quick advance", separate from
+     the premium gold look used for Full Advance below. */
+  const CODPaymentBox = () => (
+    <div className="mt-2 bg-teal-50/60 border border-teal-200 rounded-xl p-4 space-y-4">
+      <div className="bg-teal-600 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg">
+        Advance to Pay Now: Rs. {amountToPayNow.toLocaleString()}
       </div>
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-        📸 After sending the payment, please share the screenshot on WhatsApp <strong>{WHATSAPP_NUMBER}</strong>.
-        Support available: <strong>{settings.payment_support_hours}</strong>.
+      <div className="grid sm:grid-cols-2 gap-3">
+        <ChannelCard theme="cod" icon={<Smartphone size={14} />} name="JazzCash" rows={[
+          { label: 'Number', value: settings.wallet_number, copyKey: 'cod-jazzcash-num' },
+          { label: 'Title', value: settings.wallet_name, copyKey: 'cod-jazzcash-title' },
+        ]} />
+        <ChannelCard theme="cod" icon={<Wallet size={14} />} name="NayaPay" rows={[
+          { label: 'Account', value: settings.bank_account_number, copyKey: 'cod-nayapay-num' },
+          { label: 'Title', value: settings.bank_title, copyKey: 'cod-nayapay-title' },
+        ]} />
       </div>
+      <PaymentNote />
+    </div>
+  );
+
+  /* Full Advance Payment — all 3 channels including the bank, warm gold/amber
+     "premium" theme to match the Free Delivery + Discount incentive. */
+  const FullAdvancePaymentBox = () => (
+    <div className="mt-2 bg-amber-50/60 border border-amber-200 rounded-xl p-4 space-y-4">
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg shadow">
+        Full Amount to Pay Now: Rs. {amountToPayNow.toLocaleString()}
+      </div>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <ChannelCard theme="advance" icon={<Smartphone size={14} />} name="JazzCash" rows={[
+          { label: 'Number', value: settings.wallet_number, copyKey: 'fa-jazzcash-num' },
+          { label: 'Title', value: settings.wallet_name, copyKey: 'fa-jazzcash-title' },
+        ]} />
+        <ChannelCard theme="advance" icon={<Wallet size={14} />} name="NayaPay" rows={[
+          { label: 'Account', value: settings.bank_account_number, copyKey: 'fa-nayapay-num' },
+          { label: 'Title', value: settings.bank_title, copyKey: 'fa-nayapay-title' },
+        ]} />
+        <ChannelCard theme="advance" icon={<Landmark size={14} />} name={settings.bank2_name} rows={[
+          { label: 'Account', value: settings.bank2_account_number, copyKey: 'fa-bank-num' },
+          { label: 'Title', value: settings.bank2_title, copyKey: 'fa-bank-title' },
+        ]} />
+      </div>
+      <PaymentNote />
     </div>
   );
 
@@ -230,35 +261,20 @@ export function Checkout() {
                         <span className="text-sm font-bold text-gray-900">Cash on Delivery</span>
                       </div>
                     </label>
-                  </div>
-
-                  <div>
-                    <label
-                      className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors ${form.paymentMethod === 'partial_advance' ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200'}`}
-                      onClick={() => update('paymentMethod', 'partial_advance')}
-                    >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${form.paymentMethod === 'partial_advance' ? 'border-orange-500' : 'border-gray-300'}`}>
-                        {form.paymentMethod === 'partial_advance' && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Wallet size={18} className="text-gray-600" />
-                        <span className="text-sm font-bold text-gray-900">Partial Advance Payment</span>
-                      </div>
-                    </label>
-                    {form.paymentMethod === 'partial_advance' && (
+                    {form.paymentMethod === 'cash_on_delivery' && (
                       <>
-                        <div className="mt-2 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-gray-800">
-                          <p className="font-bold text-blue-700 mb-1">Why an advance?</p>
-                          <p>Most COD refusals happen after the parcel has already been shipped. A small advance simply confirms your order is genuine — the rest is paid on delivery. If we ever cancel your order, your advance is refunded in full.</p>
+                        <div className="mt-2 bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-gray-800">
+                          <p className="font-urdu text-orange-700 mb-1 text-base">{settings.cod_policy_urdu}</p>
                           <table className="w-full mt-3 text-xs">
-                            <thead><tr className="border-b border-blue-200 text-left"><th className="py-1">Order Total</th><th className="py-1">Advance Required</th></tr></thead>
+                            <thead><tr className="border-b border-orange-200 text-left"><th className="py-1">Order Total</th><th className="py-1">Advance Required</th></tr></thead>
                             <tbody>
                               <tr><td className="py-1">Under Rs. {settings.advance_threshold.toLocaleString()}</td><td className="py-1">Rs. {settings.advance_flat_amount} flat</td></tr>
-                              <tr><td className="py-1">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-1">{settings.advance_percent}% of order total</td></tr>
+                              <tr><td className="py-1">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-1">{settings.advance_percent}% of order total + Rs. {settings.delivery_charge_above_threshold} delivery</td></tr>
                             </tbody>
                           </table>
+                          <p className="mt-2 text-xs text-gray-500">Support: {settings.payment_support_hours}</p>
                         </div>
-                        <PaymentBankBox amountLabel="Advance to Pay Now" />
+                        <CODPaymentBox />
                       </>
                     )}
                   </div>
@@ -277,7 +293,7 @@ export function Checkout() {
                         <span className="text-xs bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">Free Delivery + {settings.full_advance_discount_percent}% Off</span>
                       </div>
                     </label>
-                    {form.paymentMethod === 'full_advance' && <PaymentBankBox amountLabel="Full Amount to Pay Now" />}
+                    {form.paymentMethod === 'full_advance' && <FullAdvancePaymentBox />}
                   </div>
                 </div>
               </div>
@@ -322,11 +338,11 @@ export function Checkout() {
                       <span className="text-gray-600">Pay Now</span><span className="font-bold text-orange-600">Rs. {amountToPayNow.toLocaleString()}</span>
                     </div>
                   )}
-                  {form.paymentMethod === 'partial_advance' && (
+                  {!isFullAdvance ? (
                     <div className="flex justify-between text-xs text-gray-500">
                       <span>Remaining (Cash on Delivery)</span><span>Rs. {(total - amountToPayNow).toLocaleString()}</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 {submitError && (

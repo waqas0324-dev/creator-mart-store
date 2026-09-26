@@ -1,10 +1,20 @@
 import { useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle, MessageCircle } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
-import { WHATSAPP_LINK, WHATSAPP_NUMBER } from '../lib/brand';
+import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
+import { useSEO } from '../hooks/useSEO';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 export function Contact() {
   const { navigate } = useNavigation();
+  const { settings } = useSiteSettings();
+  const WHATSAPP_NUMBER = settings.whatsapp_number;
+  const WHATSAPP_LINK = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
+
+  useSEO({
+    title: `Contact Us | ${BRAND_NAME}`,
+    description: `Get in touch with ${BRAND_NAME} — questions about orders, products, or support. WhatsApp, phone, and email available.`,
+  });
   const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);

@@ -1,16 +1,14 @@
-import { WHATSAPP_NUMBER } from '../../lib/brand';
-
-const MESSAGES = [
-  `WhatsApp: ${WHATSAPP_NUMBER} — Send Your Order Details Directly`,
-  'Free Delivery All Over Pakistan',
-  'New Products Added Every Week',
-  'Follow Us for Daily Deals & Discounts',
-];
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 export function AnnouncementBar() {
+  const { settings } = useSiteSettings();
+  const messages = [
+    `WhatsApp: ${settings.whatsapp_number} — Send Your Order Details Directly`,
+    ...settings.announcement_messages.split('|').map(s => s.trim()).filter(Boolean),
+  ];
   // Content is duplicated once so the CSS animation can loop seamlessly
   // from -50% back to 0% with no visible seam.
-  const track = [...MESSAGES, ...MESSAGES];
+  const track = [...messages, ...messages];
 
   return (
     <div className="bg-black text-white py-2 overflow-hidden">

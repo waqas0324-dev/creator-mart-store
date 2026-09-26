@@ -4,11 +4,18 @@ import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import type { Product } from '../types';
 import { ProductCard } from '../components/Product/ProductCard';
+import { useSEO } from '../hooks/useSEO';
+import { BRAND_NAME } from '../lib/brand';
 
 export function NewArrivals() {
   const { navigate } = useNavigation();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useSEO({
+    title: `New Arrivals - Latest Creator Gear | ${BRAND_NAME}`,
+    description: `Check out the newest content-creator gear added to ${BRAND_NAME}. Cash on Delivery across Pakistan, fast shipping.`,
+  });
 
   useEffect(() => {
     supabase

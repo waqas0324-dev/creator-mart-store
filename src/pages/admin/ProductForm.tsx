@@ -50,7 +50,22 @@ export function AdminProductForm() {
     });
   }, [isEdit, nav.adminProductId]);
 
-  const update = (field: string, value: string | boolean) => setForm(prev => ({ ...prev, [field]: value }));
+  const update = (field: string, value: string | boolean) => {
+    setForm(prev => {
+      const next = { ...prev, [field]: value };
+      // Keep the selling price in sync with Original Price + Discount %,
+      // so the admin never has to calculate the discounted price by hand —
+      // and removing the discount correctly brings back the original price.
+      if (field === 'original_price' || field === 'discount_percent') {
+        const orig = Number(field === 'original_price' ? value : prev.original_price);
+        const disc = Number(field === 'discount_percent' ? value : prev.discount_percent);
+        if (orig > 0) {
+          next.price = disc > 0 ? String(Math.round(orig - (orig * disc) / 100)) : String(orig);
+        }
+      }
+      return next;
+    });
+  };
 
   const handleFileUpload = async (file: File) => {
     if (!file) return;
@@ -197,7 +212,7 @@ export function AdminProductForm() {
             <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Pricing & Inventory</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'Price (Rs.)', field: 'price', placeholder: '1490', required: true },
+                { label: 'Price (Rs.) — auto-calculated, or type to override', field: 'price', placeholder: '1490', required: true },
                 { label: 'Original Price (Rs.)', field: 'original_price', placeholder: '1990' },
                 { label: 'Discount %', field: 'discount_percent', placeholder: '25' },
                 { label: 'Stock', field: 'stock', placeholder: '100' },
