@@ -1,60 +1,88 @@
-import { useState, useEffect, useRef } from 'react';
-import { Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink,
+  Image, Menu, Layout, Sparkles, CreditCard, FooterIcon, MapPin, Share2
+} from 'lucide-react';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { supabase } from '../../lib/supabase';
 import { devLogout } from '../../lib/devAuth';
+import type { DesignSettings, SiteSettings } from '../../types';
 
-const LOGO_SIZE_OPTIONS: { value: 'sm' | 'md' | 'lg' | 'xl'; label: string }[] = [
+const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] = [
   { value: 'sm', label: 'Small' },
-  { value: 'md', label: 'Medium (default)' },
+  { value: 'md', label: 'Medium' },
   { value: 'lg', label: 'Large' },
   { value: 'xl', label: 'Extra Large' },
+];
+
+type Section = 'logo' | 'header' | 'hero' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social';
+
+const SECTIONS: { id: Section; label: string; icon: typeof Image; description: string }[] = [
+  { id: 'logo', label: 'Logo', icon: Image, description: 'Logo image and sizing' },
+  { id: 'header', label: 'Header / Navbar', icon: Menu, description: 'Height, colors, typography and borders' },
+  { id: 'hero', label: 'Hero', icon: Layout, description: 'Hero banner, border and presentation' },
+  { id: 'buttons', label: 'Buttons & Animations', icon: Sparkles, description: 'Button colors, radius and interactions' },
+  { id: 'checkout', label: 'Checkout / Payment', icon: CreditCard, description: 'COD, advance payment and payment details' },
+  { id: 'footer', label: 'Footer', icon: FooterIcon, description: 'All footer content and links' },
+  { id: 'contact', label: 'Contact / Announcement', icon: MapPin, description: 'WhatsApp, address and top bar' },
+  { id: 'social', label: 'Social Media', icon: Share2, description: 'Social profile links' },
 ];
 
 export function DevPanel() {
   const { settings, loading, updateSettings } = useSiteSettings();
   const { navigate } = useNavigation();
   const [form, setForm] = useState(settings);
+  const [activeSection, setActiveSection] = useState<Section>('logo');
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<Partial<SiteSettings>>({});
 
   useEffect(() => { setForm(settings); }, [settings]);
 
-  const queueAutoSave = (field: keyof typeof form, value: string | number | null) => {
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, []);
+
+  const queueAutoSave = (payload: Partial<SiteSettings>) => {
+    pendingRef.current = { ...pendingRef.current, ...payload };
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus('saving');
     saveTimer.current = setTimeout(async () => {
-      const error = await updateSettings({ [field]: value } as Partial<typeof form>);
+      const changes = pendingRef.current;
+      pendingRef.current = {};
+      const error = await updateSettings(changes);
       setSaveStatus(error ? 'error' : 'saved');
-      if (!error) setSaved(true);
     }, 500);
   };
 
-  const update = (field: keyof typeof form, value: string) => {
+  const update = <K extends keyof SiteSettings>(field: K, value: SiteSettings[K]) => {
     setForm(prev => ({ ...prev, [field]: value }));
-    setSaved(false);
-    queueAutoSave(field, value);
+    queueAutoSave({ [field]: value } as Partial<SiteSettings>);
   };
 
-  const updateNumber = (field: keyof typeof form, value: string) => {
+  const updateNumber = <K extends keyof SiteSettings>(field: K, value: string) => {
     const num = value === '' ? 0 : Number(value);
-    const next = Number.isNaN(num) ? 0 : num;
-    setForm(prev => ({ ...prev, [field]: next }));
-    setSaved(false);
-    queueAutoSave(field, next);
+    update(field, (Number.isNaN(num) ? 0 : num) as SiteSettings[K]);
+  };
+
+  const updateDesign = <K extends keyof DesignSettings>(section: K, patch: Partial<DesignSettings[K]>) => {
+    const nextDesign = {
+      ...form.design_settings,
+      [section]: { ...form.design_settings[section], ...patch },
+    };
+    setForm(prev => ({ ...prev, design_settings: nextDesign }));
+    queueAutoSave({ design_settings: nextDesign });
   };
 
   const uploadTo = async (file: File, folder: string): Promise<string | null> => {
     const path = `${folder}/${Date.now()}-${file.name}`;
     const { error } = await supabase.storage.from('product-images').upload(path, file);
     if (error) return null;
-    const { data } = supabase.storage.from('product-images').getPublicUrl(path);
-    return data.publicUrl;
+    return supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
   };
 
   const handleLogoUpload = async (file: File) => {
@@ -72,11 +100,13 @@ export function DevPanel() {
   };
 
   const handleSave = async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const changes = { ...pendingRef.current, ...form };
+    pendingRef.current = {};
     setSaving(true);
-    const error = await updateSettings(form);
+    const error = await updateSettings(changes);
     setSaving(false);
     setSaveStatus(error ? 'error' : 'saved');
-    setSaved(!error);
   };
 
   const handleLogout = async () => {
@@ -85,345 +115,264 @@ export function DevPanel() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 size={28} className="text-purple-400 animate-spin" />
-      </div>
-    );
+    return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 size={28} className="text-purple-400 animate-spin" /></div>;
   }
 
-  const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-purple-500 transition-colors';
+  const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition-colors';
+  const cardCls = 'bg-gray-950 rounded-2xl border border-gray-800 p-5 sm:p-6 space-y-5';
+  const labelCls = 'block text-xs font-bold text-gray-400 mb-1.5';
+  const numberCls = inputCls + ' appearance-none';
+
+  const Field = ({ label, value, onChange, type = 'text', placeholder = '', className = '' }: {
+    label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string; className?: string;
+  }) => (
+    <div className={className}>
+      <label className={labelCls}>{label}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={type === 'number' ? numberCls : inputCls} />
+    </div>
+  );
+
+  const TextArea = ({ label, value, onChange, rows = 3, dir }: {
+    label: string; value: string; onChange: (v: string) => void; rows?: number; dir?: 'rtl';
+  }) => (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <textarea dir={dir} value={value} onChange={e => onChange(e.target.value)} rows={rows} className={`${inputCls} resize-y ${dir === 'rtl' ? 'font-urdu text-base' : ''}`} />
+    </div>
+  );
+
+  const ColorField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <div className="flex gap-2">
+        <input type="color" value={value} onChange={e => onChange(e.target.value)} className="h-10 w-12 rounded-lg bg-gray-800 border border-gray-700 cursor-pointer" />
+        <input value={value} onChange={e => onChange(e.target.value)} className={inputCls} />
+      </div>
+    </div>
+  );
+
+  const renderSection = () => {
+    if (activeSection === 'logo') return (
+      <div className={cardCls}>
+        <SectionTitle title="Logo" text="Control the store logo used across the site." />
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          <div className="w-40 h-20 rounded-xl border border-gray-800 bg-gray-900 flex items-center justify-center overflow-hidden">
+            {form.logo_url ? <img src={form.logo_url} alt="Logo preview" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-gray-600">Default ABR logo</span>}
+          </div>
+          <label className="flex items-center gap-2 text-sm border-2 border-dashed border-gray-700 rounded-xl px-4 py-3 cursor-pointer hover:border-purple-500 transition-colors text-gray-300">
+            {uploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+            {uploadingLogo ? 'Uploading...' : 'Upload New Logo'}
+            <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
+          </label>
+        </div>
+        {form.logo_url && <button onClick={() => update('logo_url', '')} className="text-xs text-gray-500 hover:text-red-400">Remove custom logo</button>}
+        <div>
+          <label className={labelCls}>Logo Size</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {LOGO_SIZE_OPTIONS.map(opt => <button key={opt.value} onClick={() => update('logo_size', opt.value)} className={`py-2.5 rounded-lg border text-sm font-semibold transition-all active:scale-95 ${form.logo_size === opt.value ? 'bg-purple-600 border-purple-600 text-white' : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-purple-500'}`}>{opt.label}</button>)}
+          </div>
+        </div>
+      </div>
+    );
+
+    if (activeSection === 'header') {
+      const d = form.design_settings.header;
+      return <div className={cardCls}>
+        <SectionTitle title="Header / Navbar" text="Edit the visual properties of the main header without changing its content." />
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Header height (px)" value={d.height} type="number" onChange={v => updateDesign('header', { height: Number(v) || 0 })} />
+          <Field label="Text size (px)" value={d.fontSize} type="number" onChange={v => updateDesign('header', { fontSize: Number(v) || 0 })} />
+          <Field label="Font weight (400–900)" value={d.fontWeight} type="number" onChange={v => updateDesign('header', { fontWeight: Number(v) || 400 })} />
+          <Field label="Border width (px)" value={d.borderWidth} type="number" onChange={v => updateDesign('header', { borderWidth: Number(v) || 0 })} />
+          <ColorField label="Header background" value={d.bgColor} onChange={v => updateDesign('header', { bgColor: v })} />
+          <ColorField label="Header text" value={d.textColor} onChange={v => updateDesign('header', { textColor: v })} />
+          <ColorField label="Hover / active color" value={d.hoverColor} onChange={v => updateDesign('header', { hoverColor: v })} />
+          <ColorField label="Border color" value={d.borderColor} onChange={v => updateDesign('header', { borderColor: v })} />
+        </div>
+        <p className="text-xs text-gray-500">Changes are saved automatically and synced live to the store.</p>
+      </div>;
+    }
+
+    if (activeSection === 'hero') {
+      const d = form.design_settings.hero;
+      return <div className={cardCls}>
+        <SectionTitle title="Hero" text="Manage the banner image and its presentation. Existing hero text fields are preserved below." />
+        <div className="flex flex-col sm:flex-row items-start gap-4">
+          <img src={form.hero_image_url} alt="Hero preview" className="w-full sm:w-56 h-32 object-cover rounded-xl border border-gray-800" />
+          <label className="flex items-center gap-2 text-sm border-2 border-dashed border-gray-700 rounded-xl px-4 py-3 cursor-pointer hover:border-purple-500 text-gray-300">
+            {uploadingHero ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+            {uploadingHero ? 'Uploading...' : 'Upload New Hero Image'}
+            <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleHeroUpload(e.target.files[0])} />
+          </label>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Border width (px)" value={d.borderWidth} type="number" onChange={v => updateDesign('hero', { borderWidth: Number(v) || 0 })} />
+          <Field label="Corner radius (px)" value={d.radius} type="number" onChange={v => updateDesign('hero', { radius: Number(v) || 0 })} />
+          <ColorField label="Border color" value={d.borderColor} onChange={v => updateDesign('hero', { borderColor: v })} />
+          <div><label className={labelCls}>Shadow</label><select value={d.shadow} onChange={e => updateDesign('hero', { shadow: e.target.value })} className={inputCls}><option value="none">None</option><option value="sm">Small</option><option value="md">Medium</option><option value="lg">Large</option></select></div>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Eyebrow" value={form.hero_eyebrow} onChange={v => update('hero_eyebrow', v)} />
+          <Field label="Main heading" value={form.hero_title} onChange={v => update('hero_title', v)} />
+          <Field label="Orange accent word" value={form.hero_title_accent} onChange={v => update('hero_title_accent', v)} />
+          <Field label="Discount badge text" value={form.hero_badge_text} onChange={v => update('hero_badge_text', v)} />
+        </div>
+        <TextArea label="Subtitle line 1" value={form.hero_subtitle_1} onChange={v => update('hero_subtitle_1', v)} />
+        <TextArea label="Subtitle line 2" value={form.hero_subtitle_2} onChange={v => update('hero_subtitle_2', v)} />
+        <div><label className={labelCls}>Trust checklist</label><div className="grid sm:grid-cols-3 gap-3"><input value={form.trust_item_1} onChange={e => update('trust_item_1', e.target.value)} className={inputCls} /><input value={form.trust_item_2} onChange={e => update('trust_item_2', e.target.value)} className={inputCls} /><input value={form.trust_item_3} onChange={e => update('trust_item_3', e.target.value)} className={inputCls} /></div></div>
+      </div>;
+    }
+
+    if (activeSection === 'buttons') {
+      const b = form.design_settings.buttons, a = form.design_settings.animations;
+      return <div className={cardCls}>
+        <SectionTitle title="Buttons & Animations" text="One central design system for buttons, hover states and click feedback." />
+        <div className="grid sm:grid-cols-2 gap-4">
+          <ColorField label="Button background" value={b.bgColor} onChange={v => updateDesign('buttons', { bgColor: v })} />
+          <ColorField label="Button hover background" value={b.hoverBgColor} onChange={v => updateDesign('buttons', { hoverBgColor: v })} />
+          <ColorField label="Button text color" value={b.textColor} onChange={v => updateDesign('buttons', { textColor: v })} />
+          <Field label="Border radius (px)" value={b.radius} type="number" onChange={v => updateDesign('buttons', { radius: Number(v) || 0 })} />
+          <Field label="Font weight" value={b.fontWeight} type="number" onChange={v => updateDesign('buttons', { fontWeight: Number(v) || 400 })} />
+          <Field label="Hover scale" value={b.hoverScale} type="number" onChange={v => updateDesign('buttons', { hoverScale: Number(v) || 1 })} />
+          <Field label="Transition (ms)" value={b.transitionMs} type="number" onChange={v => updateDesign('buttons', { transitionMs: Number(v) || 0 })} />
+        </div>
+        <div className="border-t border-gray-800 pt-5 space-y-4">
+          <h4 className="text-sm font-bold text-white">Interaction animation</h4>
+          <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3 cursor-pointer"><span className="text-sm text-gray-300">Enable subtle animations</span><input type="checkbox" checked={a.enabled} onChange={e => updateDesign('animations', { enabled: e.target.checked })} className="w-5 h-5 accent-purple-600" /></label>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Hover lift (px)" value={a.hoverLift} type="number" onChange={v => updateDesign('animations', { hoverLift: Number(v) || 0 })} />
+            <Field label="Click scale" value={a.clickScale} type="number" onChange={v => updateDesign('animations', { clickScale: Number(v) || 1 })} />
+          </div>
+        </div>
+      </div>;
+    }
+
+    if (activeSection === 'checkout') return (
+      <div className={cardCls}>
+        <SectionTitle title="Checkout / Payment" text="All existing COD, advance-payment and payment-channel controls remain here." />
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Standard shipping fee (Rs.)" value={form.shipping_fee} type="number" onChange={v => updateNumber('shipping_fee', v)} />
+          <Field label="Advance below threshold (Rs.)" value={form.advance_flat_amount} type="number" onChange={v => updateNumber('advance_flat_amount', v)} />
+          <Field label="Threshold (Rs.)" value={form.advance_threshold} type="number" onChange={v => updateNumber('advance_threshold', v)} />
+          <Field label="Advance above threshold (%)" value={form.advance_percent} type="number" onChange={v => updateNumber('advance_percent', v)} />
+          <Field label="Delivery charge above threshold (Rs.)" value={form.delivery_charge_above_threshold} type="number" onChange={v => updateNumber('delivery_charge_above_threshold', v)} />
+          <Field label="Full advance discount (%)" value={form.full_advance_discount_percent} type="number" onChange={v => updateNumber('full_advance_discount_percent', v)} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => update('cod_language', 'ur')} className={`py-2.5 rounded-lg border font-bold ${form.cod_language === 'ur' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}>Urdu</button>
+          <button onClick={() => update('cod_language', 'en')} className={`py-2.5 rounded-lg border font-bold ${form.cod_language === 'en' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}>English</button>
+        </div>
+        <TextArea label="COD policy — Urdu" value={form.cod_policy_urdu} onChange={v => update('cod_policy_urdu', v)} rows={4} dir="rtl" />
+        <TextArea label="COD policy — English" value={form.cod_policy_english} onChange={v => update('cod_policy_english', v)} rows={4} />
+        <TextArea label="Why Advance Payment? — Urdu" value={form.why_advance_note_urdu} onChange={v => update('why_advance_note_urdu', v)} rows={4} dir="rtl" />
+        <TextArea label="Why Advance Payment? — English" value={form.why_advance_note} onChange={v => update('why_advance_note', v)} rows={4} />
+        <div className="border-t border-gray-800 pt-5 space-y-4">
+          <h4 className="text-sm font-bold text-purple-400">JazzCash</h4>
+          <div className="grid sm:grid-cols-2 gap-4"><Field label="Account title" value={form.wallet_name} onChange={v => update('wallet_name', v)} /><Field label="JazzCash number" value={form.wallet_number} onChange={v => update('wallet_number', v)} /></div>
+          <h4 className="text-sm font-bold text-purple-400">NayaPay</h4>
+          <div className="grid sm:grid-cols-2 gap-4"><Field label="Account title" value={form.bank_title} onChange={v => update('bank_title', v)} /><Field label="NayaPay account number" value={form.bank_account_number} onChange={v => update('bank_account_number', v)} /></div>
+          <h4 className="text-sm font-bold text-purple-400">Bank</h4>
+          <div className="grid sm:grid-cols-2 gap-4"><Field label="Account title" value={form.bank2_title} onChange={v => update('bank2_title', v)} /><Field label="Bank name" value={form.bank2_name} onChange={v => update('bank2_name', v)} /><Field label="Account number / IBAN" value={form.bank2_account_number} onChange={v => update('bank2_account_number', v)} className="sm:col-span-2" /></div>
+          <Field label="Support hours" value={form.payment_support_hours} onChange={v => update('payment_support_hours', v)} />
+          <Field label="Payment screenshot note" value={form.payment_screenshot_note} onChange={v => update('payment_screenshot_note', v)} />
+        </div>
+      </div>
+    );
+
+    if (activeSection === 'footer') return (
+      <div className={cardCls}>
+        <SectionTitle title="Footer" text="Everything previously editable in the footer is preserved here." />
+        <div className="grid sm:grid-cols-2 gap-4">
+          {(['footer_stat_1_value','footer_stat_1_label','footer_stat_2_value','footer_stat_2_label','footer_stat_3_value','footer_stat_3_label','footer_stat_4_value','footer_stat_4_label'] as const).map(k => <Field key={k} label={k.replace('footer_','').replace(/_/g,' ')} value={form[k]} onChange={v => update(k, v)} />)}
+        </div>
+        <TextArea label="Footer description" value={form.footer_description} onChange={v => update('footer_description', v)} />
+        <Field label="Footer email" value={form.footer_email} onChange={v => update('footer_email', v)} />
+        <div className="grid sm:grid-cols-3 gap-4">
+          <Field label="Quick links title" value={form.footer_quick_title} onChange={v => update('footer_quick_title', v)} />
+          <Field label="Categories title" value={form.footer_categories_title} onChange={v => update('footer_categories_title', v)} />
+          <Field label="Contact title" value={form.footer_contact_title} onChange={v => update('footer_contact_title', v)} />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {(['footer_quick_home','footer_quick_shop','footer_quick_new_arrivals','footer_quick_best_sellers','footer_quick_contact','footer_quick_about','footer_quick_return','footer_quick_privacy'] as const).map(k => <Field key={k} label={k.replace('footer_quick_','').replace(/_/g,' ')} value={form[k]} onChange={v => update(k, v)} />)}
+        </div>
+        <TextArea label="Footer categories — separate with |" value={form.footer_categories} onChange={v => update('footer_categories', v)} rows={2} />
+        <Field label="Copyright text" value={form.footer_copyright} onChange={v => update('footer_copyright', v)} />
+      </div>
+    );
+
+    if (activeSection === 'contact') return (
+      <div className={cardCls}>
+        <SectionTitle title="Contact / Announcement" text="Store contact details and the top scrolling announcement bar." />
+        <Field label="Official WhatsApp number" value={form.whatsapp_number} onChange={v => update('whatsapp_number', v)} />
+        <Field label="Store address" value={form.store_address} onChange={v => update('store_address', v)} />
+        <TextArea label="Top scrolling messages — separate with |" value={form.announcement_messages} onChange={v => update('announcement_messages', v)} rows={3} />
+      </div>
+    );
+
+    return (
+      <div className={cardCls}>
+        <SectionTitle title="Social Media" text="Leave a URL blank to hide that social icon from the footer." />
+        <Field label="Facebook URL" value={form.facebook_url || ''} onChange={v => update('facebook_url', v || null)} placeholder="https://facebook.com/yourpage" />
+        <Field label="Instagram URL" value={form.instagram_url || ''} onChange={v => update('instagram_url', v || null)} placeholder="https://instagram.com/yourpage" />
+        <Field label="TikTok URL" value={form.tiktok_url || ''} onChange={v => update('tiktok_url', v || null)} placeholder="https://tiktok.com/@yourpage" />
+        <Field label="YouTube URL" value={form.youtube_url || ''} onChange={v => update('youtube_url', v || null)} placeholder="https://youtube.com/@yourpage" />
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-black text-gray-200">
-      <header className="border-b border-gray-800 bg-gray-950 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck size={20} className="text-purple-400" />
-            <div>
-              <h1 className="font-black text-white text-sm">Developer Studio</h1>
-              <p className="text-xs text-gray-500">Site branding &amp; homepage — private, not visible to the store admin</p>
-            </div>
+      <header className="border-b border-gray-800 bg-gray-950 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <ShieldCheck size={21} className="text-purple-400 flex-shrink-0" />
+            <div className="min-w-0"><h1 className="font-black text-white text-sm">Developer Studio</h1><p className="text-xs text-gray-500 truncate">Private website editor — changes auto-save live</p></div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => window.open('/', '_blank')} className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white transition-colors">
-              <ExternalLink size={14} /> View Store
-            </button>
-            <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-red-400 transition-colors">
-              <LogOut size={14} /> Logout
-            </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={() => window.open('/', '_blank')} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white active:scale-95 transition-all"><ExternalLink size={14} /> View Store</button>
+            <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-red-400 active:scale-95 transition-all"><LogOut size={14} /> Logout</button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        {/* LOGO */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
-          <h3 className="font-bold text-white text-sm uppercase tracking-wide">Logo</h3>
-          <div className="flex items-center gap-4">
-            <div className="w-32 h-16 rounded-lg border border-gray-800 bg-gray-900 flex items-center justify-center overflow-hidden">
-              {form.logo_url ? (
-                <img src={form.logo_url} alt="Logo preview" className="max-h-full max-w-full object-contain" />
-              ) : (
-                <span className="text-xs text-gray-600">Using default ABR logo</span>
-              )}
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-5">
+        <div className="grid lg:grid-cols-[230px_minmax(0,1fr)] gap-4 items-start">
+          <aside className="lg:sticky lg:top-24 bg-gray-950 border border-gray-800 rounded-2xl p-2">
+            <div className="px-3 py-3 border-b border-gray-800 mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-purple-400">Website Editor</p><p className="text-xs text-gray-500 mt-1">Select a section</p></div>
+            <div className="flex lg:flex-col gap-1 overflow-x-auto pb-1 lg:pb-0">
+              {SECTIONS.map(s => {
+                const Icon = s.icon;
+                const active = activeSection === s.id;
+                return <button key={s.id} onClick={() => setActiveSection(s.id)} className={`flex-shrink-0 lg:w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all active:scale-[0.98] ${active ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/30' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
+                  <Icon size={17} />
+                  <span className="min-w-0"><span className="block text-sm font-bold whitespace-nowrap">{s.label}</span><span className={`hidden lg:block text-[10px] mt-0.5 ${active ? 'text-purple-100' : 'text-gray-600'}`}>{s.description}</span></span>
+                </button>;
+              })}
             </div>
-            <label className="flex items-center gap-2 text-sm border-2 border-dashed border-gray-700 rounded-lg px-4 py-2.5 cursor-pointer hover:border-purple-500 transition-colors text-gray-300">
-              {uploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-              {uploadingLogo ? 'Uploading...' : 'Upload New Logo'}
-              <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
-            </label>
-          </div>
-          {form.logo_url && (
-            <button onClick={() => update('logo_url', '')} className="text-xs text-gray-500 hover:text-red-400 transition-colors">
-              Remove custom logo (use default ABR branding instead)
-            </button>
-          )}
+          </aside>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-2">Logo Size (applies everywhere — navbar, footer, hero)</label>
-            <div className="grid grid-cols-2 gap-2">
-              {LOGO_SIZE_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => update('logo_size', opt.value)}
-                  className={`text-sm font-semibold py-2 rounded-lg border transition-colors ${
-                    form.logo_size === opt.value
-                      ? 'bg-purple-600 border-purple-600 text-white'
-                      : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-600'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* HERO IMAGE */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
-          <h3 className="font-bold text-white text-sm uppercase tracking-wide">Hero Banner Image</h3>
-          <div className="flex items-center gap-4">
-            <img src={form.hero_image_url} alt="Hero preview" className="w-32 h-20 object-cover rounded-lg border border-gray-800" />
-            <label className="flex items-center gap-2 text-sm border-2 border-dashed border-gray-700 rounded-lg px-4 py-2.5 cursor-pointer hover:border-purple-500 transition-colors text-gray-300">
-              {uploadingHero ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-              {uploadingHero ? 'Uploading...' : 'Upload New Image'}
-              <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleHeroUpload(e.target.files[0])} />
-            </label>
-          </div>
-        </div>
-
-        {/* HERO TEXT */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
-          <h3 className="font-bold text-white text-sm uppercase tracking-wide">Hero Text</h3>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Small text above heading</label>
-            <input value={form.hero_eyebrow} onChange={e => update('hero_eyebrow', e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Main Heading</label>
-            <input value={form.hero_title} onChange={e => update('hero_title', e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Which word in the heading should be orange? (must match exactly)</label>
-            <input value={form.hero_title_accent} onChange={e => update('hero_title_accent', e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Subtitle line 1</label>
-            <input value={form.hero_subtitle_1} onChange={e => update('hero_subtitle_1', e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Subtitle line 2</label>
-            <input value={form.hero_subtitle_2} onChange={e => update('hero_subtitle_2', e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Discount badge text (e.g. "40%")</label>
-            <input value={form.hero_badge_text} onChange={e => update('hero_badge_text', e.target.value)} className={`${inputCls} w-32`} />
-          </div>
-        </div>
-
-        {/* TRUST CHECKLIST */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-3">
-          <h3 className="font-bold text-white text-sm uppercase tracking-wide">Trust Checklist (3 lines in hero)</h3>
-          <input value={form.trust_item_1} onChange={e => update('trust_item_1', e.target.value)} className={inputCls} />
-          <input value={form.trust_item_2} onChange={e => update('trust_item_2', e.target.value)} className={inputCls} />
-          <input value={form.trust_item_3} onChange={e => update('trust_item_3', e.target.value)} className={inputCls} />
-        </div>
-
-        {/* PAYMENT SETTINGS */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
-          <div>
-            <h3 className="font-bold text-white text-sm uppercase tracking-wide">Payment &amp; Shipping</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Controls the Checkout page's advance-payment options and bank details.</p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Standard shipping fee (Rs.) — waived for Full Advance Payment</label>
-            <input type="number" value={form.shipping_fee} onChange={e => updateNumber('shipping_fee', e.target.value)} className={`${inputCls} w-32`} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Advance below threshold (Rs. flat)</label>
-              <input type="number" value={form.advance_flat_amount} onChange={e => updateNumber('advance_flat_amount', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Threshold (Rs.)</label>
-              <input type="number" value={form.advance_threshold} onChange={e => updateNumber('advance_threshold', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Advance above threshold (%)</label>
-              <input type="number" value={form.advance_percent} onChange={e => updateNumber('advance_percent', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Delivery charge above threshold (Rs.)</label>
-              <input type="number" value={form.delivery_charge_above_threshold} onChange={e => updateNumber('delivery_charge_above_threshold', e.target.value)} className={inputCls} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Full Advance Payment discount (%)</label>
-            <input type="number" value={form.full_advance_discount_percent} onChange={e => updateNumber('full_advance_discount_percent', e.target.value)} className={`${inputCls} w-32`} />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">COD policy language shown on checkout</label>
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <button type="button" onClick={() => update('cod_language', 'ur')} className={`py-2 rounded-lg border font-bold text-sm ${form.cod_language === 'ur' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}>Urdu</button>
-              <button type="button" onClick={() => update('cod_language', 'en')} className={`py-2 rounded-lg border font-bold text-sm ${form.cod_language === 'en' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-gray-900 border-gray-700 text-gray-400'}`}>English</button>
-            </div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">COD policy — Urdu</label>
-            <textarea dir="rtl" value={form.cod_policy_urdu} onChange={e => update('cod_policy_urdu', e.target.value)} rows={3} className={`${inputCls} font-urdu text-base`} />
-            <label className="block text-xs font-bold text-gray-400 mb-1 mt-3">COD policy — English</label>
-            <textarea value={form.cod_policy_english} onChange={e => update('cod_policy_english', e.target.value)} rows={3} className={inputCls} />
-          </div>
-
-          <div className="border-t border-gray-800 pt-4">
-            <p className="text-xs font-bold text-purple-400 uppercase tracking-wide mb-3">Channel 1 — JazzCash <span className="text-gray-500 font-normal normal-case">(shown on both COD and Full Advance)</span></p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 mb-1">Account Title</label>
-                <input value={form.wallet_name} onChange={e => update('wallet_name', e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 mb-1">JazzCash Number</label>
-                <input value={form.wallet_number} onChange={e => update('wallet_number', e.target.value)} className={inputCls} />
+          <main className="min-w-0 space-y-4 pb-24">
+            <div className="flex items-center justify-between gap-3 px-1">
+              <div><h2 className="text-xl sm:text-2xl font-black text-white">{SECTIONS.find(s => s.id === activeSection)?.label}</h2><p className="text-xs text-gray-500 mt-1">Edit details below. Your changes save automatically.</p></div>
+              <div className="text-xs font-semibold flex items-center gap-2">
+                {saveStatus === 'saving' && <><Loader2 size={14} className="animate-spin text-purple-400" /><span className="text-purple-300">Saving…</span></>}
+                {saveStatus === 'saved' && <><CheckCircle size={14} className="text-green-400" /><span className="text-green-300">Saved</span></>}
+                {saveStatus === 'error' && <span className="text-red-400">Save failed</span>}
               </div>
             </div>
-          </div>
-
-          <div className="border-t border-gray-800 pt-4">
-            <p className="text-xs font-bold text-purple-400 uppercase tracking-wide mb-3">Channel 2 — NayaPay <span className="text-gray-500 font-normal normal-case">(shown on both COD and Full Advance)</span></p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 mb-1">Account Title</label>
-                <input value={form.bank_title} onChange={e => update('bank_title', e.target.value)} className={inputCls} />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-400 mb-1">NayaPay Account Number</label>
-                <input value={form.bank_account_number} onChange={e => update('bank_account_number', e.target.value)} className={inputCls} />
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-800 pt-4">
-            <p className="text-xs font-bold text-purple-400 uppercase tracking-wide mb-3">Channel 3 — Bank <span className="text-gray-500 font-normal normal-case">(shown only on Full Advance Payment)</span></p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 mb-1">Account Title</label>
-                <input value={form.bank2_title} onChange={e => update('bank2_title', e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 mb-1">Bank Name</label>
-                <input value={form.bank2_name} onChange={e => update('bank2_name', e.target.value)} className={inputCls} />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-400 mb-1">Account Number / IBAN</label>
-                <input value={form.bank2_account_number} onChange={e => update('bank2_account_number', e.target.value)} className={inputCls} />
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-800 pt-4">
-            <label className="block text-xs font-bold text-gray-400 mb-1">Support Hours (shown after payment)</label>
-            <input value={form.payment_support_hours} onChange={e => update('payment_support_hours', e.target.value)} className={inputCls} />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Payment screenshot note (shown under every payment box)</label>
-            <input value={form.payment_screenshot_note} onChange={e => update('payment_screenshot_note', e.target.value)} className={inputCls} />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">"Why Advance Payment?" — Urdu</label>
-            <textarea dir="rtl" value={form.why_advance_note_urdu} onChange={e => update('why_advance_note_urdu', e.target.value)} rows={4} className={`${inputCls} font-urdu text-base`} />
-            <label className="block text-xs font-bold text-gray-400 mb-1 mt-3">"Why Advance Payment?" — English</label>
-            <textarea value={form.why_advance_note} onChange={e => update('why_advance_note', e.target.value)} rows={4} className={inputCls} />
-          </div>
+            {renderSection()}
+          </main>
         </div>
+      </div>
 
-        {/* FOOTER */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
-          <div>
-            <h3 className="font-bold text-white text-sm uppercase tracking-wide">Footer — Editable</h3>
-            <p className="text-xs text-gray-500 mt-0.5">All footer text below saves automatically as you edit.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input value={form.footer_stat_1_value} onChange={e => update('footer_stat_1_value', e.target.value)} placeholder="10,000+" className={inputCls} />
-            <input value={form.footer_stat_1_label} onChange={e => update('footer_stat_1_label', e.target.value)} placeholder="Happy Customers" className={inputCls} />
-            <input value={form.footer_stat_2_value} onChange={e => update('footer_stat_2_value', e.target.value)} placeholder="300+" className={inputCls} />
-            <input value={form.footer_stat_2_label} onChange={e => update('footer_stat_2_label', e.target.value)} placeholder="Quality Products" className={inputCls} />
-            <input value={form.footer_stat_3_value} onChange={e => update('footer_stat_3_value', e.target.value)} placeholder="99%" className={inputCls} />
-            <input value={form.footer_stat_3_label} onChange={e => update('footer_stat_3_label', e.target.value)} placeholder="Positive Reviews" className={inputCls} />
-            <input value={form.footer_stat_4_value} onChange={e => update('footer_stat_4_value', e.target.value)} placeholder="24/7" className={inputCls} />
-            <input value={form.footer_stat_4_label} onChange={e => update('footer_stat_4_label', e.target.value)} placeholder="Customer Support" className={inputCls} />
-          </div>
-          <textarea value={form.footer_description} onChange={e => update('footer_description', e.target.value)} rows={3} className={inputCls} placeholder="Footer description" />
-          <div className="grid sm:grid-cols-3 gap-3">
-            <input value={form.footer_quick_title} onChange={e => update('footer_quick_title', e.target.value)} placeholder="Quick Links" className={inputCls} />
-            <input value={form.footer_categories_title} onChange={e => update('footer_categories_title', e.target.value)} placeholder="Categories" className={inputCls} />
-            <input value={form.footer_contact_title} onChange={e => update('footer_contact_title', e.target.value)} placeholder="Contact Us" className={inputCls} />
-          </div>
-          <input value={form.footer_email} onChange={e => update('footer_email', e.target.value)} className={inputCls} placeholder="Footer email" />
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Quick Links</label>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {(['footer_quick_home','footer_quick_shop','footer_quick_new_arrivals','footer_quick_best_sellers','footer_quick_contact','footer_quick_about','footer_quick_return','footer_quick_privacy'] as const).map(k => (
-                <input key={k} value={form[k]} onChange={e => update(k, e.target.value)} className={inputCls} />
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Footer Categories (separate with |)</label>
-            <textarea value={form.footer_categories} onChange={e => update('footer_categories', e.target.value)} rows={2} className={inputCls} />
-          </div>
-          <input value={form.footer_copyright} onChange={e => update('footer_copyright', e.target.value)} className={inputCls} placeholder="All rights reserved." />
-        </div>
-
-        {/* CONTACT */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
-          <h3 className="font-bold text-white text-sm uppercase tracking-wide">WhatsApp &amp; Address</h3>
-          <p className="text-xs text-gray-500 -mt-2">This WhatsApp number appears on the floating button, product pages, checkout, footer and contact page.</p>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Official WhatsApp Number</label>
-            <input value={form.whatsapp_number} onChange={e => update('whatsapp_number', e.target.value)} className={`${inputCls} w-48`} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Store Address (shown in footer)</label>
-            <input value={form.store_address} onChange={e => update('store_address', e.target.value)} className={inputCls} />
-          </div>
-        </div>
-
-        {/* TOP ANNOUNCEMENT BAR (scrolling strip) */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
-          <h3 className="font-bold text-white text-sm uppercase tracking-wide">Top Scrolling Bar</h3>
-          <p className="text-xs text-gray-500 -mt-2">The black scrolling strip at the very top of the site. The WhatsApp message is added automatically — write your other messages here, separated by <strong>|</strong> (pipe).</p>
-          <textarea
-            value={form.announcement_messages}
-            onChange={e => update('announcement_messages', e.target.value)}
-            rows={3}
-            className={inputCls}
-            placeholder="Free Delivery All Over Pakistan|New Products Added Every Week|Follow Us for Daily Deals & Discounts"
-          />
-        </div>
-
-        {/* SOCIAL MEDIA LINKS */}
-        <div className="bg-gray-950 rounded-xl border border-gray-800 p-5 space-y-4">
-          <div>
-            <h3 className="font-bold text-white text-sm uppercase tracking-wide">Social Media Links</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Icons only appear in the footer once a link is filled in — leave blank to hide.</p>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Facebook Page URL</label>
-            <input value={form.facebook_url || ''} onChange={e => update('facebook_url', e.target.value)} placeholder="https://facebook.com/yourpage" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">Instagram URL</label>
-            <input value={form.instagram_url || ''} onChange={e => update('instagram_url', e.target.value)} placeholder="https://instagram.com/yourpage" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">TikTok URL</label>
-            <input value={form.tiktok_url || ''} onChange={e => update('tiktok_url', e.target.value)} placeholder="https://tiktok.com/@yourpage" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-400 mb-1">YouTube URL</label>
-            <input value={form.youtube_url || ''} onChange={e => update('youtube_url', e.target.value)} placeholder="https://youtube.com/@yourpage" className={inputCls} />
-          </div>
-        </div>
-
-        <div className="sticky bottom-4 bg-gray-950/95 backdrop-blur border border-gray-800 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-semibold">
-            {saveStatus === 'saving' && <Loader2 size={15} className="animate-spin text-purple-400" />}
-            {saveStatus === 'saved' && <CheckCircle size={15} className="text-green-400" />}
-            <span className={saveStatus === 'error' ? 'text-red-400' : 'text-gray-400'}>
-              {saveStatus === 'saving' ? 'Saving automatically…' : saveStatus === 'saved' ? 'Saved — live settings updated.' : saveStatus === 'error' ? 'Save failed — please try again.' : 'Changes save automatically.'}
-            </span>
-          </div>
-          <button onClick={handleSave} disabled={saving} className="text-xs font-bold text-gray-300 hover:text-white border border-gray-700 px-3 py-2 rounded-lg">
-            {saving ? 'Saving…' : 'Save All Now'}
-          </button>
-        </div>
+      <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-5 z-50 bg-gray-950/95 backdrop-blur border border-gray-800 rounded-xl px-3 py-2.5 shadow-2xl flex items-center gap-3">
+        <span className="text-xs text-gray-400">{saveStatus === 'saving' ? 'Saving automatically…' : saveStatus === 'saved' ? 'Live settings updated ✓' : saveStatus === 'error' ? 'Please try saving again.' : 'Auto-save is on'}</span>
+        <button onClick={handleSave} disabled={saving} className="ml-auto text-xs font-bold text-white bg-purple-600 hover:bg-purple-500 active:scale-95 px-3 py-2 rounded-lg transition-all">{saving ? 'Saving…' : 'Save All Now'}</button>
       </div>
     </div>
   );
+}
+
+function SectionTitle({ title, text }: { title: string; text: string }) {
+  return <div><h3 className="font-black text-white text-base">{title}</h3><p className="text-xs text-gray-500 mt-1">{text}</p></div>;
 }
