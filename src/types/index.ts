@@ -105,6 +105,26 @@ export interface SiteSettings {
   instagram_url: string | null;
   tiktok_url: string | null;
   youtube_url: string | null;
+  footer_description: string;
+  footer_email: string;
+  footer_stat_1_value: string;
+  footer_stat_1_label: string;
+  footer_stat_2_value: string;
+  footer_stat_2_label: string;
+  footer_stat_3_value: string;
+  footer_stat_3_label: string;
+  footer_stat_4_value: string;
+  footer_stat_4_label: string;
+  footer_quick_home: string;
+  footer_quick_shop: string;
+  footer_quick_new_arrivals: string;
+  footer_quick_best_sellers: string;
+  footer_quick_contact: string;
+  footer_quick_about: string;
+  footer_quick_return: string;
+  footer_quick_privacy: string;
+  footer_categories: string;
+  footer_copyright: string;
 }
 
 export interface PendingOrder {
