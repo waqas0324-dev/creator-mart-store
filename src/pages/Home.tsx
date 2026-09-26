@@ -11,12 +11,13 @@ export function Home() {
   const { products: bestSellers, loading: bestsellersLoading } = useProducts({ bestseller: true });
   const { categories, loading: categoriesLoading } = useCategories();
   const { settings: hero } = useSiteSettings();
+  const design = hero.design_settings;
 
   return (
     <div>
       {/* Hero Section — a single self-contained banner image, with the
           call-to-action buttons in a strip right below it */}
-      <section className="bg-white">
+      <section className="bg-white" style={{ border: design.hero.borderWidth + "px solid " + design.hero.borderColor, borderRadius: design.hero.radius, boxShadow: design.hero.shadow === "none" ? "none" : "0 10px 30px rgba(0,0,0,0.12)" }}>
         <img
           src={hero.hero_image_url}
           alt="ABR Gadgets — Gear Up Your Creativity"
@@ -26,7 +27,7 @@ export function Home() {
           <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => navigate('shop')}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-lg transition-all hover:scale-105 shadow-lg shadow-orange-500/30"
+              className="text-white px-8 py-3 transition-all hover:scale-105 active:scale-[0.98] shadow-lg shadow-orange-500/30" style={{ backgroundColor: design.buttons.bgColor, color: design.buttons.textColor, borderRadius: design.buttons.radius, fontWeight: design.buttons.fontWeight, transitionDuration: design.buttons.transitionMs + "ms" }}
             >
               Shop Now
             </button>
