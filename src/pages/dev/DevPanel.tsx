@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink,
   Image, Menu, X, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2
