@@ -66,6 +66,13 @@ export interface OrderItem {
   created_at: string;
 }
 
+export interface DesignSettings {
+  header: { height: number; bgColor: string; textColor: string; hoverColor: string; borderColor: string; borderWidth: number; fontSize: number; fontWeight: number };
+  hero: { borderWidth: number; borderColor: string; radius: number; shadow: string };
+  buttons: { radius: number; fontWeight: number; hoverScale: number; transitionMs: number; bgColor: string; hoverBgColor: string; textColor: string };
+  animations: { enabled: boolean; hoverLift: number; clickScale: number };
+}
+
 export interface SiteSettings {
   id: number;
   hero_eyebrow: string;
@@ -131,6 +138,7 @@ export interface SiteSettings {
   footer_quick_privacy: string;
   footer_categories: string;
   footer_copyright: string;
+  design_settings: DesignSettings;
 }
 
 export interface PendingOrder {
