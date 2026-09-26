@@ -68,12 +68,41 @@
 
 /* COD advance-payment highlight — subtle attention animation without moving the text */
 @keyframes cod-advance-glow {
-  0%, 100% { box-shadow: 0 4px 14px rgba(13, 148, 136, 0.16); }
-  50% { box-shadow: 0 6px 20px rgba(13, 148, 136, 0.32); }
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.18), 0 5px 16px rgba(13, 148, 136, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(13, 148, 136, 0.08), 0 8px 28px rgba(13, 148, 136, 0.48);
+  }
+}
+@keyframes cod-advance-shine {
+  0% { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
+  18% { opacity: 0.65; }
+  42% { transform: translateX(140%) skewX(-18deg); opacity: 0; }
+  100% { transform: translateX(140%) skewX(-18deg); opacity: 0; }
 }
 .cod-advance-pulse {
-  animation: cod-advance-glow 2.4s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+  animation: cod-advance-glow 1.8s ease-in-out infinite;
+}
+.cod-advance-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -30% auto -30% -35%;
+  width: 24%;
+  background: rgba(255,255,255,0.55);
+  filter: blur(4px);
+  transform: skewX(-18deg);
+  animation: cod-advance-shine 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.design-interactive:hover {
+  box-shadow: 0 8px 20px rgba(0,0,0,0.14);
 }
 @media (prefers-reduced-motion: reduce) {
-  .cod-advance-pulse { animation: none; }
+  .cod-advance-pulse,
+  .cod-advance-pulse::after {
+    animation: none;
+  }
 }
