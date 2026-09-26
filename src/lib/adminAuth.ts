@@ -2,24 +2,46 @@ import { supabase } from './supabase';
 
 const ADMIN_KEY = 'cm_admin_auth';
 
+async function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      window.setTimeout(() => reject(new Error('Request timed out')), ms)
+    ),
+  ]);
+}
+
 export async function adminLogin(email: string, password: string): Promise<string | null> {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return 'Invalid email or password.';
-  if (!data.session) return 'Login failed. Please try again.';
+  try {
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPassword({ email, password })
+    );
+    if (error) return error.message || 'Invalid email or password.';
+    if (!data.session) return 'Login failed. Please try again.';
 
-  const { data: adminRow } = await supabase
-    .from('admin_users')
-    .select('id')
-    .eq('user_id', data.session.user.id)
-    .maybeSingle();
+    const { data: adminRow, error: adminError } = await withTimeout(
+      supabase
+        .from('admin_users')
+        .select('id')
+        .eq('user_id', data.session.user.id)
+        .maybeSingle()
+    );
 
-  if (!adminRow) {
-    await supabase.auth.signOut();
-    return 'Access denied. You are not authorized to access the admin panel.';
+    if (adminError) return 'Could not verify Admin Panel access. Please try again.';
+
+    if (!adminRow) {
+      await supabase.auth.signOut();
+      return 'Access denied. You are not authorized to access the admin panel.';
+    }
+
+    localStorage.setItem(ADMIN_KEY, 'true');
+    return null;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Request timed out') {
+      return 'Login is taking too long. Please check your internet connection and try again.';
+    }
+    return 'Unable to sign in right now. Please try again.';
   }
-
-  localStorage.setItem(ADMIN_KEY, 'true');
-  return null;
 }
 
 export async function adminLogout() {
