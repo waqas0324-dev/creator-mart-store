@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink,
-  Image, Menu, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2
+  Image, Menu, X, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2
 } from 'lucide-react';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
@@ -37,6 +37,7 @@ export function DevPanel() {
   const { navigate } = useNavigation();
   const [form, setForm] = useState(settings);
   const [activeSection, setActiveSection] = useState<Section>('logo');
+  const [sectionMenuOpen, setSectionMenuOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
@@ -57,9 +58,15 @@ export function DevPanel() {
     saveTimer.current = setTimeout(async () => {
       const changes = pendingRef.current;
       pendingRef.current = {};
+      if (!Object.keys(changes).length) return;
       const error = await updateSettings(changes);
-      setSaveStatus(error ? 'error' : 'saved');
-    }, 500);
+      if (error) {
+        pendingRef.current = { ...changes, ...pendingRef.current };
+        setSaveStatus('error');
+        return;
+      }
+      setSaveStatus('saved');
+    }, 700);
   };
 
   const update = <K extends keyof SiteSettings>(field: K, value: SiteSettings[K]) => {
@@ -73,12 +80,14 @@ export function DevPanel() {
   };
 
   const updateDesign = <K extends keyof DesignSettings>(section: K, patch: Partial<DesignSettings[K]>) => {
-    const nextDesign = {
-      ...form.design_settings,
-      [section]: { ...form.design_settings[section], ...patch },
-    };
-    setForm(prev => ({ ...prev, design_settings: nextDesign }));
-    queueAutoSave({ design_settings: nextDesign });
+    setForm(prev => {
+      const nextDesign = {
+        ...prev.design_settings,
+        [section]: { ...prev.design_settings[section], ...patch },
+      };
+      queueAutoSave({ design_settings: nextDesign });
+      return { ...prev, design_settings: nextDesign };
+    });
   };
 
   const uploadTo = async (file: File, folder: string): Promise<string | null> => {
@@ -328,7 +337,7 @@ export function DevPanel() {
   return (
     <div className="min-h-screen bg-black text-gray-200">
       <header className="border-b border-gray-800 bg-gray-950 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-5 py-3 sm:py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <ShieldCheck size={21} className="text-purple-400 flex-shrink-0" />
             <div className="min-w-0"><h1 className="font-black text-white text-sm">Developer Studio</h1><p className="text-xs text-gray-500 truncate">Private website editor — changes auto-save live</p></div>
@@ -340,36 +349,53 @@ export function DevPanel() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-5">
-        <div className="grid lg:grid-cols-[230px_minmax(0,1fr)] gap-4 items-start">
-          <aside className="lg:sticky lg:top-24 bg-gray-950 border border-gray-800 rounded-2xl p-2">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
+        <div className="lg:hidden mb-4">
+          <button onClick={() => setSectionMenuOpen(v => !v)} className="w-full flex items-center justify-between gap-3 bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-left">
+            <span className="flex items-center gap-3 min-w-0">
+              <Menu size={18} className="text-purple-400 flex-shrink-0" />
+              <span className="min-w-0"><span className="block text-sm font-bold text-white">{SECTIONS.find(s => s.id === activeSection)?.label}</span><span className="block text-[11px] text-gray-500 truncate">Website Editor section</span></span>
+            </span>
+            {sectionMenuOpen ? <X size={20} className="text-gray-400" /> : <Menu size={20} className="text-gray-400" />}
+          </button>
+          {sectionMenuOpen && (
+            <div className="mt-2 bg-gray-950 border border-gray-800 rounded-xl p-2 shadow-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                {SECTIONS.map(s => {
+                  const Icon = s.icon;
+                  const active = activeSection === s.id;
+                  return <button key={s.id} onClick={() => { setActiveSection(s.id); setSectionMenuOpen(false); }} className={`flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-all ${active ? "bg-purple-600 text-white" : "text-gray-400 hover:bg-gray-900 hover:text-white"}`}><Icon size={17} className="flex-shrink-0" /><span className="text-sm font-semibold">{s.label}</span></button>;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="grid lg:grid-cols-[250px_minmax(0,1fr)] gap-5 items-start">
+          <aside className="hidden lg:block lg:sticky lg:top-24 bg-gray-950 border border-gray-800 rounded-2xl p-2">
             <div className="px-3 py-3 border-b border-gray-800 mb-2"><p className="text-[10px] font-black uppercase tracking-widest text-purple-400">Website Editor</p><p className="text-xs text-gray-500 mt-1">Select a section</p></div>
-            <div className="flex lg:flex-col gap-1 overflow-x-auto pb-1 lg:pb-0">
+            <div className="flex flex-col gap-1">
               {SECTIONS.map(s => {
                 const Icon = s.icon;
                 const active = activeSection === s.id;
-                return <button key={s.id} onClick={() => setActiveSection(s.id)} className={`flex-shrink-0 lg:w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all active:scale-[0.98] ${active ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/30' : 'text-gray-400 hover:bg-gray-900 hover:text-white'}`}>
-                  <Icon size={17} />
-                  <span className="min-w-0"><span className="block text-sm font-bold whitespace-nowrap">{s.label}</span><span className={`hidden lg:block text-[10px] mt-0.5 ${active ? 'text-purple-100' : 'text-gray-600'}`}>{s.description}</span></span>
-                </button>;
+                return <button key={s.id} onClick={() => setActiveSection(s.id)} className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-all active:scale-[0.98] ${active ? "bg-purple-600 text-white shadow-lg shadow-purple-900/30" : "text-gray-400 hover:bg-gray-900 hover:text-white"}`}><Icon size={17} /><span className="min-w-0"><span className="block text-sm font-bold whitespace-nowrap">{s.label}</span><span className={`block text-[10px] mt-0.5 ${active ? "text-purple-100" : "text-gray-600"}`}>{s.description}</span></span></button>;
               })}
             </div>
           </aside>
 
-          <main className="min-w-0 space-y-4 pb-24">
-            <div className="flex items-center justify-between gap-3 px-1">
-              <div><h2 className="text-xl sm:text-2xl font-black text-white">{SECTIONS.find(s => s.id === activeSection)?.label}</h2><p className="text-xs text-gray-500 mt-1">Edit details below. Your changes save automatically.</p></div>
-              <div className="text-xs font-semibold flex items-center gap-2">
-                {saveStatus === 'saving' && <><Loader2 size={14} className="animate-spin text-purple-400" /><span className="text-purple-300">Saving…</span></>}
-                {saveStatus === 'saved' && <><CheckCircle size={14} className="text-green-400" /><span className="text-green-300">Saved</span></>}
-                {saveStatus === 'error' && <span className="text-red-400">Save failed</span>}
+          <main className="min-w-0 w-full space-y-4 pb-24">
+            <div className="flex items-start justify-between gap-3 px-1">
+              <div className="min-w-0"><h2 className="text-xl sm:text-2xl font-black text-white">{SECTIONS.find(s => s.id === activeSection)?.label}</h2><p className="text-xs text-gray-500 mt-1">Edit details below. Your changes save automatically.</p></div>
+              <div className="text-xs font-semibold flex items-center gap-2 flex-shrink-0">
+                {saveStatus === "saving" && <><Loader2 size={14} className="animate-spin text-purple-400" /><span className="text-purple-300 hidden sm:inline">Saving…</span></>}
+                {saveStatus === "saved" && <><CheckCircle size={14} className="text-green-400" /><span className="text-green-300 hidden sm:inline">Saved</span></>}
+                {saveStatus === "error" && <span className="text-red-400">Save failed</span>}
               </div>
             </div>
             {renderSection()}
           </main>
         </div>
       </div>
-
       <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-5 z-50 bg-gray-950/95 backdrop-blur border border-gray-800 rounded-xl px-3 py-2.5 shadow-2xl flex items-center gap-3">
         <span className="text-xs text-gray-400">{saveStatus === 'saving' ? 'Saving automatically…' : saveStatus === 'saved' ? 'Live settings updated ✓' : saveStatus === 'error' ? 'Please try saving again.' : 'Auto-save is on'}</span>
         <button onClick={handleSave} disabled={saving} className="ml-auto text-xs font-bold text-white bg-purple-600 hover:bg-purple-500 active:scale-95 px-3 py-2 rounded-lg transition-all">{saving ? 'Saving…' : 'Save All Now'}</button>
