@@ -50,6 +50,7 @@ const DEFAULTS: SiteSettings = {
   footer_stat_2_value: '300+', footer_stat_2_label: 'Quality Products',
   footer_stat_3_value: '99%', footer_stat_3_label: 'Positive Reviews',
   footer_stat_4_value: '24/7', footer_stat_4_label: 'Customer Support',
+  footer_quick_title: 'Quick Links', footer_categories_title: 'Categories', footer_contact_title: 'Contact Us',
   footer_quick_home: 'Home', footer_quick_shop: 'Shop', footer_quick_new_arrivals: 'New Arrivals', footer_quick_best_sellers: 'Best Sellers',
   footer_quick_contact: 'Contact Us', footer_quick_about: 'About Us', footer_quick_return: 'Return & Refund Policy', footer_quick_privacy: 'Privacy Policy',
   footer_categories: 'Microphones|Tripods|Ring Lights|Power Banks|Earbuds|Speakers',
