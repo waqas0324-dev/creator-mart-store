@@ -1,3 +1,4 @@
+import React from 'react';
 import { Truck, Banknote, RotateCcw, ShieldCheck, ChevronRight, Star } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { useProducts, useCategories } from '../hooks/useProducts';
@@ -17,7 +18,7 @@ export function Home() {
     <div>
       {/* Hero Section — a single self-contained banner image, with the
           call-to-action buttons in a strip right below it */}
-      <section className="bg-white" style={{ borderWidth: design.hero.borderWidth, borderStyle: "solid", borderColor: design.hero.borderColor, borderRadius: design.hero.radius, boxShadow: design.hero.shadow === "none" ? "none" : "0 10px 30px rgba(0,0,0,0.12)", boxSizing: "border-box" }}>
+      <section className={design.animations.enabled ? "bg-white design-hero-animate" : "bg-white"} style={{ borderWidth: design.hero.borderWidth, borderStyle: "solid", borderColor: design.hero.borderColor, borderRadius: design.hero.radius, boxShadow: design.hero.shadow === "none" ? "none" : "0 10px 30px rgba(0,0,0,0.12)", boxSizing: "border-box" }}>
         <div style={{ borderRadius: design.hero.radius, overflow: "hidden" }}>
           <img
             src={hero.hero_image_url}
@@ -29,13 +30,13 @@ export function Home() {
           <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => navigate('shop')}
-              className="text-white px-8 py-3 transition-all hover:scale-105 active:scale-[0.98] shadow-lg shadow-orange-500/30" style={{ backgroundColor: design.buttons.bgColor, color: design.buttons.textColor, borderRadius: design.buttons.radius, fontWeight: design.buttons.fontWeight, transitionDuration: design.buttons.transitionMs + "ms" }}
+              className={design.animations.enabled ? "text-white px-8 py-3 design-interactive shadow-lg shadow-orange-500/30" : "text-white px-8 py-3 shadow-lg shadow-orange-500/30"} style={{ backgroundColor: design.buttons.bgColor, color: design.buttons.textColor, borderRadius: design.buttons.radius, fontWeight: design.buttons.fontWeight, transitionDuration: design.buttons.transitionMs + "ms", "--design-hover-scale": design.buttons.hoverScale, "--design-click-scale": design.animations.clickScale, "--design-hover-lift": design.animations.hoverLift, "--design-transition": design.buttons.transitionMs + "ms" } as React.CSSProperties}
             >
               Shop Now
             </button>
             <button
               onClick={() => navigate('best-sellers')}
-              className="border-2 border-white/30 text-white hover:border-orange-500 hover:text-orange-400 font-bold px-8 py-3 rounded-lg transition-all"
+              className={design.animations.enabled ? "border-2 border-white/30 text-white hover:border-orange-500 hover:text-orange-400 font-bold px-8 py-3 rounded-lg design-interactive" : "border-2 border-white/30 text-white hover:border-orange-500 hover:text-orange-400 font-bold px-8 py-3 rounded-lg"} style={{ "--design-hover-scale": design.buttons.hoverScale, "--design-click-scale": design.animations.clickScale, "--design-hover-lift": design.animations.hoverLift, "--design-transition": design.buttons.transitionMs + "ms" } as React.CSSProperties}
             >
               View Deals
             </button>
