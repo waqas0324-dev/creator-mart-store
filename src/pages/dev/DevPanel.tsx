@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink,
-  Image, Menu, Layout, Sparkles, CreditCard, FooterIcon, MapPin, Share2
+  Image, Menu, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2
 } from 'lucide-react';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
@@ -24,7 +24,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
   { id: 'hero', label: 'Hero', icon: Layout, description: 'Hero banner, border and presentation' },
   { id: 'buttons', label: 'Buttons & Animations', icon: Sparkles, description: 'Button colors, radius and interactions' },
   { id: 'checkout', label: 'Checkout / Payment', icon: CreditCard, description: 'COD, advance payment and payment details' },
-  { id: 'footer', label: 'Footer', icon: FooterIcon, description: 'All footer content and links' },
+  { id: 'footer', label: 'Footer', icon: PanelBottom, description: 'All footer content and links' },
   { id: 'contact', label: 'Contact / Announcement', icon: MapPin, description: 'WhatsApp, address and top bar' },
   { id: 'social', label: 'Social Media', icon: Share2, description: 'Social profile links' },
 ];
