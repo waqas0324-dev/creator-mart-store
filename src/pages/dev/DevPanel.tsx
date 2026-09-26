@@ -7,6 +7,7 @@ import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { supabase } from '../../lib/supabase';
 import { devLogout } from '../../lib/devAuth';
+import { AccountSecurity } from '../../components/AccountSecurity';
 import type { DesignSettings, SiteSettings } from '../../types';
 
 const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] = [
@@ -16,7 +17,7 @@ const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] =
   { value: 'xl', label: 'Extra Large' },
 ];
 
-type Section = 'logo' | 'header' | 'hero' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social';
+type Section = 'logo' | 'header' | 'hero' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
 
 const SECTIONS: { id: Section; label: string; icon: typeof Image; description: string }[] = [
   { id: 'logo', label: 'Logo', icon: Image, description: 'Logo image and sizing' },
@@ -27,6 +28,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
   { id: 'footer', label: 'Footer', icon: PanelBottom, description: 'All footer content and links' },
   { id: 'contact', label: 'Contact / Announcement', icon: MapPin, description: 'WhatsApp, address and top bar' },
   { id: 'social', label: 'Social Media', icon: Share2, description: 'Social profile links' },
+  { id: 'security', label: 'Account & Security', icon: ShieldCheck, description: 'Private account, password and security activity' },
 ];
 
 export function DevPanel() {
@@ -299,6 +301,8 @@ export function DevPanel() {
         <Field label="Copyright text" value={form.footer_copyright} onChange={v => update('footer_copyright', v)} />
       </div>
     );
+
+    if (activeSection === 'security') return <AccountSecurity role="developer" />;
 
     if (activeSection === 'contact') return (
       <div className={cardCls}>
