@@ -12,7 +12,7 @@
 
 /* Urdu text (COD/payment policy notes) — Nastaliq calligraphic style */
 .font-urdu {
-  font-family: 'Noto Nastaliq Urdu', serif;
+  font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
   direction: rtl;
   line-height: 2.1;
 }
