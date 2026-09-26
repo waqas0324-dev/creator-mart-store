@@ -17,12 +17,17 @@ export function AdminLogin() {
     if (!email.trim() || !password.trim()) { setError('Please fill in all fields'); return; }
     setLoading(true);
     setError('');
-    const err = await adminLogin(email.trim(), password);
-    if (err) {
-      setError(err);
-      setLoading(false);
-    } else {
+    try {
+      const err = await adminLogin(email.trim(), password);
+      if (err) {
+        setError(err);
+        return;
+      }
       navigate('admin');
+    } catch {
+      setError('Unable to sign in right now. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
