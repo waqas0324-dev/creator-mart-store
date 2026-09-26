@@ -65,13 +65,21 @@ function Router() {
   }, [navigate]);
 
   useEffect(() => {
+    if (!ADMIN_PAGES.includes(nav.page) || nav.page === 'admin-login') {
+      setAuthChecked(true);
+      return;
+    }
     syncAdminSession()
       .then(() => setAuthChecked(true))
       .catch(() => setAuthChecked(true));
-  }, []);
+  }, [nav.page]);
 
   useEffect(() => {
-    if (!DEV_PAGES.includes(nav.page)) return;
+    if (!DEV_PAGES.includes(nav.page) || nav.page === 'dev-login') {
+      setDevAuthChecked(true);
+      return;
+    }
+    setDevAuthChecked(false);
     syncDevSession()
       .then(ok => { setDevAuthorized(ok); setDevAuthChecked(true); })
       .catch(() => { setDevAuthorized(false); setDevAuthChecked(true); });
