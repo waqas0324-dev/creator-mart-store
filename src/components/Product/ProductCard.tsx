@@ -18,6 +18,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const { navigate } = useNavigation();
   const { settings } = useSiteSettings();
+  const design = settings.design_settings;
   const whatsappLink = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
 
   // When a product has more than one photo, auto-cycle through them so
@@ -85,7 +86,8 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="mt-auto flex gap-1.5 sm:gap-2">
           <button
             onClick={() => addItem(product)}
-            className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-semibold py-2 px-1.5 sm:px-3 rounded-lg transition-colors"
+            className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 transition-all active:scale-[0.98] hover:-translate-y-0.5"
+            style={{ backgroundColor: design.buttons.bgColor, color: design.buttons.textColor, borderRadius: design.buttons.radius, fontWeight: design.buttons.fontWeight, transitionDuration: design.buttons.transitionMs + 'ms' }}
           >
             <ShoppingCart size={13} className="flex-shrink-0" />
             <span className="truncate">Add to Cart</span>
