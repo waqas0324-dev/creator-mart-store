@@ -55,6 +55,12 @@ const DEFAULTS: SiteSettings = {
   footer_quick_contact: 'Contact Us', footer_quick_about: 'About Us', footer_quick_return: 'Return & Refund Policy', footer_quick_privacy: 'Privacy Policy',
   footer_categories: 'Microphones|Tripods|Ring Lights|Power Banks|Earbuds|Speakers',
   footer_copyright: 'All rights reserved.',
+  design_settings: {
+    header: { height: 72, bgColor: '#111827', textColor: '#e5e7eb', hoverColor: '#fb923c', borderColor: '#1f2937', borderWidth: 1, fontSize: 14, fontWeight: 700 },
+    hero: { borderWidth: 0, borderColor: '#e5e7eb', radius: 0, shadow: 'none' },
+    buttons: { radius: 8, fontWeight: 700, hoverScale: 1.03, transitionMs: 200, bgColor: '#f97316', hoverBgColor: '#ea580c', textColor: '#ffffff' },
+    animations: { enabled: true, hoverLift: 2, clickScale: 0.98 },
+  },
 };
 
 interface SiteSettingsContextValue {
