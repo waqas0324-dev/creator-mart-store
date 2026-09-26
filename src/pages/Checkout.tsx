@@ -148,7 +148,7 @@ export function Checkout() {
      the premium gold look used for Full Advance below. */
   const CODPaymentBox = () => (
     <div className="mt-2 bg-teal-50 border-2 border-teal-500 rounded-xl p-4 space-y-4">
-      <div className="cod-advance-pulse bg-teal-600 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg shadow">
+      <div className="bg-teal-600 text-white rounded-lg px-4 py-2.5 text-center font-black text-lg shadow">
         Advance to Pay Now: Rs. {amountToPayNow.toLocaleString()}
       </div>
       <div className="space-y-3">
@@ -262,7 +262,7 @@ export function Checkout() {
                     {form.paymentMethod === 'cash_on_delivery' && (
                       <>
                         <div className="mt-2 bg-teal-50 border-2 border-teal-600 rounded-xl p-4 text-sm text-gray-900">
-                          <p className="font-urdu text-teal-800 mb-1 text-base">
+                          <p className="font-urdu cod-policy-glow text-teal-800 mb-1 text-base">
                             {settings.cod_language === 'en' ? settings.cod_policy_english : settings.cod_policy_urdu}
                           </p>
                           <table className="w-full mt-4 text-xs table-fixed">
