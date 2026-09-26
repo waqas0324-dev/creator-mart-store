@@ -7,6 +7,7 @@ import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { supabase } from '../../lib/supabase';
 import { devLogout } from '../../lib/devAuth';
+import { useToast } from '../../context/ToastContext';
 import { AccountSecurity } from '../../components/AccountSecurity';
 import { AccountManagement } from '../../components/AccountManagement';
 import type { DesignSettings, SiteSettings } from '../../types';
@@ -35,6 +36,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
 export function DevPanel() {
   const { settings, loading, updateSettings } = useSiteSettings();
   const { navigate } = useNavigation();
+  const { showToast } = useToast();
   const [form, setForm] = useState(settings);
   const [activeSection, setActiveSection] = useState<Section>('logo');
   const [sectionMenuOpen, setSectionMenuOpen] = useState(false);
@@ -66,6 +68,7 @@ export function DevPanel() {
         return;
       }
       setSaveStatus('saved');
+      showToast('Changes saved successfully', 'success');
     }, 700);
   };
 
@@ -119,6 +122,7 @@ export function DevPanel() {
     const error = await updateSettings(changes);
     setSaving(false);
     setSaveStatus(error ? 'error' : 'saved');
+    if (!error) showToast('Changes saved successfully', 'success');
   };
 
   const handleLogout = async () => {
