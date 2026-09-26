@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import type { SiteSettings } from '../types';
 
@@ -88,15 +88,37 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       .catch(() => setLoading(false));
   }, []);
 
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   useEffect(() => {
     fetchSettings();
+
     const channel = supabase
       .channel('site-settings-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.1' }, payload => {
         if (payload.new) setSettings(payload.new as SiteSettings);
       })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      .on('broadcast', { event: 'settings-updated' }, ({ payload }) => {
+        if (payload && typeof payload === 'object') {
+          setSettings(prev => ({ ...prev, ...(payload as Partial<SiteSettings>) }));
+        }
+      });
+
+    channelRef.current = channel;
+    channel.subscribe();
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') fetchSettings();
+    };
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      channelRef.current = null;
+      supabase.removeChannel(channel);
+    };
   }, [fetchSettings]);
 
   const updateSettings = useCallback(async (payload: Partial<SiteSettings>) => {
@@ -106,6 +128,17 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       await fetchSettings();
       return error.message;
     }
+
+    // Broadcast the saved values immediately so every already-open storefront
+    // tab updates without a manual refresh. Postgres Realtime remains the durable fallback.
+    if (channelRef.current) {
+      await channelRef.current.send({
+        type: 'broadcast',
+        event: 'settings-updated',
+        payload,
+      });
+    }
+
     return null;
   }, [fetchSettings]);
 
