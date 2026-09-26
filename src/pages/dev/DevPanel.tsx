@@ -8,6 +8,7 @@ import { useNavigation } from '../../context/NavigationContext';
 import { supabase } from '../../lib/supabase';
 import { devLogout } from '../../lib/devAuth';
 import { AccountSecurity } from '../../components/AccountSecurity';
+import { AccountManagement } from '../../components/AccountManagement';
 import type { DesignSettings, SiteSettings } from '../../types';
 
 const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] = [
@@ -302,7 +303,7 @@ export function DevPanel() {
       </div>
     );
 
-    if (activeSection === 'security') return <AccountSecurity role="developer" />;
+    if (activeSection === 'security') return <div className="space-y-5"><AccountSecurity role="developer" /><AccountManagement /></div>;
 
     if (activeSection === 'contact') return (
       <div className={cardCls}>
