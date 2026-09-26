@@ -82,12 +82,25 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => {
+    fetchSettings();
+    const channel = supabase
+      .channel('site-settings-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.1' }, payload => {
+        if (payload.new) setSettings(payload.new as SiteSettings);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchSettings]);
 
   const updateSettings = useCallback(async (payload: Partial<SiteSettings>) => {
+    setSettings(prev => ({ ...prev, ...payload }));
     const { error } = await supabase.from('site_settings').update(payload).eq('id', 1);
-    await fetchSettings();
-    return error?.message || null;
+    if (error) {
+      await fetchSettings();
+      return error.message;
+    }
+    return null;
   }, [fetchSettings]);
 
   return (
