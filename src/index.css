@@ -66,43 +66,28 @@
   transform: scale(var(--design-click-scale, 0.98));
 }
 
-/* COD advance-payment highlight — subtle attention animation without moving the text */
-@keyframes cod-advance-glow {
+/* COD policy highlight — the glow belongs to the Urdu policy text, not the payment button */
+@keyframes cod-policy-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.18), 0 5px 16px rgba(13, 148, 136, 0.18);
+    text-shadow: 0 0 0 rgba(13, 148, 136, 0);
+    filter: brightness(1);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(13, 148, 136, 0.08), 0 8px 28px rgba(13, 148, 136, 0.48);
+    text-shadow: 0 0 7px rgba(13, 148, 136, 0.48), 0 0 14px rgba(13, 148, 136, 0.22);
+    filter: brightness(1.08);
   }
 }
-@keyframes cod-advance-shine {
-  0% { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
-  18% { opacity: 0.65; }
-  42% { transform: translateX(140%) skewX(-18deg); opacity: 0; }
-  100% { transform: translateX(140%) skewX(-18deg); opacity: 0; }
-}
-.cod-advance-pulse {
-  position: relative;
-  overflow: hidden;
-  animation: cod-advance-glow 1.8s ease-in-out infinite;
-}
-.cod-advance-pulse::after {
-  content: "";
-  position: absolute;
-  inset: -30% auto -30% -35%;
-  width: 24%;
-  background: rgba(255,255,255,0.55);
-  filter: blur(4px);
-  transform: skewX(-18deg);
-  animation: cod-advance-shine 2.2s ease-in-out infinite;
-  pointer-events: none;
+.cod-policy-glow {
+  display: block;
+  animation: cod-policy-glow 1.8s ease-in-out infinite;
 }
 .design-interactive:hover {
   box-shadow: 0 8px 20px rgba(0,0,0,0.14);
 }
 @media (prefers-reduced-motion: reduce) {
-  .cod-advance-pulse,
-  .cod-advance-pulse::after {
+  .cod-policy-glow {
     animation: none;
+    text-shadow: none;
+    filter: none;
   }
 }
