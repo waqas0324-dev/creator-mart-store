@@ -97,7 +97,10 @@ export interface SiteSettings {
   payment_support_hours: string;
   payment_screenshot_note: string;
   why_advance_note: string;
+  why_advance_note_urdu: string;
   cod_policy_urdu: string;
+  cod_policy_english: string;
+  cod_language: 'ur' | 'en';
   whatsapp_number: string;
   store_address: string;
   announcement_messages: string;
