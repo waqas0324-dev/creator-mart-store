@@ -422,6 +422,6 @@ export function DevPanel() {
   );
 }
 
-function SectionTitle({ title, text, action }: { title: string; text: string; action?: React.ReactNode }) {
+function SectionTitle({ title, text, action }: { title: string; text: string; action?: ReactNode }) {
   return <div className="flex items-start justify-between gap-3"><div><h3 className="font-black text-white text-base">{title}</h3><p className="text-xs text-gray-500 mt-1">{text}</p></div>{action}</div>;
 }
