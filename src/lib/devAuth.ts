@@ -10,7 +10,7 @@ export async function devLogin(email: string, password: string): Promise<string 
   const { data: devRow } = await supabase
     .from('developer_users')
     .select('id')
-    .eq('email', email.toLowerCase().trim())
+    .eq('user_id', data.session.user.id)
     .maybeSingle();
 
   if (!devRow) {
@@ -39,7 +39,7 @@ export async function syncDevSession(): Promise<boolean> {
   const { data: devRow } = await supabase
     .from('developer_users')
     .select('id')
-    .eq('email', user.email.toLowerCase())
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (!devRow) {
