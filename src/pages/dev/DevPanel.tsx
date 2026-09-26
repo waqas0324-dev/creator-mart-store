@@ -33,6 +33,32 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
   { id: 'security', label: 'Account & Security', icon: ShieldCheck, description: 'Private account, password and security activity' },
 ];
 
+const ORIGINAL_DESIGN_SETTINGS: DesignSettings = {
+  header: { height: 72, bgColor: '#111827', textColor: '#e5e7eb', hoverColor: '#fb923c', borderColor: '#1f2937', borderWidth: 1, fontSize: 14, fontWeight: 700 },
+  hero: { borderWidth: 0, borderColor: '#e5e7eb', radius: 0, shadow: 'none' },
+  buttons: { radius: 8, fontWeight: 700, hoverScale: 1.03, transitionMs: 200, bgColor: '#f97316', hoverBgColor: '#ea580c', textColor: '#ffffff' },
+  animations: { enabled: true, hoverLift: 2, clickScale: 0.98 },
+};
+
+const INPUT_CLASS = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition-colors';
+const LABEL_CLASS = 'block text-xs font-bold text-gray-400 mb-1.5';
+
+function Field({ label, value, onChange, type = 'text', placeholder = '', className = '' }: {
+  label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string; className?: string;
+}) {
+  return <div className={className}><label className={LABEL_CLASS}>{label}</label><input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={type === 'number' ? INPUT_CLASS + ' appearance-none' : INPUT_CLASS} /></div>;
+}
+
+function TextArea({ label, value, onChange, rows = 3, dir }: {
+  label: string; value: string; onChange: (v: string) => void; rows?: number; dir?: 'rtl';
+}) {
+  return <div><label className={LABEL_CLASS}>{label}</label><textarea dir={dir} value={value} onChange={e => onChange(e.target.value)} rows={rows} className={INPUT_CLASS + ' resize-y' + (dir === 'rtl' ? ' font-urdu text-base' : '')} /></div>;
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return <div><label className={LABEL_CLASS}>{label}</label><div className="flex gap-2"><input type="color" value={value} onChange={e => onChange(e.target.value)} className="h-10 w-12 rounded-lg bg-gray-800 border border-gray-700 cursor-pointer" /><input value={value} onChange={e => onChange(e.target.value)} className={INPUT_CLASS} /></div></div>;
+}
+
 export function DevPanel() {
   const { settings, loading, updateSettings } = useSiteSettings();
   const { navigate } = useNavigation();
@@ -47,7 +73,9 @@ export function DevPanel() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<Partial<SiteSettings>>({});
 
-  useEffect(() => { setForm(settings); }, [settings]);
+  useEffect(() => {
+    if (Object.keys(pendingRef.current).length === 0) setForm(settings);
+  }, [settings]);
 
   useEffect(() => () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -88,6 +116,22 @@ export function DevPanel() {
         ...prev.design_settings,
         [section]: { ...prev.design_settings[section], ...patch },
       };
+      queueAutoSave({ design_settings: nextDesign });
+      return { ...prev, design_settings: nextDesign };
+    });
+  };
+  
+  const resetDesignSection = (section: 'header' | 'hero') => {
+    setForm(prev => {
+      const nextDesign = { ...prev.design_settings, [section]: { ...ORIGINAL_DESIGN_SETTINGS[section] } };
+      queueAutoSave({ design_settings: nextDesign });
+      return { ...prev, design_settings: nextDesign };
+    });
+  };
+
+  const resetButtonsDesign = () => {
+    setForm(prev => {
+      const nextDesign = { ...prev.design_settings, buttons: { ...ORIGINAL_DESIGN_SETTINGS.buttons }, animations: { ...ORIGINAL_DESIGN_SETTINGS.animations } };
       queueAutoSave({ design_settings: nextDesign });
       return { ...prev, design_settings: nextDesign };
     });
@@ -134,38 +178,7 @@ export function DevPanel() {
     return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 size={28} className="text-purple-400 animate-spin" /></div>;
   }
 
-  const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition-colors';
   const cardCls = 'bg-gray-950 rounded-2xl border border-gray-800 p-5 sm:p-6 space-y-5';
-  const labelCls = 'block text-xs font-bold text-gray-400 mb-1.5';
-  const numberCls = inputCls + ' appearance-none';
-
-  const Field = ({ label, value, onChange, type = 'text', placeholder = '', className = '' }: {
-    label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string; className?: string;
-  }) => (
-    <div className={className}>
-      <label className={labelCls}>{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={type === 'number' ? numberCls : inputCls} />
-    </div>
-  );
-
-  const TextArea = ({ label, value, onChange, rows = 3, dir }: {
-    label: string; value: string; onChange: (v: string) => void; rows?: number; dir?: 'rtl';
-  }) => (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <textarea dir={dir} value={value} onChange={e => onChange(e.target.value)} rows={rows} className={`${inputCls} resize-y ${dir === 'rtl' ? 'font-urdu text-base' : ''}`} />
-    </div>
-  );
-
-  const ColorField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <div className="flex gap-2">
-        <input type="color" value={value} onChange={e => onChange(e.target.value)} className="h-10 w-12 rounded-lg bg-gray-800 border border-gray-700 cursor-pointer" />
-        <input value={value} onChange={e => onChange(e.target.value)} className={inputCls} />
-      </div>
-    </div>
-  );
 
   const renderSection = () => {
     if (activeSection === 'logo') return (
@@ -183,7 +196,7 @@ export function DevPanel() {
         </div>
         {form.logo_url && <button onClick={() => update('logo_url', '')} className="text-xs text-gray-500 hover:text-red-400">Remove custom logo</button>}
         <div>
-          <label className={labelCls}>Logo Size</label>
+          <label className={LABEL_CLASS}>Logo Size</label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {LOGO_SIZE_OPTIONS.map(opt => <button key={opt.value} onClick={() => update('logo_size', opt.value)} className={`py-2.5 rounded-lg border text-sm font-semibold transition-all active:scale-95 ${form.logo_size === opt.value ? 'bg-purple-600 border-purple-600 text-white' : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-purple-500'}`}>{opt.label}</button>)}
           </div>
@@ -194,7 +207,7 @@ export function DevPanel() {
     if (activeSection === 'header') {
       const d = form.design_settings.header;
       return <div className={cardCls}>
-        <SectionTitle title="Header / Navbar" text="Edit the visual properties of the main header without changing its content." />
+        <SectionTitle title="Header / Navbar" text="Edit the visual properties of the main header without changing its content." action={<button type="button" onClick={() => resetDesignSection('header')} className="px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-900 text-xs font-bold text-gray-300 hover:border-purple-500 hover:text-white transition-colors">Original</button>} />
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Header height (px)" value={d.height} type="number" onChange={v => updateDesign('header', { height: Number(v) || 0 })} />
           <Field label="Text size (px)" value={d.fontSize} type="number" onChange={v => updateDesign('header', { fontSize: Number(v) || 0 })} />
@@ -212,7 +225,7 @@ export function DevPanel() {
     if (activeSection === 'hero') {
       const d = form.design_settings.hero;
       return <div className={cardCls}>
-        <SectionTitle title="Hero" text="Manage the banner image and its presentation. Existing hero text fields are preserved below." />
+        <SectionTitle title="Hero" text="Manage the banner image and its presentation. Existing hero text fields are preserved below." action={<button type="button" onClick={() => resetDesignSection('hero')} className="px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-900 text-xs font-bold text-gray-300 hover:border-purple-500 hover:text-white transition-colors">Original</button>} />
         <div className="flex flex-col sm:flex-row items-start gap-4">
           <img src={form.hero_image_url} alt="Hero preview" className="w-full sm:w-56 h-32 object-cover rounded-xl border border-gray-800" />
           <label className="flex items-center gap-2 text-sm border-2 border-dashed border-gray-700 rounded-xl px-4 py-3 cursor-pointer hover:border-purple-500 text-gray-300">
@@ -225,7 +238,7 @@ export function DevPanel() {
           <Field label="Border width (px)" value={d.borderWidth} type="number" onChange={v => updateDesign('hero', { borderWidth: Number(v) || 0 })} />
           <Field label="Corner radius (px)" value={d.radius} type="number" onChange={v => updateDesign('hero', { radius: Number(v) || 0 })} />
           <ColorField label="Border color" value={d.borderColor} onChange={v => updateDesign('hero', { borderColor: v })} />
-          <div><label className={labelCls}>Shadow</label><select value={d.shadow} onChange={e => updateDesign('hero', { shadow: e.target.value })} className={inputCls}><option value="none">None</option><option value="sm">Small</option><option value="md">Medium</option><option value="lg">Large</option></select></div>
+          <div><label className={LABEL_CLASS}>Shadow</label><select value={d.shadow} onChange={e => updateDesign('hero', { shadow: e.target.value })} className={INPUT_CLASS}><option value="none">None</option><option value="sm">Small</option><option value="md">Medium</option><option value="lg">Large</option></select></div>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Eyebrow" value={form.hero_eyebrow} onChange={v => update('hero_eyebrow', v)} />
@@ -235,14 +248,14 @@ export function DevPanel() {
         </div>
         <TextArea label="Subtitle line 1" value={form.hero_subtitle_1} onChange={v => update('hero_subtitle_1', v)} />
         <TextArea label="Subtitle line 2" value={form.hero_subtitle_2} onChange={v => update('hero_subtitle_2', v)} />
-        <div><label className={labelCls}>Trust checklist</label><div className="grid sm:grid-cols-3 gap-3"><input value={form.trust_item_1} onChange={e => update('trust_item_1', e.target.value)} className={inputCls} /><input value={form.trust_item_2} onChange={e => update('trust_item_2', e.target.value)} className={inputCls} /><input value={form.trust_item_3} onChange={e => update('trust_item_3', e.target.value)} className={inputCls} /></div></div>
+        <div><label className={LABEL_CLASS}>Trust checklist</label><div className="grid sm:grid-cols-3 gap-3"><input value={form.trust_item_1} onChange={e => update('trust_item_1', e.target.value)} className={INPUT_CLASS} /><input value={form.trust_item_2} onChange={e => update('trust_item_2', e.target.value)} className={INPUT_CLASS} /><input value={form.trust_item_3} onChange={e => update('trust_item_3', e.target.value)} className={INPUT_CLASS} /></div></div>
       </div>;
     }
 
     if (activeSection === 'buttons') {
       const b = form.design_settings.buttons, a = form.design_settings.animations;
       return <div className={cardCls}>
-        <SectionTitle title="Buttons & Animations" text="One central design system for buttons, hover states and click feedback." />
+        <SectionTitle title="Buttons & Animations" text="One central design system for buttons, hover states and click feedback." action={<button type="button" onClick={resetButtonsDesign} className="px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-900 text-xs font-bold text-gray-300 hover:border-purple-500 hover:text-white transition-colors">Original</button>} />
         <div className="grid sm:grid-cols-2 gap-4">
           <ColorField label="Button background" value={b.bgColor} onChange={v => updateDesign('buttons', { bgColor: v })} />
           <ColorField label="Button hover background" value={b.hoverBgColor} onChange={v => updateDesign('buttons', { hoverBgColor: v })} />
@@ -408,6 +421,6 @@ export function DevPanel() {
   );
 }
 
-function SectionTitle({ title, text }: { title: string; text: string }) {
-  return <div><h3 className="font-black text-white text-base">{title}</h3><p className="text-xs text-gray-500 mt-1">{text}</p></div>;
+function SectionTitle({ title, text, action }: { title: string; text: string; action?: React.ReactNode }) {
+  return <div className="flex items-start justify-between gap-3"><div><h3 className="font-black text-white text-base">{title}</h3><p className="text-xs text-gray-500 mt-1">{text}</p></div>{action}</div>;
 }
