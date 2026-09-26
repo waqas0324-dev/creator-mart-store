@@ -44,3 +44,24 @@
   }
   @page { size: A4; margin: 12mm; }
 }
+
+
+/* Global editable design animations */
+@keyframes design-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.design-hero-animate {
+  animation: design-fade-up 500ms ease-out both;
+}
+.design-interactive {
+  transition-property: transform, box-shadow, background-color, color, border-color;
+  transition-timing-function: ease;
+  transition-duration: var(--design-transition, 200ms);
+}
+.design-interactive:hover {
+  transform: translateY(calc(var(--design-hover-lift, 2) * -1px)) scale(var(--design-hover-scale, 1.03));
+}
+.design-interactive:active {
+  transform: scale(var(--design-click-scale, 0.98));
+}
