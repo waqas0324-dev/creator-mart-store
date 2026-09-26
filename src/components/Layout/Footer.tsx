@@ -69,7 +69,7 @@ export function Footer() {
 
         {/* Quick Links */}
         <div>
-          <h4 className="text-white font-bold mb-4">Quick Links</h4>
+          <h4 className="text-white font-bold mb-4">{settings.footer_quick_title}</h4>
           <ul className="space-y-2">
             {[
               { label: settings.footer_quick_home, page: 'home' as const },
@@ -95,7 +95,7 @@ export function Footer() {
 
         {/* Categories */}
         <div>
-          <h4 className="text-white font-bold mb-4">Categories</h4>
+          <h4 className="text-white font-bold mb-4">{settings.footer_categories_title}</h4>
           <ul className="space-y-2">
             {settings.footer_categories.split('|').map(cat => cat.trim()).filter(Boolean).map(cat => (
               <li key={cat}>
@@ -112,7 +112,7 @@ export function Footer() {
 
         {/* Contact */}
         <div>
-          <h4 className="text-white font-bold mb-4">Contact Us</h4>
+          <h4 className="text-white font-bold mb-4">{settings.footer_contact_title}</h4>
           <ul className="space-y-3">
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <Phone size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
