@@ -17,12 +17,14 @@ export function Home() {
     <div>
       {/* Hero Section — a single self-contained banner image, with the
           call-to-action buttons in a strip right below it */}
-      <section className="bg-white" style={{ border: design.hero.borderWidth + "px solid " + design.hero.borderColor, borderRadius: design.hero.radius, boxShadow: design.hero.shadow === "none" ? "none" : "0 10px 30px rgba(0,0,0,0.12)" }}>
-        <img
-          src={hero.hero_image_url}
-          alt="ABR Gadgets — Gear Up Your Creativity"
-          className="w-full h-auto block"
-        />
+      <section className="bg-white" style={{ borderWidth: design.hero.borderWidth, borderStyle: "solid", borderColor: design.hero.borderColor, borderRadius: design.hero.radius, boxShadow: design.hero.shadow === "none" ? "none" : "0 10px 30px rgba(0,0,0,0.12)", boxSizing: "border-box" }}>
+        <div style={{ borderRadius: design.hero.radius, overflow: "hidden" }}>
+          <img
+            src={hero.hero_image_url}
+            alt="ABR Gadgets — Gear Up Your Creativity"
+            className="w-full h-auto block"
+          />
+        </div>
         <div className="bg-[#111827] py-4">
           <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-center gap-3">
             <button
