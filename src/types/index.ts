@@ -57,6 +57,11 @@ export interface Order {
   parcel_pieces: number;
   parcel_weight_kg: number | null;
   shipping_note: string | null;
+  payment_proof_path: string | null;
+  payment_proof_status: 'not_required' | 'pending' | 'verified' | 'rejected';
+  payment_proof_uploaded_at: string | null;
+  payment_proof_verified_at: string | null;
+  payment_proof_rejected_reason: string | null;
   created_at: string;
   order_items?: OrderItem[];
 }
