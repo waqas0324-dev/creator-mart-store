@@ -192,6 +192,12 @@ export function Checkout() {
             className="hidden"
             onChange={e => {
               const file = e.target.files?.[0] || null;
+              const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+              if (file && !allowedTypes.includes(file.type)) {
+                setPaymentProof(null);
+                setSubmitError('Please upload a JPG, PNG, WEBP image or PDF.');
+                return;
+              }
               if (file && file.size > 5 * 1024 * 1024) {
                 setPaymentProof(null);
                 setSubmitError('Payment screenshot must be 5MB or smaller.');
