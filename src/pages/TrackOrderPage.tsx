@@ -176,17 +176,6 @@ export function TrackOrderPage() {
               </div>
             </div>
 
-            {order.payment_proof_status === 'pending' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 font-semibold">
-                Payment screenshot received. Your order is awaiting payment verification.
-              </div>
-            )}
-            {order.payment_proof_status === 'verified' && (
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-sm text-green-700 font-semibold">
-                Payment verified. Your order is confirmed for processing.
-              </div>
-            )}
-
             {/* Tracking Timeline */}
             {!isCancelled ? (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
