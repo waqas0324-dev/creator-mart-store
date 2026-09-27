@@ -8,6 +8,22 @@ import { toWhatsAppNumber, BRAND_NAME } from '../../lib/brand';
 import { DeliveryLabel } from '../../components/admin/DeliveryLabel';
 import type { Order } from '../../types';
 
+function buildTrackingUrl(courier: string, tracking: string): string | null {
+  const value = tracking.trim();
+  if (!value) return null;
+  const name = courier.trim().toLowerCase();
+  if (name === 'leopards') {
+    return `https://leopardsfulfillment.leopardscourier.com/Track/Index?Cn=${encodeURIComponent(value)}`;
+  }
+  if (name === 'm&p') {
+    return `https://www.mulphilog.com/tracking/${encodeURIComponent(value)}`;
+  }
+  if (name === 'postex') {
+    return `https://postex.pk/tracking?cn=${encodeURIComponent(value)}`;
+  }
+  return null;
+}
+
 export function AdminOrders() {
   const { orders, loading, updateOrderStatus, updateOwnerNote, updateShippingDetails, deleteOrder } = useOrders();
   const [search, setSearch] = useState('');
@@ -55,7 +71,7 @@ export function AdminOrders() {
     await updateShippingDetails(viewOrder.id, {
       courier_name: draftCourier.trim() || null,
       tracking_number: draftTracking.trim() || null,
-      tracking_url: draftTrackingUrl.trim() || null,
+      tracking_url: draftTrackingUrl.trim() || buildTrackingUrl(draftCourier, draftTracking),
       parcel_pieces: Math.max(1, Number(draftPieces) || 1),
       parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
       shipping_note: draftShippingNote.trim() || null,
@@ -67,7 +83,7 @@ export function AdminOrders() {
       owner_note: draftNote,
       courier_name: draftCourier.trim() || null,
       tracking_number: draftTracking.trim() || null,
-      tracking_url: draftTrackingUrl.trim() || null,
+      tracking_url: draftTrackingUrl.trim() || buildTrackingUrl(draftCourier, draftTracking),
       parcel_pieces: Math.max(1, Number(draftPieces) || 1),
       parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
       shipping_note: draftShippingNote.trim() || null,
@@ -256,7 +272,7 @@ export function AdminOrders() {
                   <input value={draftTracking} onChange={e => setDraftTracking(e.target.value)} placeholder="Courier tracking number" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs text-gray-500 mb-1">Tracking URL (optional)</label>
+                  <label className="block text-xs text-gray-500 mb-1">Tracking URL <span className="text-green-600">(auto for supported couriers)</span></label>
                   <div className="flex gap-2">
                     <input value={draftTrackingUrl} onChange={e => setDraftTrackingUrl(e.target.value)} placeholder="Paste official courier tracking link" className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
                     {draftTrackingUrl && <a href={draftTrackingUrl} target="_blank" rel="noreferrer" className="px-3 flex items-center border border-gray-200 rounded-lg text-gray-500 hover:text-orange-500"><ExternalLink size={15} /></a>}
