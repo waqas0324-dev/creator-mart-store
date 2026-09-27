@@ -76,7 +76,7 @@ export function Contact() {
                 <div>
                   <p className="font-bold text-gray-900 mb-1">Phone / WhatsApp</p>
                   <a href={`tel:+92${WHATSAPP_NUMBER.slice(1)}`} className="text-sm text-orange-500 font-semibold hover:underline">
-                    +92 304 4454356
+                    {WHATSAPP_NUMBER}
                   </a>
                   <p className="text-xs text-gray-400 mt-0.5">Available 10:30 AM – 8:00 PM</p>
                 </div>
@@ -88,9 +88,7 @@ export function Contact() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-900 mb-1">Email</p>
-                  <a href="mailto:info@abrgadgets.pk" className="text-sm text-blue-500 hover:underline">info@abrgadgets.pk</a>
-                  <br />
-                  <a href="mailto:support@abrgadgets.pk" className="text-sm text-blue-500 hover:underline">support@abrgadgets.pk</a>
+                  <a href={`mailto:${settings.footer_email}`} className="text-sm text-blue-500 hover:underline">{settings.footer_email}</a>
                 </div>
               </div>
 
@@ -100,9 +98,7 @@ export function Contact() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-900 mb-1">Address</p>
-                  <p className="text-sm text-gray-600">Plaza No. 145-B, Commercial</p>
-                  <p className="text-sm text-gray-600">Jasmine Block, Bahria Town</p>
-                  <p className="text-sm text-gray-600 font-semibold">Lahore, Pakistan</p>
+                  <p className="text-sm text-gray-600 font-semibold">{settings.store_address}</p>
                 </div>
               </div>
 
@@ -122,7 +118,7 @@ export function Contact() {
             <div className="mt-6 rounded-2xl overflow-hidden border border-gray-200 shadow-sm h-56">
               <iframe
                 title="ABR Shop Location"
-                src="https://maps.google.com/maps?q=Jasmine+Block+Commercial+Bahria+Town+Lahore+Pakistan&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(settings.store_address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -132,7 +128,7 @@ export function Contact() {
               />
             </div>
             <a
-              href="https://maps.google.com/maps?q=Jasmine+Block+Bahria+Town+Lahore"
+              href={`https://maps.google.com/maps?q=${encodeURIComponent(settings.store_address)}`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 mt-2 text-xs text-orange-500 hover:text-orange-600 font-semibold transition-colors"
