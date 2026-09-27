@@ -3,6 +3,7 @@ import { useNavigation } from '../context/NavigationContext';
 import { useOrder } from '../hooks/useOrders';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { toWhatsAppNumber } from '../lib/brand';
+import { STATUS_LABELS } from '../lib/orderStatus';
 
 export function OrderSuccess() {
   const { nav, navigate } = useNavigation();
