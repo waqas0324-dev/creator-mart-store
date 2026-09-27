@@ -39,10 +39,17 @@
     top: 0;
     left: 0;
     width: 100%;
+    height: auto;
     margin: 0;
     padding: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
-  @page { size: A4; margin: 12mm; }
+  #print-area > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  @page { size: A4 portrait; margin: 8mm; }
 }
 
 
