@@ -37,6 +37,16 @@ export function OrderSuccess() {
                 <span className="text-gray-500">Status</span>
                 <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded capitalize">{order.status}</span>
               </div>
+              {order.tracking_number && (
+                <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
+                  <span className="text-gray-500">Tracking / AWB</span>
+                  {order.tracking_url ? (
+                    <a href={order.tracking_url} target="_blank" rel="noreferrer" className="font-bold text-orange-500 underline">{order.tracking_number}</a>
+                  ) : (
+                    <span className="font-bold text-gray-900">{order.tracking_number}</span>
+                  )}
+                </div>
+              )}
             </div>
             {order.order_items && order.order_items.length > 0 && (
               <div className="mt-3 pt-3 border-t border-gray-200">
