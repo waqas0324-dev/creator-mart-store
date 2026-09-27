@@ -51,6 +51,7 @@ export function TrackOrderPage() {
 
   const currentStepIndex = order ? statusSteps.findIndex(s => s.key === order.status) : -1;
   const isCancelled = order?.status === 'cancelled';
+  const advanceVerified = ['confirmed', 'processing', 'shipped', 'delivered'].includes(order?.status || '');
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -157,7 +158,7 @@ export function TrackOrderPage() {
                     <p className="font-bold text-orange-500">Rs. {order.total.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-xs mb-0.5">Advance Paid</p>
+                    <p className="text-gray-400 text-xs mb-0.5">{advanceVerified ? "Advance Paid" : "Advance Amount"}</p>
                     <p className="font-bold text-green-600">Rs. {order.advance_amount.toLocaleString()}</p>
                   </div>
                   <div>
@@ -285,7 +286,7 @@ export function TrackOrderPage() {
                         <span className="font-semibold">Rs. {order.advance_amount.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between font-black border-t border-gray-100 pt-2">
-                        <span>Remaining Price</span>
+                        <span>{advanceVerified ? "Remaining Price" : "Expected Remaining Price"}</span>
                         <span className="text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
                       </div>
                     </>
