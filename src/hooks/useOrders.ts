@@ -28,12 +28,32 @@ export function useOrders() {
     await fetchOrders();
   };
 
+  const updateShippingDetails = async (
+    id: string,
+    details: {
+      courier_name: string | null;
+      tracking_number: string | null;
+      tracking_url: string | null;
+      parcel_pieces: number;
+      parcel_weight_kg: number | null;
+      shipping_note: string | null;
+      status?: string;
+    }
+  ) => {
+    const payload = {
+      ...details,
+      shipped_at: details.status === 'shipped' ? new Date().toISOString() : undefined,
+    };
+    await supabase.from('orders').update(payload).eq('id', id);
+    await fetchOrders();
+  };
+
   const deleteOrder = async (id: string) => {
     await supabase.from('orders').delete().eq('id', id);
     await fetchOrders();
   };
 
-  return { orders, loading, refetch: fetchOrders, updateOrderStatus, updateOwnerNote, deleteOrder };
+  return { orders, loading, refetch: fetchOrders, updateOrderStatus, updateOwnerNote, updateShippingDetails, deleteOrder };
 }
 
 export function useOrder(id: string) {
