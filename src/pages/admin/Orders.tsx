@@ -276,7 +276,7 @@ export function AdminOrders() {
                 onClick={() => handlePrint('label')}
                 className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors"
               >
-                <Tag size={16} /> Print Courier Label
+                <Tag size={16} /> Print Delivery Label
               </button>
             </div>
           </div>
