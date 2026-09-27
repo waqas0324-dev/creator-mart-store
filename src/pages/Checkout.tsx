@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Loader2, Banknote, Wallet, Smartphone, Landmark, Sparkles, Copy, CheckCircle, Upload } from 'lucide-react';
+import { Loader2, Banknote, Wallet, Smartphone, Landmark, Sparkles, Copy, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
@@ -23,7 +23,6 @@ export function Checkout() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
   const isFullAdvance = form.paymentMethod === 'full_advance';
   const isAboveThreshold = subtotal >= settings.advance_threshold;
@@ -54,7 +53,6 @@ export function Checkout() {
     if (!form.phone.trim()) e.phone = 'Required';
     if (!form.address.trim()) e.address = 'Required';
     if (!form.city) e.city = 'Required';
-    if (!paymentProof) e.paymentProof = 'Payment screenshot is required before placing this order.';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -63,37 +61,10 @@ export function Checkout() {
     e.preventDefault();
     if (!validate()) return;
 
-    if (!paymentProof) {
-      setSubmitError('Please upload your payment screenshot before placing the order.');
-      return;
-    }
-
     setLoading(true);
     setSubmitError('');
 
     const orderId = crypto.randomUUID();
-    const safeName = paymentProof.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const proofPath = `${orderId}/${Date.now()}-${safeName}`;
-
-    const { data: signedUpload, error: signedUploadError } = await supabase.storage
-      .from('payment-screenshots')
-      .createSignedUploadUrl(proofPath, { upsert: false });
-
-    if (signedUploadError || !signedUpload?.token) {
-      setLoading(false);
-      setSubmitError('Payment screenshot upload could not be prepared. Please try again.');
-      return;
-    }
-
-    const { error: uploadError } = await supabase.storage
-      .from('payment-screenshots')
-      .uploadToSignedUrl(proofPath, signedUpload.token, paymentProof);
-
-    if (uploadError) {
-      setLoading(false);
-      setSubmitError('Payment screenshot upload failed. Please try again with a JPG, PNG, WEBP image or PDF under 5MB.');
-      return;
-    }
 
     const { data: order, error } = await supabase.from('orders').insert({
       id: orderId,
@@ -107,14 +78,14 @@ export function Checkout() {
       subtotal, shipping: shippingFee, total,
       advance_amount: amountToPayNow,
       status: 'new',
-      payment_proof_path: proofPath,
-      payment_proof_status: 'pending',
-      payment_proof_uploaded_at: new Date().toISOString(),
+      payment_proof_path: null,
+      payment_proof_status: 'not_required',
+      payment_proof_uploaded_at: null,
     }).select().single();
 
     if (error || !order) {
       setLoading(false);
-      setSubmitError('Your payment screenshot was uploaded, but the order could not be created. Please try again.');
+      setSubmitError('The order could not be created. Please try again.');
       return;
     }
 
@@ -177,45 +148,11 @@ export function Checkout() {
   );
 
   const PaymentNote = () => (
-    <div className="space-y-3">
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-        📸 {settings.payment_screenshot_note} <strong>{settings.whatsapp_number}</strong>.
-        Support available: <strong>{settings.payment_support_hours}</strong>.
-      </div>
-      <div className="bg-white border-2 border-dashed border-orange-300 rounded-xl p-4">
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div className="w-10 h-10 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center flex-shrink-0">
-            <Upload size={18} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-gray-900">Upload Payment Screenshot <span className="text-red-500">*</span></p>
-            <p className="text-[11px] text-gray-500">JPG, PNG, WEBP or PDF · Max 5MB</p>
-            {paymentProof && <p className="text-xs text-green-600 font-semibold mt-1 truncate">{paymentProof.name}</p>}
-          </div>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,application/pdf"
-            className="hidden"
-            onChange={e => {
-              const file = e.target.files?.[0] || null;
-              const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-              if (file && !allowedTypes.includes(file.type)) {
-                setPaymentProof(null);
-                setSubmitError('Please upload a JPG, PNG, WEBP image or PDF.');
-                return;
-              }
-              if (file && file.size > 5 * 1024 * 1024) {
-                setPaymentProof(null);
-                setSubmitError('Payment screenshot must be 5MB or smaller.');
-                return;
-              }
-              setSubmitError('');
-              setPaymentProof(file);
-            }}
-          />
-        </label>
-        {errors.paymentProof && <p className="text-red-500 text-xs mt-2">{errors.paymentProof}</p>}
-        <p className="text-[11px] text-gray-500 mt-2">Your payment proof will be reviewed by the store before the order is confirmed.</p>
+    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
+      📸 Payment screenshot required after payment. Please send your screenshot on WhatsApp at <strong>{settings.whatsapp_number}</strong>.
+      Support available: <strong>{settings.payment_support_hours}</strong>.
+      <div className="mt-2 font-semibold text-yellow-900">
+        After receiving the screenshot, our admin will verify the advance payment and update your order status to Confirmed.
       </div>
     </div>
   );
