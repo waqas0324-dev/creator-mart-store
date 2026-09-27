@@ -17,14 +17,15 @@ export function Home() {
   const design = hero.design_settings;
 
   useSEO({
-    title: `${BRAND_NAME} - Creator Gear & Gadgets in Pakistan`,
-    description: 'Shop microphones, ring lights, tripods, phone holders, power banks and creator gear in Pakistan. Cash on Delivery, nationwide delivery and easy returns.',
+    title: `ABR Gadget | ${BRAND_NAME} - Creator Gear & Gadgets in Pakistan`,
+    description: 'ABR Gadget (ABR Gadgets) — shop microphones, ring lights, tripods, phone holders, power banks and creator gear in Pakistan with Cash on Delivery, nationwide delivery and easy returns.',
     image: hero.hero_image_url,
     canonical: window.location.origin + '/',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: BRAND_NAME,
+      alternateName: ['ABR Gadget', 'ABR Shop'],
       url: window.location.origin,
       potentialAction: {
         '@type': 'SearchAction',
