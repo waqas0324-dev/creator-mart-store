@@ -16,12 +16,10 @@ export function OrderSuccess() {
           <CheckCircle size={48} className="text-green-500" />
         </div>
         <h1 className="text-2xl font-black text-gray-900 mb-2">
-          {order?.payment_proof_status === 'pending' ? 'ORDER RECEIVED!' : 'ORDER PLACED SUCCESSFULLY!'}
+          ORDER PLACED SUCCESSFULLY!
         </h1>
         <p className="text-gray-500 mb-5">
-          {order?.payment_proof_status === 'pending'
-            ? 'Your payment screenshot has been received. We will verify it before confirming your order.'
-            : 'Thank you for your order. Your order has been placed successfully.'}
+          Thank you for your order. Your order has been placed successfully.
         </p>
 
         {loading ? (
@@ -59,16 +57,6 @@ export function OrderSuccess() {
                     <span className="font-black text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
                   </div>
                 </>
-              )}
-              {order.payment_proof_status === 'pending' && (
-                <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-                  Payment screenshot received. Your order is awaiting payment verification before confirmation.
-                </div>
-              )}
-              {order.payment_proof_status === 'verified' && (
-                <div className="mt-3 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700 font-semibold">
-                  Payment verified. Your order is confirmed for processing.
-                </div>
               )}
               {order.tracking_number && (
                 <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
