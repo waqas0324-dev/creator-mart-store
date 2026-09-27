@@ -1,6 +1,7 @@
 import { useNavigation } from '../context/NavigationContext';
 import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useSEO } from '../hooks/useSEO';
 
 const SECTIONS = [
   {
@@ -29,6 +30,11 @@ export function ReturnPolicy() {
   const { navigate } = useNavigation();
   const { settings } = useSiteSettings();
   const WHATSAPP_LINK = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
+
+  useSEO({
+    title: `Return & Refund Policy | ${BRAND_NAME}`,
+    description: `Read the ${BRAND_NAME} return and refund policy, including the 7-day return window, damaged-item process and refund timing.`,
+  });
 
   return (
     <div className="bg-gray-50 min-h-screen">
