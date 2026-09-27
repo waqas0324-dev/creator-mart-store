@@ -21,7 +21,7 @@ export function useProducts(filters?: {
 
       let query = supabase
         .from('products')
-        .select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,categories(id, name, slug)')
+        .select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,created_at,categories(id, name, slug)')
         .order('created_at', { ascending: false });
 
       if (filters?.featured) query = query.eq('is_featured', true);
