@@ -161,7 +161,7 @@ export function TrackOrderPage() {
                     <p className="font-bold text-green-600">Rs. {order.advance_amount.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-xs mb-0.5">Balance Due</p>
+                    <p className="text-gray-400 text-xs mb-0.5">Remaining Price</p>
                     <p className="font-bold text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</p>
                   </div>
                   <div>
@@ -296,7 +296,7 @@ export function TrackOrderPage() {
                         <span className="font-semibold">Rs. {order.advance_amount.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between font-black border-t border-gray-100 pt-2">
-                        <span>Balance Due on Delivery</span>
+                        <span>Remaining Price</span>
                         <span className="text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
                       </div>
                     </>
