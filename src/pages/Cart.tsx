@@ -92,11 +92,11 @@ export function Cart() {
                   <span className="font-semibold">Rs. {subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm border-t border-gray-100 pt-3">
-                  <span className="text-gray-600">Shipping</span>
+                  <span className="text-gray-600">Delivery Charges</span>
                   <span className="font-semibold text-gray-700">Calculated at checkout</span>
                 </div>
                 <div className="flex justify-between text-base font-black border-t border-gray-200 pt-3">
-                  <span>Total</span>
+                  <span>Product Subtotal</span>
                   <span className="text-orange-500">Rs. {total.toLocaleString()}</span>
                 </div>
               </div>
