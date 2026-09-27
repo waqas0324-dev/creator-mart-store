@@ -31,9 +31,7 @@ export function useOrders() {
   const updateShippingDetails = async (
     id: string,
     details: {
-      courier_name: string | null;
       tracking_number: string | null;
-      tracking_url: string | null;
       parcel_pieces: number;
       parcel_weight_kg: number | null;
       shipping_note: string | null;
@@ -41,9 +39,7 @@ export function useOrders() {
     }
   ) => {
     const payload = {
-      courier_name: details.courier_name ?? null,
       tracking_number: details.tracking_number,
-      tracking_url: details.tracking_url ?? null,
       parcel_pieces: details.parcel_pieces,
       parcel_weight_kg: details.parcel_weight_kg,
       shipping_note: details.shipping_note,
