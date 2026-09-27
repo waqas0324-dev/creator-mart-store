@@ -50,6 +50,13 @@ export interface Order {
   advance_amount: number;
   notes: string | null;
   owner_note: string | null;
+  courier_name: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  shipped_at: string | null;
+  parcel_pieces: number;
+  parcel_weight_kg: number | null;
+  shipping_note: string | null;
   created_at: string;
   order_items?: OrderItem[];
 }
