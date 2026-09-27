@@ -24,17 +24,42 @@ export function ProductCard({ product }: ProductCardProps) {
   const design = settings.design_settings;
   const whatsappLink = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
 
-  // When a product has more than one photo, auto-cycle through them so
-  // shoppers see every angle without needing to open the product page.
+  // Keep the first product image as the only initial network request.
+  // Secondary gallery images are prefetched only after the card is visible
+  // long enough to matter, preventing the home page from downloading every
+  // hidden gallery image at once.
   const gallery = product.images && product.images.length > 1 ? product.images : [product.image_url];
   const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => {
     if (gallery.length <= 1) return;
-    const timer = setInterval(() => {
+    let timer: number | undefined;
+    const preload = () => {
+      gallery.slice(1).forEach(src => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = resolveProductImage(src);
+      });
+    };
+    const start = () => {
+      timer = window.setTimeout(preload, 2500);
+    };
+    if ('requestIdleCallback' in window) {
+      (window as Window & { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback(start);
+    } else {
+      start();
+    }
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [gallery.length, gallery.join('|')]);
+
+  useEffect(() => {
+    if (gallery.length <= 1) return;
+    const timer = window.setInterval(() => {
       setActiveImage(prev => (prev + 1) % gallery.length);
     }, 2200);
-    return () => clearInterval(timer);
+    return () => window.clearInterval(timer);
   }, [gallery.length]);
 
   const whatsappMsg = encodeURIComponent(
@@ -47,17 +72,15 @@ export function ProductCard({ product }: ProductCardProps) {
         className="relative overflow-hidden cursor-pointer bg-gray-50 aspect-square"
         onClick={() => navigate('product', { productSlug: product.slug })}
       >
-        {gallery.map((img, i) => (
-          <img
-            key={img + i}
-            src={resolveProductImage(img)}
-            alt={product.name}
-            loading="lazy"
-            decoding="async"
-            onError={(e) => onImageError(e, product.name)}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 group-hover:scale-105 ${i === activeImage ? 'opacity-100' : 'opacity-0'}`}
-          />
-        ))}
+        <img
+          key={gallery[activeImage] + activeImage}
+          src={resolveProductImage(gallery[activeImage])}
+          alt={product.name}
+          loading="lazy"
+          decoding="async"
+          onError={(e) => onImageError(e, product.name)}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 group-hover:scale-105"
+        />
         {product.discount_percent && (
           <Badge variant="orange" className="absolute top-2 left-2 z-10">
             -{product.discount_percent}%
