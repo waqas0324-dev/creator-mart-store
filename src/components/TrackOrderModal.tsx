@@ -117,7 +117,7 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
                         <span className="font-bold">Rs. {order.advance_amount.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between font-black border-t border-gray-200 pt-2">
-                        <span>Balance Due</span>
+                        <span>Remaining Price</span>
                         <span className="text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
                       </div>
                     </>
