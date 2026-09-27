@@ -89,12 +89,16 @@ export function AdminOrders() {
     setSavingStatus(false);
   };
 
-  const handlePrint = (mode: 'label') => {
+  const handlePrint = async (mode: 'label') => {
     setPrintMode(mode);
-    setTimeout(() => {
-      window.print();
-      setPrintMode(null);
-    }, 50);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const images = Array.from(document.querySelectorAll<HTMLImageElement>('#print-area img'));
+    await Promise.all(images.map(async img => {
+      if (img.complete) return;
+      try { await img.decode(); } catch { /* browser can still print the fallback/text */ }
+    }));
+    window.print();
+    setPrintMode(null);
   };
 
   return (
