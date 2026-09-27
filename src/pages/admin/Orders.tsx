@@ -157,7 +157,7 @@ export function AdminOrders() {
                       <td className="px-4 py-3 text-gray-600">{order.customer_phone}</td>
                       <td className="px-4 py-3">
                         <p className="font-bold">Rs. {order.total.toLocaleString()}</p>
-                        {order.advance_amount > 0 && <p className="text-[11px] text-green-600 font-semibold">Due: Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</p>}
+                        {order.advance_amount > 0 && <p className="text-[11px] text-green-600 font-semibold">Remaining: Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</p>}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600 capitalize">{order.payment_method.replace(/_/g, ' ')}</td>
                       <td className="px-4 py-3">
@@ -234,8 +234,8 @@ export function AdminOrders() {
               <div className="flex justify-between font-black text-base"><span>Grand Total</span><span className="text-orange-500">Rs. {viewOrder.total.toLocaleString()}</span></div>
               {viewOrder.advance_amount > 0 && (
                 <>
-                  <div className="flex justify-between text-green-600"><span>Already Paid (Advance)</span><span className="font-semibold">Rs. {viewOrder.advance_amount.toLocaleString()}</span></div>
-                  <div className="flex justify-between font-black text-base border-t border-gray-100 pt-2"><span>Amount Due on Delivery</span><span>Rs. {(viewOrder.total - viewOrder.advance_amount).toLocaleString()}</span></div>
+                  <div className="flex justify-between text-green-600"><span>Advance Paid</span><span className="font-semibold">Rs. {viewOrder.advance_amount.toLocaleString()}</span></div>
+                  <div className="flex justify-between font-black text-base border-t border-gray-100 pt-2"><span>Remaining Price</span><span>Rs. {(viewOrder.total - viewOrder.advance_amount).toLocaleString()}</span></div>
                 </>
               )}
             </div>
