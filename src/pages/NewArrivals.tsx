@@ -1,32 +1,18 @@
 import { Sparkles } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
-import { supabase } from '../lib/supabase';
-import { useState, useEffect } from 'react';
-import type { Product } from '../types';
+import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/Product/ProductCard';
 import { useSEO } from '../hooks/useSEO';
 import { BRAND_NAME } from '../lib/brand';
 
 export function NewArrivals() {
   const { navigate } = useNavigation();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { products, loading } = useProducts();
 
   useSEO({
     title: `New Arrivals - Latest Creator Gear | ${BRAND_NAME}`,
     description: `Check out the newest content-creator gear added to ${BRAND_NAME}. Cash on Delivery across Pakistan, fast shipping.`,
   });
-
-  useEffect(() => {
-    supabase
-      .from('products')
-      .select('*, categories(id, name, slug)')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setProducts((data as Product[]) || []);
-        setLoading(false);
-      });
-  }, []);
 
   return (
     <div className="bg-gray-50 min-h-screen">
