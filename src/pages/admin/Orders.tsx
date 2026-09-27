@@ -170,7 +170,10 @@ export function AdminOrders() {
                         <p className="text-xs text-gray-400">{order.customer_city}</p>
                       </td>
                       <td className="px-4 py-3 text-gray-600">{order.customer_phone}</td>
-                      <td className="px-4 py-3 font-bold">Rs. {order.total.toLocaleString()}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-bold">Rs. {order.total.toLocaleString()}</p>
+                        {order.advance_amount > 0 && <p className="text-[11px] text-green-600 font-semibold">Due: Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</p>}
+                      </td>
                       <td className="px-4 py-3 text-xs text-gray-600 capitalize">{order.payment_method.replace(/_/g, ' ')}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-bold px-2 py-1 rounded ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-700'}`}>
