@@ -28,7 +28,7 @@ export function DeliveryLabel({ order }: Props) {
               />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300">Official Delivery Label</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-300">Official Delivery / Packing Label</p>
               <p className="mt-1 text-lg font-black">{BRAND_NAME}</p>
               <p className="text-[10px] text-slate-300">Creator Gear & Gadgets</p>
             </div>
@@ -76,11 +76,11 @@ export function DeliveryLabel({ order }: Props) {
         {/* Tracking + collection */}
         <div className="grid grid-cols-2 gap-0 border-b border-slate-200">
           <div className="px-6 py-5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">Tracking ID</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">Order Tracking ID</p>
             <p className="mt-2 text-xl font-black tracking-wide text-slate-900">
               {order.tracking_number || 'To be assigned'}
             </p>
-            <p className="mt-1 text-[10px] text-slate-400">Add courier tracking ID when available.</p>
+            <p className="mt-1 text-[10px] text-slate-400">Add the shipment tracking ID here when it becomes available.</p>
           </div>
           <div className="border-l border-slate-200 bg-orange-50 px-6 py-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
