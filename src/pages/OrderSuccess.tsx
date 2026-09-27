@@ -12,8 +12,14 @@ export function OrderSuccess() {
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
           <CheckCircle size={48} className="text-green-500" />
         </div>
-        <h1 className="text-2xl font-black text-gray-900 mb-2">ORDER PLACED SUCCESSFULLY!</h1>
-        <p className="text-gray-500 mb-5">Thank you for your order. Your order has been placed successfully.</p>
+        <h1 className="text-2xl font-black text-gray-900 mb-2">
+          {order?.payment_proof_status === 'pending' ? 'ORDER RECEIVED!' : 'ORDER PLACED SUCCESSFULLY!'}
+        </h1>
+        <p className="text-gray-500 mb-5">
+          {order?.payment_proof_status === 'pending'
+            ? 'Your payment screenshot has been received. We will verify it before confirming your order.'
+            : 'Thank you for your order. Your order has been placed successfully.'}
+        </p>
 
         {loading ? (
           <div className="animate-pulse h-4 bg-gray-200 rounded w-1/2 mx-auto mb-4" />
