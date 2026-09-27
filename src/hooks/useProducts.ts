@@ -21,7 +21,7 @@ export function useProducts(filters?: {
 
       let query = supabase
         .from('products')
-        .select('*, categories(id, name, slug)')
+        .select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,categories(id, name, slug)')
         .order('created_at', { ascending: false });
 
       if (filters?.featured) query = query.eq('is_featured', true);
@@ -87,7 +87,7 @@ export function useCategories() {
     setLoading(true);
     return supabase
       .from('categories')
-      .select('*, products(id)')
+      .select('id,name,slug,image_url,products(id)')
       .order('name')
       .then(({ data }) => {
         const mapped = (data || []).map((cat: Category & { products?: { id: string }[] }) => ({
