@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Trash2, Eye, X, Tag, MessageCircle } from 'lucide-react';
+import { Search, Trash2, Eye, X, Tag, MessageCircle, Truck, ExternalLink } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useOrders } from '../../hooks/useOrders';
 import { onImageError, resolveProductImage } from '../../lib/imageFallback';
@@ -9,13 +9,19 @@ import { DeliveryLabel } from '../../components/admin/DeliveryLabel';
 import type { Order } from '../../types';
 
 export function AdminOrders() {
-  const { orders, loading, updateOrderStatus, updateOwnerNote, deleteOrder } = useOrders();
+  const { orders, loading, updateOrderStatus, updateOwnerNote, updateShippingDetails, deleteOrder } = useOrders();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [draftStatus, setDraftStatus] = useState('');
   const [draftNote, setDraftNote] = useState('');
+  const [draftCourier, setDraftCourier] = useState('');
+  const [draftTracking, setDraftTracking] = useState('');
+  const [draftTrackingUrl, setDraftTrackingUrl] = useState('');
+  const [draftPieces, setDraftPieces] = useState('1');
+  const [draftWeight, setDraftWeight] = useState('');
+  const [draftShippingNote, setDraftShippingNote] = useState('');
   const [savingStatus, setSavingStatus] = useState(false);
   const [printMode, setPrintMode] = useState<'label' | null>(null);
 
@@ -31,6 +37,12 @@ export function AdminOrders() {
     setViewOrder(order);
     setDraftStatus(order.status);
     setDraftNote(order.owner_note || '');
+    setDraftCourier(order.courier_name || '');
+    setDraftTracking(order.tracking_number || '');
+    setDraftTrackingUrl(order.tracking_url || '');
+    setDraftPieces(String(order.parcel_pieces || 1));
+    setDraftWeight(order.parcel_weight_kg != null ? String(order.parcel_weight_kg) : '');
+    setDraftShippingNote(order.shipping_note || '');
   };
 
   const handleSaveStatus = async () => {
@@ -40,7 +52,27 @@ export function AdminOrders() {
     if (draftNote !== (viewOrder.owner_note || '')) {
       await updateOwnerNote(viewOrder.id, draftNote);
     }
-    setViewOrder({ ...viewOrder, status: draftStatus, owner_note: draftNote });
+    await updateShippingDetails(viewOrder.id, {
+      courier_name: draftCourier.trim() || null,
+      tracking_number: draftTracking.trim() || null,
+      tracking_url: draftTrackingUrl.trim() || null,
+      parcel_pieces: Math.max(1, Number(draftPieces) || 1),
+      parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
+      shipping_note: draftShippingNote.trim() || null,
+      status: draftStatus,
+    });
+    setViewOrder({
+      ...viewOrder,
+      status: draftStatus,
+      owner_note: draftNote,
+      courier_name: draftCourier.trim() || null,
+      tracking_number: draftTracking.trim() || null,
+      tracking_url: draftTrackingUrl.trim() || null,
+      parcel_pieces: Math.max(1, Number(draftPieces) || 1),
+      parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
+      shipping_note: draftShippingNote.trim() || null,
+      shipped_at: draftStatus === 'shipped' ? new Date().toISOString() : viewOrder.shipped_at,
+    });
     setSavingStatus(false);
   };
 
@@ -198,6 +230,56 @@ export function AdminOrders() {
                 placeholder="Add a private note about this order..."
                 className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400"
               />
+            </div>
+
+            <div className="border-t border-gray-100 mt-4 pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Truck size={15} className="text-orange-500" />
+                <p className="text-xs font-bold uppercase text-gray-500">Courier & Tracking</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Courier</label>
+                  <select value={draftCourier} onChange={e => setDraftCourier(e.target.value)} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400">
+                    <option value="">Not assigned</option>
+                    <option>Leopards</option>
+                    <option>TCS</option>
+                    <option>M&P</option>
+                    <option>Trax</option>
+                    <option>PostEx</option>
+                    <option>BlueEx</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Tracking / AWB / CN</label>
+                  <input value={draftTracking} onChange={e => setDraftTracking(e.target.value)} placeholder="Courier tracking number" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1">Tracking URL (optional)</label>
+                  <div className="flex gap-2">
+                    <input value={draftTrackingUrl} onChange={e => setDraftTrackingUrl(e.target.value)} placeholder="Paste official courier tracking link" className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
+                    {draftTrackingUrl && <a href={draftTrackingUrl} target="_blank" rel="noreferrer" className="px-3 flex items-center border border-gray-200 rounded-lg text-gray-500 hover:text-orange-500"><ExternalLink size={15} /></a>}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Pieces</label>
+                  <input type="number" min="1" value={draftPieces} onChange={e => setDraftPieces(e.target.value)} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Weight (kg)</label>
+                  <input type="number" min="0" step="0.01" value={draftWeight} onChange={e => setDraftWeight(e.target.value)} placeholder="e.g. 0.50" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1">Courier / packing note</label>
+                  <input value={draftShippingNote} onChange={e => setDraftShippingNote(e.target.value)} placeholder="Fragile, call before delivery, etc." className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
+                </div>
+              </div>
+              {(viewOrder.tracking_number || viewOrder.courier_name) && (
+                <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-xs">
+                  <span className="font-bold text-orange-700">{viewOrder.courier_name || 'Courier'}:</span> {viewOrder.tracking_number || 'Tracking pending'}
+                </div>
+              )}
             </div>
 
             <div className="mt-4">
