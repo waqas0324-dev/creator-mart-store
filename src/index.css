@@ -32,22 +32,33 @@
 
 /* Print layouts (Packing Slip / Delivery Label) — only #print-area is visible when printing */
 @media print {
-  body * { visibility: hidden; }
-  #print-area, #print-area * { visibility: visible; }
+  html, body, #root {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body * { visibility: hidden !important; }
+  #print-area, #print-area * { visibility: visible !important; }
   #print-area {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: auto;
-    margin: 0;
-    padding: 0;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   #print-area > div {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    width: 100% !important;
+    max-width: 820px !important;
+    margin: 0 auto !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
   @page { size: A4 portrait; margin: 8mm; }
 }
