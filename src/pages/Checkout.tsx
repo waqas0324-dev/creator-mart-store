@@ -75,13 +75,19 @@ export function Checkout() {
     const safeName = paymentProof.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const proofPath = `${orderId}/${Date.now()}-${safeName}`;
 
+    const { data: signedUpload, error: signedUploadError } = await supabase.storage
+      .from('payment-screenshots')
+      .createSignedUploadUrl(proofPath, { upsert: false });
+
+    if (signedUploadError || !signedUpload?.token) {
+      setLoading(false);
+      setSubmitError('Payment screenshot upload could not be prepared. Please try again.');
+      return;
+    }
+
     const { error: uploadError } = await supabase.storage
       .from('payment-screenshots')
-      .upload(proofPath, paymentProof, {
-        cacheControl: '3600',
-        contentType: paymentProof.type,
-        upsert: false,
-      });
+      .uploadToSignedUrl(proofPath, signedUpload.token, paymentProof);
 
     if (uploadError) {
       setLoading(false);
