@@ -184,7 +184,22 @@ export function DevPanel() {
   const renderSection = () => {
     if (activeSection === 'logo') return (
       <div className={cardCls}>
-        <SectionTitle title="Logo" text="Control the store logo used across the site." />
+        <SectionTitle
+          title="Logo"
+          text="Control the original ABR Gadgets logo, custom logo and global logo size."
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                update('logo_url', '');
+                update('logo_size', 'md');
+              }}
+              className="px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-900 text-xs font-bold text-gray-300 hover:border-purple-500 hover:text-white transition-colors whitespace-nowrap"
+            >
+              Original
+            </button>
+          }
+        />
         <div className="flex flex-col sm:flex-row items-start gap-4">
           <div className="w-40 h-20 rounded-xl border border-gray-800 bg-gray-900 flex items-center justify-center overflow-hidden">
             {form.logo_url ? <img src={form.logo_url} alt="Logo preview" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-gray-600">Default ABR logo</span>}
