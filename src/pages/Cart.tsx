@@ -93,7 +93,7 @@ export function Cart() {
                 </div>
                 <div className="flex justify-between text-sm border-t border-gray-100 pt-3">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="font-semibold text-green-600">Free Shipping</span>
+                  <span className="font-semibold text-gray-700">Calculated at checkout</span>
                 </div>
                 <div className="flex justify-between text-base font-black border-t border-gray-200 pt-3">
                   <span>Total</span>
