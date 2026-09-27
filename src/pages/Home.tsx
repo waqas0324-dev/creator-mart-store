@@ -3,6 +3,8 @@ import { Truck, Banknote, RotateCcw, ShieldCheck, ChevronRight, Star } from 'luc
 import { useNavigation } from '../context/NavigationContext';
 import { useProducts, useCategories } from '../hooks/useProducts';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useSEO } from '../hooks/useSEO';
+import { BRAND_NAME } from '../lib/brand';
 import { ProductCard } from '../components/Product/ProductCard';
 import { onImageError, resolveCategoryImage } from '../lib/imageFallback';
 
@@ -14,6 +16,23 @@ export function Home() {
   const { settings: hero } = useSiteSettings();
   const design = hero.design_settings;
 
+  useSEO({
+    title: `${BRAND_NAME} - Creator Gear & Gadgets in Pakistan`,
+    description: 'Shop microphones, ring lights, tripods, phone holders, power banks and creator gear in Pakistan. Cash on Delivery, nationwide delivery and easy returns.',
+    image: hero.hero_image_url,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: BRAND_NAME,
+      url: window.location.origin,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${window.location.origin}/#shop&searchQuery={search_term_string}`,
+        'query-input': 'required name=search_term_string',
+      },
+    },
+  });
+
   return (
     <div>
       {/* Hero Section — a single self-contained banner image, with the
@@ -22,6 +41,9 @@ export function Home() {
         <div style={{ borderRadius: design.hero.radius, overflow: "hidden" }}>
           <img
             src={hero.hero_image_url}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             alt="ABR Gadgets — Gear Up Your Creativity"
             className="w-full h-auto block"
           />
@@ -93,6 +115,8 @@ export function Home() {
                       alt={cat.name}
                       referrerPolicy="no-referrer"
                       onError={(e) => onImageError(e, cat.name)}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                   </div>
