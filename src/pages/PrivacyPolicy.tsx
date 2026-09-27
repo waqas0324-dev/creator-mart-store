@@ -1,5 +1,6 @@
 import { useNavigation } from '../context/NavigationContext';
 import { BRAND_NAME } from '../lib/brand';
+import { useSEO } from '../hooks/useSEO';
 
 const SECTIONS = [
   {
@@ -26,6 +27,11 @@ const SECTIONS = [
 
 export function PrivacyPolicy() {
   const { navigate } = useNavigation();
+
+  useSEO({
+    title: `Privacy Policy | ${BRAND_NAME}`,
+    description: `Learn how ${BRAND_NAME} collects, uses and protects customer information for orders, delivery and support.`,
+  });
 
   return (
     <div className="bg-gray-50 min-h-screen">
