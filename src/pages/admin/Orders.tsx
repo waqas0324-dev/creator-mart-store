@@ -75,6 +75,13 @@ export function AdminOrders() {
 
   const handleSaveStatus = async () => {
     if (!viewOrder) return;
+    if (
+      viewOrder.payment_proof_status === 'pending' &&
+      ['confirmed', 'processing', 'shipped', 'delivered'].includes(draftStatus)
+    ) {
+      window.alert('Please verify the payment screenshot before confirming or dispatching this order.');
+      return;
+    }
     setSavingStatus(true);
     await updateOrderStatus(viewOrder.id, draftStatus);
     if (draftNote !== (viewOrder.owner_note || '')) {
