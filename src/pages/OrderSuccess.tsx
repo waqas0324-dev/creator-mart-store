@@ -25,18 +25,42 @@ export function OrderSuccess() {
                 ['Order ID', order.order_number],
                 ['Customer', order.customer_name],
                 ['Phone', order.customer_phone],
-                ['Total', `Rs. ${order.total.toLocaleString()}`],
+                ['Product Subtotal', `Rs. ${order.subtotal.toLocaleString()}`],
+                ['Delivery Charges', order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'],
+                ['Order Total', `Rs. ${order.total.toLocaleString()}`],
                 ['Payment', order.payment_method.replace(/_/g, ' ')],
               ].map(([key, val]) => (
                 <div key={key} className="flex justify-between text-sm">
                   <span className="text-gray-500">{key}</span>
-                  <span className={`font-bold ${key === 'Order ID' || key === 'Total' ? 'text-orange-500' : 'text-gray-900 capitalize'}`}>{val}</span>
+                  <span className={`font-bold ${key === 'Order ID' || key === 'Order Total' ? 'text-orange-500' : 'text-gray-900 capitalize'}`}>{val}</span>
                 </div>
               ))}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Status</span>
                 <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded capitalize">{order.status}</span>
               </div>
+              {order.advance_amount > 0 && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Advance Paid</span>
+                    <span className="font-bold text-green-600">Rs. {order.advance_amount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
+                    <span className="font-bold text-gray-700">Balance Due on Delivery</span>
+                    <span className="font-black text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
+                  </div>
+                </>
+              )}
+              {order.payment_proof_status === 'pending' && (
+                <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                  Payment screenshot received. Your order is awaiting payment verification before confirmation.
+                </div>
+              )}
+              {order.payment_proof_status === 'verified' && (
+                <div className="mt-3 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700 font-semibold">
+                  Payment verified. Your order is confirmed for processing.
+                </div>
+              )}
               {order.tracking_number && (
                 <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
                   <span className="text-gray-500">Tracking / AWB</span>
@@ -62,7 +86,7 @@ export function OrderSuccess() {
           </div>
         ) : null}
 
-        <p className="text-sm text-gray-500 mb-6">We will contact you soon!</p>
+        <p className="text-sm text-gray-500 mb-6">We will contact you soon after payment verification.</p>
         <div className="flex flex-col gap-3">
           <button onClick={() => navigate('shop')} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition-colors">
             Continue Shopping
