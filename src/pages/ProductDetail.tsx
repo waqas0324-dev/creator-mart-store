@@ -25,6 +25,7 @@ export function ProductDetail() {
       ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${(product.description || '').slice(0, 100)}`
       : `Buy premium content-creator gear online in Pakistan. Cash on Delivery available.`,
     image: product?.image_url || undefined,
+    canonical: product ? window.location.origin + '/product/' + encodeURIComponent(product.slug) : undefined,
     jsonLd: product
       ? {
           '@context': 'https://schema.org',
