@@ -127,7 +127,7 @@ export function ProductDetail() {
             {/* Images */}
             <div>
               <div className="relative bg-gray-50 rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
-                <img src={resolveProductImage(images[activeImage])} alt={product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="max-h-72 object-contain" />
+                <img src={resolveProductImage(images[activeImage])} alt={product.name} loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="max-h-72 object-contain" />
                 {images.length > 1 && (
                   <>
                     <button
@@ -153,7 +153,7 @@ export function ProductDetail() {
                 <div className="flex gap-2">
                   {images.map((img, i) => (
                     <button key={i} onClick={() => setActiveImage(i)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${activeImage === i ? 'border-orange-500' : 'border-gray-200'}`}>
-                      <img src={resolveProductImage(img)} alt="" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full object-cover" />
+                      <img src={resolveProductImage(img)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
