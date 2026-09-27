@@ -123,24 +123,10 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
                     </>
                   )}
                 </div>
-                {(order.courier_name || order.tracking_number) && (
-                  <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                    {order.courier_name && (
-                      <div className="flex justify-between gap-3 text-xs">
-                        <span className="text-gray-500">Courier</span>
-                        <span className="font-bold text-gray-800">{order.courier_name}</span>
-                      </div>
-                    )}
-                    {order.tracking_number && (
-                      <div className="flex justify-between gap-3 text-xs items-center">
-                        <span className="text-gray-500">Tracking / AWB</span>
-                        {order.tracking_url ? (
-                          <a href={order.tracking_url} target="_blank" rel="noreferrer" className="font-bold text-orange-500 hover:text-orange-600 underline">{order.tracking_number}</a>
-                        ) : (
-                          <span className="font-bold text-gray-800">{order.tracking_number}</span>
-                        )}
-                      </div>
-                    )}
+                {order.tracking_number && (
+                  <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between gap-3 text-xs items-center">
+                    <span className="text-gray-500">Tracking ID</span>
+                    <span className="font-bold text-gray-800">{order.tracking_number}</span>
                   </div>
                 )}
               </div>
