@@ -20,6 +20,7 @@ export function Home() {
     title: `${BRAND_NAME} - Creator Gear & Gadgets in Pakistan`,
     description: 'Shop microphones, ring lights, tripods, phone holders, power banks and creator gear in Pakistan. Cash on Delivery, nationwide delivery and easy returns.',
     image: hero.hero_image_url,
+    canonical: window.location.origin + '/',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
