@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { CartItem, Product } from '../types';
 
 interface CartContextValue {
@@ -17,8 +17,23 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('abr-gadgets-cart');
+      return saved ? JSON.parse(saved) as CartItem[] : [];
+    } catch {
+      return [];
+    }
+  });
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('abr-gadgets-cart', JSON.stringify(items));
+    } catch {
+      // Ignore storage errors; cart still works in memory.
+    }
+  }, [items]);
 
   const addItem = useCallback((product: Product, quantity = 1) => {
     setItems(prev => {
