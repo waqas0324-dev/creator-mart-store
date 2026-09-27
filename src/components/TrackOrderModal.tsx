@@ -97,9 +97,31 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
                 <p className="font-bold text-orange-500">{order.order_number}</p>
                 <p className="text-xs text-gray-500 mt-2 mb-1">Customer</p>
                 <p className="text-sm font-semibold text-gray-800">{order.customer_name}</p>
-                <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
-                  <span className="text-xs text-gray-500">Total</span>
-                  <span className="font-bold text-gray-900">Rs. {order.total.toLocaleString()}</span>
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Product Subtotal</span>
+                    <span className="font-semibold text-gray-800">Rs. {order.subtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Delivery Charges</span>
+                    <span className="font-semibold text-gray-800">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-gray-200 pt-2">
+                    <span className="font-bold text-gray-700">Order Total</span>
+                    <span className="font-black text-orange-500">Rs. {order.total.toLocaleString()}</span>
+                  </div>
+                  {order.advance_amount > 0 && (
+                    <>
+                      <div className="flex justify-between text-green-600">
+                        <span>Advance Paid</span>
+                        <span className="font-bold">Rs. {order.advance_amount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between font-black border-t border-gray-200 pt-2">
+                        <span>Balance Due</span>
+                        <span className="text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 {(order.courier_name || order.tracking_number) && (
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
@@ -122,6 +144,17 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
                   </div>
                 )}
               </div>
+
+              {order.payment_proof_status === 'pending' && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-xs font-semibold">
+                  Payment screenshot received and awaiting store verification.
+                </div>
+              )}
+              {order.payment_proof_status === 'verified' && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-xs font-semibold">
+                  Payment verified. Your order is confirmed for processing.
+                </div>
+              )}
 
               {/* Status Tracker */}
               <div>
