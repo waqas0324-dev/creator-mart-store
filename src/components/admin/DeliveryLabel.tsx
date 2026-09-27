@@ -97,6 +97,29 @@ export function DeliveryLabel({ order }: Props) {
           </div>
         </div>
 
+        {/* Payment summary */}
+        <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">Payment Summary</p>
+          <div className="mt-3 grid grid-cols-4 gap-4">
+            <div>
+              <p className="text-[9px] uppercase text-slate-400">Product</p>
+              <p className="font-black text-slate-900">Rs. {order.subtotal.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase text-slate-400">Delivery</p>
+              <p className="font-black text-slate-900">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'}</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase text-slate-400">Order Total</p>
+              <p className="font-black text-slate-900">Rs. {order.total.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase text-slate-400">Advance Paid</p>
+              <p className="font-black text-green-700">Rs. {(order.advance_amount || 0).toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Product */}
         {firstItem && (
           <div className="border-b border-slate-200 px-6 py-4">
