@@ -365,7 +365,7 @@ export function Checkout() {
                   )}
                   {!isFullAdvance ? (
                     <div className="flex justify-between text-xs text-gray-500">
-                      <span>Balance Due on Delivery</span><span>Rs. {Math.max(0, total - amountToPayNow).toLocaleString()}</span>
+                      <span>Remaining Price</span><span>Rs. {Math.max(0, total - amountToPayNow).toLocaleString()}</span>
                     </div>
                   ) : null}
                 </div>
