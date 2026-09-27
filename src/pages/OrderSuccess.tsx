@@ -1,10 +1,13 @@
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, MessageCircle } from 'lucide-react';
 import { useNavigation } from '../context/NavigationContext';
 import { useOrder } from '../hooks/useOrders';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { toWhatsAppNumber } from '../lib/brand';
 
 export function OrderSuccess() {
   const { nav, navigate } = useNavigation();
   const { order, loading } = useOrder(nav.orderId || '');
+  const { settings } = useSiteSettings();
 
   return (
     <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4 py-10">
@@ -92,7 +95,22 @@ export function OrderSuccess() {
           </div>
         ) : null}
 
-        <p className="text-sm text-gray-500 mb-6">We will contact you soon after payment verification.</p>
+        {order && order.advance_amount > 0 && (
+          <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-left">
+            <p className="text-sm font-black text-green-800">Next step: send your payment screenshot</p>
+            <p className="text-xs text-green-700 mt-1">
+              Send the screenshot of your Rs. {order.advance_amount.toLocaleString()} advance payment to our WhatsApp. Our admin will verify it and then change the order status to Confirmed.
+            </p>
+            <a
+              href={`https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}?text=${encodeURIComponent(`Payment screenshot for order ${order.order_number}`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 rounded-lg transition-colors"
+            >
+              <MessageCircle size={17} /> Send Screenshot on WhatsApp
+            </a>
+          </div>
+        )}
         <div className="flex flex-col gap-3">
           <button onClick={() => navigate('shop')} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition-colors">
             Continue Shopping
