@@ -63,9 +63,7 @@ export function Checkout() {
     setLoading(true);
     setSubmitError('');
 
-    const orderNumber = `#ABR${Date.now().toString().slice(-6)}`;
     const { data: order, error } = await supabase.from('orders').insert({
-      order_number: orderNumber,
       customer_name: form.fullName,
       customer_phone: form.phone,
       customer_email: form.email || null,
