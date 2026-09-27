@@ -153,8 +153,16 @@ export function TrackOrderPage() {
                     <p className="font-semibold text-gray-800">{order.customer_city}</p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-xs mb-0.5">Total Amount</p>
+                    <p className="text-gray-400 text-xs mb-0.5">Order Total</p>
                     <p className="font-bold text-orange-500">Rs. {order.total.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs mb-0.5">Advance Paid</p>
+                    <p className="font-bold text-green-600">Rs. {order.advance_amount.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs mb-0.5">Balance Due</p>
+                    <p className="font-bold text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">Payment Method</p>
@@ -167,6 +175,17 @@ export function TrackOrderPage() {
                 </div>
               </div>
             </div>
+
+            {order.payment_proof_status === 'pending' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 font-semibold">
+                Payment screenshot received. Your order is awaiting payment verification.
+              </div>
+            )}
+            {order.payment_proof_status === 'verified' && (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-sm text-green-700 font-semibold">
+                Payment verified. Your order is confirmed for processing.
+              </div>
+            )}
 
             {/* Tracking Timeline */}
             {!isCancelled ? (
@@ -259,17 +278,29 @@ export function TrackOrderPage() {
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-100 space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Subtotal</span>
+                    <span className="text-gray-500">Product Subtotal</span>
                     <span className="font-semibold text-gray-700">Rs. {order.subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Shipping</span>
-                    <span className="font-semibold text-green-600">Free</span>
+                    <span className="text-gray-500">Delivery Charges</span>
+                    <span className="font-semibold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'}</span>
                   </div>
-                  <div className="flex justify-between font-black text-base pt-1">
-                    <span>Total</span>
+                  <div className="flex justify-between font-black text-base pt-1 border-t border-gray-100">
+                    <span>Order Total</span>
                     <span className="text-orange-500">Rs. {order.total.toLocaleString()}</span>
                   </div>
+                  {order.advance_amount > 0 && (
+                    <>
+                      <div className="flex justify-between text-green-600">
+                        <span>Advance Paid</span>
+                        <span className="font-semibold">Rs. {order.advance_amount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between font-black border-t border-gray-100 pt-2">
+                        <span>Balance Due on Delivery</span>
+                        <span className="text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
