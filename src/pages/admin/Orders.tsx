@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Trash2, Eye, X, Tag, MessageCircle, ExternalLink } from 'lucide-react';
+import { Search, Trash2, Eye, X, Tag, MessageCircle } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useOrders } from '../../hooks/useOrders';
 import { onImageError, resolveProductImage } from '../../lib/imageFallback';
@@ -51,7 +51,6 @@ export function AdminOrders() {
     }
     await updateShippingDetails(viewOrder.id, {
       tracking_number: draftTracking.trim() || null,
-      tracking_url: null,
       parcel_pieces: Math.max(1, Number(draftPieces) || 1),
       parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
       shipping_note: draftShippingNote.trim() || null,
@@ -62,7 +61,6 @@ export function AdminOrders() {
       status: draftStatus,
       owner_note: draftNote,
       tracking_number: draftTracking.trim() || null,
-      tracking_url: null,
       parcel_pieces: Math.max(1, Number(draftPieces) || 1),
       parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
       shipping_note: draftShippingNote.trim() || null,
