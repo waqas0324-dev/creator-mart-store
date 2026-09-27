@@ -175,7 +175,6 @@ export type Page =
   | 'admin-products'
   | 'admin-categories'
   | 'admin-orders'
-  | 'admin-settings'
   | 'admin-product-form'
   | 'admin-account'
   | 'dev-login'
