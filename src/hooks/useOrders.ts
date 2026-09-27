@@ -41,8 +41,13 @@ export function useOrders() {
     }
   ) => {
     const payload = {
-      ...details,
-      shipped_at: details.status === 'shipped' ? new Date().toISOString() : undefined,
+      courier_name: details.courier_name ?? null,
+      tracking_number: details.tracking_number,
+      tracking_url: details.tracking_url ?? null,
+      parcel_pieces: details.parcel_pieces,
+      parcel_weight_kg: details.parcel_weight_kg,
+      shipping_note: details.shipping_note,
+      ...(details.status === 'shipped' ? { shipped_at: new Date().toISOString() } : {}),
     };
     await supabase.from('orders').update(payload).eq('id', id);
     await fetchOrders();
