@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Trash2, Eye, X, Tag, MessageCircle, Truck, ExternalLink } from 'lucide-react';
+import { Search, Trash2, Eye, X, Tag, MessageCircle, Truck, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useOrders } from '../../hooks/useOrders';
 import { onImageError, resolveProductImage } from '../../lib/imageFallback';
@@ -25,7 +25,7 @@ function buildTrackingUrl(courier: string, tracking: string): string | null {
 }
 
 export function AdminOrders() {
-  const { orders, loading, updateOrderStatus, updateOwnerNote, updateShippingDetails, deleteOrder } = useOrders();
+  const { orders, loading, updateOrderStatus, updateOwnerNote, updateShippingDetails, updatePaymentProof, getPaymentProofUrl, deleteOrder } = useOrders();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
@@ -40,6 +40,9 @@ export function AdminOrders() {
   const [draftShippingNote, setDraftShippingNote] = useState('');
   const [savingStatus, setSavingStatus] = useState(false);
   const [printMode, setPrintMode] = useState<'label' | null>(null);
+  const [paymentProofUrl, setPaymentProofUrl] = useState<string | null>(null);
+  const [paymentProofLoading, setPaymentProofLoading] = useState(false);
+  const [savingPaymentProof, setSavingPaymentProof] = useState(false);
 
   const filtered = orders.filter(o => {
     const matchSearch = o.order_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,8 +52,15 @@ export function AdminOrders() {
     return matchSearch && matchStatus;
   });
 
-  const openOrder = (order: Order) => {
+  const openOrder = async (order: Order) => {
     setViewOrder(order);
+    setPaymentProofUrl(null);
+    if (order.payment_proof_path) {
+      setPaymentProofLoading(true);
+      const url = await getPaymentProofUrl(order.payment_proof_path);
+      setPaymentProofUrl(url);
+      setPaymentProofLoading(false);
+    }
     setDraftStatus(order.status);
     setDraftNote(order.owner_note || '');
     setDraftCourier(order.courier_name || '');
@@ -229,6 +239,79 @@ export function AdminOrders() {
                 </>
               )}
             </div>
+
+            {viewOrder.payment_proof_path && (
+              <div className="border-t border-gray-100 mt-4 pt-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-gray-500">Payment Proof</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Status: <span className="font-bold text-gray-700 capitalize">{viewOrder.payment_proof_status}</span>
+                    </p>
+                  </div>
+                  {paymentProofLoading ? (
+                    <span className="text-xs text-gray-400">Loading proof...</span>
+                  ) : paymentProofUrl ? (
+                    <a href={paymentProofUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-orange-500 hover:text-orange-600">
+                      <ExternalLink size={15} /> View Screenshot
+                    </a>
+                  ) : (
+                    <span className="text-xs text-red-500">Proof unavailable</span>
+                  )}
+                </div>
+                {viewOrder.payment_proof_status === 'pending' && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={savingPaymentProof}
+                      onClick={async () => {
+                        setSavingPaymentProof(true);
+                        const error = await updatePaymentProof(viewOrder.id, 'verified');
+                        if (!error) {
+                          await updateOrderStatus(viewOrder.id, 'confirmed');
+                          setViewOrder({
+                            ...viewOrder,
+                            payment_proof_status: 'verified',
+                            payment_proof_verified_at: new Date().toISOString(),
+                            payment_proof_rejected_reason: null,
+                            status: 'confirmed',
+                          });
+                        }
+                        setSavingPaymentProof(false);
+                      }}
+                      className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white text-sm font-bold px-4 py-2 rounded-lg"
+                    >
+                      <CheckCircle size={15} /> {savingPaymentProof ? 'Saving...' : 'Verify & Confirm Order'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingPaymentProof}
+                      onClick={async () => {
+                        const reason = window.prompt('Why is this payment proof rejected?', 'Payment proof could not be verified.');
+                        if (reason === null) return;
+                        setSavingPaymentProof(true);
+                        const error = await updatePaymentProof(viewOrder.id, 'rejected', reason.trim() || 'Payment proof could not be verified.');
+                        if (!error) {
+                          setViewOrder({
+                            ...viewOrder,
+                            payment_proof_status: 'rejected',
+                            payment_proof_verified_at: null,
+                            payment_proof_rejected_reason: reason.trim() || 'Payment proof could not be verified.',
+                          });
+                        }
+                        setSavingPaymentProof(false);
+                      }}
+                      className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-bold px-4 py-2 rounded-lg"
+                    >
+                      <XCircle size={15} /> Reject Proof
+                    </button>
+                  </div>
+                )}
+                {viewOrder.payment_proof_status === 'rejected' && viewOrder.payment_proof_rejected_reason && (
+                  <p className="mt-2 text-xs text-red-600">Reason: {viewOrder.payment_proof_rejected_reason}</p>
+                )}
+              </div>
+            )}
 
             {viewOrder.notes && (
               <div className="border-t border-gray-100 mt-4 pt-4">
