@@ -9,6 +9,7 @@ export function OrderSuccess() {
   const { nav, navigate } = useNavigation();
   const { order, loading } = useOrder(nav.orderId || '');
   const { settings } = useSiteSettings();
+  const advanceVerified = ['confirmed', 'processing', 'shipped', 'delivered'].includes(order?.status || '');
 
   return (
     <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4 py-10">
@@ -45,16 +46,16 @@ export function OrderSuccess() {
               ))}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Status</span>
-                <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded capitalize">{order.status}</span>
+                <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded">{STATUS_LABELS[order.status] || order.status}</span>
               </div>
               {order.advance_amount > 0 && (
                 <>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Advance Paid</span>
+                    <span className="text-gray-500">{advanceVerified ? "Advance Paid" : "Advance Amount"}</span>
                     <span className="font-bold text-green-600">Rs. {order.advance_amount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
-                    <span className="font-bold text-gray-700">Remaining Price</span>
+                    <span className="font-bold text-gray-700">{advanceVerified ? "Remaining Price" : "Expected Remaining Price"}</span>
                     <span className="font-black text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
                   </div>
                 </>
