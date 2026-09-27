@@ -26,20 +26,28 @@ function parseLocation(): NavState {
       for (const part of paramParts) {
         const [key, ...rest] = part.split('=');
         const value = decodeURIComponent(rest.join('='));
-        if (['productSlug', 'categorySlug', 'orderId', 'adminProductId', 'searchQuery'].includes(key) && value) (state as Record<string, string>)[key] = value;
+        if (['productSlug', 'categorySlug', 'orderId', 'adminProductId', 'searchQuery'].includes(key) && value) {
+          (state as Record<string, string>)[key] = value;
+        }
       }
       return state;
     }
   }
   const productMatch = url.pathname.match(/^\/product\/([^/]+)\/?$/);
-  if (productMatch) return { page: 'product', productSlug: decodeURIComponent(productMatch[1]), categorySlug: url.searchParams.get('category') || undefined, searchQuery: url.searchParams.get('search') || undefined };
+  if (productMatch) {
+    return { page: 'product', productSlug: decodeURIComponent(productMatch[1]), categorySlug: url.searchParams.get('category') || undefined, searchQuery: url.searchParams.get('search') || undefined };
+  }
   const exactPage = PATH_TO_PAGE.get(url.pathname);
   if (exactPage) {
     const state: NavState = { page: exactPage };
-    const categorySlug = url.searchParams.get('category'); const searchQuery = url.searchParams.get('search');
-    const orderId = url.searchParams.get('orderId'); const adminProductId = url.searchParams.get('productId');
-    if (categorySlug) state.categorySlug = categorySlug; if (searchQuery) state.searchQuery = searchQuery;
-    if (orderId) state.orderId = orderId; if (adminProductId) state.adminProductId = adminProductId;
+    const categorySlug = url.searchParams.get('category');
+    const searchQuery = url.searchParams.get('search');
+    const orderId = url.searchParams.get('orderId');
+    const adminProductId = url.searchParams.get('productId');
+    if (categorySlug) state.categorySlug = categorySlug;
+    if (searchQuery) state.searchQuery = searchQuery;
+    if (orderId) state.orderId = orderId;
+    if (adminProductId) state.adminProductId = adminProductId;
     return state;
   }
   return { page: 'home' };
@@ -61,7 +69,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const [nav, setNav] = useState<NavState>(() => parseLocation());
   useEffect(() => {
     const onPopState = () => setNav(parseLocation());
-    window.addEventListener('popstate', onPopState); window.addEventListener('hashchange', onPopState);
+    window.addEventListener('popstate', onPopState);
+    window.addEventListener('hashchange', onPopState);
     return () => { window.removeEventListener('popstate', onPopState); window.removeEventListener('hashchange', onPopState); };
   }, []);
   useEffect(() => {
