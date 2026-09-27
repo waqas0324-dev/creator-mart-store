@@ -48,12 +48,34 @@ export function useOrders() {
     await fetchOrders();
   };
 
+  const updatePaymentProof = async (
+    id: string,
+    status: 'verified' | 'rejected',
+    rejectedReason: string | null = null
+  ) => {
+    const payload = {
+      payment_proof_status: status,
+      payment_proof_verified_at: status === 'verified' ? new Date().toISOString() : null,
+      payment_proof_rejected_reason: status === 'rejected' ? rejectedReason : null,
+    };
+    const { error } = await supabase.from('orders').update(payload).eq('id', id);
+    if (!error) await fetchOrders();
+    return error?.message || null;
+  };
+
+  const getPaymentProofUrl = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from('payment-screenshots')
+      .createSignedUrl(path, 900);
+    return error ? null : data?.signedUrl || null;
+  };
+
   const deleteOrder = async (id: string) => {
     await supabase.from('orders').delete().eq('id', id);
     await fetchOrders();
   };
 
-  return { orders, loading, refetch: fetchOrders, updateOrderStatus, updateOwnerNote, updateShippingDetails, deleteOrder };
+  return { orders, loading, refetch: fetchOrders, updateOrderStatus, updateOwnerNote, updateShippingDetails, updatePaymentProof, getPaymentProofUrl, deleteOrder };
 }
 
 export function useOrder(id: string) {
