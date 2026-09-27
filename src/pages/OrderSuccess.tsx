@@ -52,7 +52,7 @@ export function OrderSuccess() {
                     <span className="font-bold text-green-600">Rs. {order.advance_amount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
-                    <span className="font-bold text-gray-700">Balance Due on Delivery</span>
+                    <span className="font-bold text-gray-700">Remaining Price</span>
                     <span className="font-black text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
                   </div>
                 </>
