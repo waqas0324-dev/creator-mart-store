@@ -125,7 +125,7 @@ export function CartDrawer() {
           <div className="border-t border-gray-100 px-5 py-4 flex-shrink-0 bg-white">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm text-gray-500">Delivery Charges</span>
-              <span className="text-sm font-semibold text-green-600">Free</span>
+              <span className="text-sm font-semibold text-gray-500">Calculated at checkout</span>
             </div>
             <div className="flex items-center justify-between mb-4">
               <span className="font-black text-gray-900">Product Subtotal</span>
