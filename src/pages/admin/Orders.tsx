@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Trash2, Eye, X, Tag, MessageCircle, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Trash2, Eye, X, Tag, MessageCircle, ExternalLink } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useOrders } from '../../hooks/useOrders';
 import { onImageError, resolveProductImage } from '../../lib/imageFallback';
@@ -9,7 +9,7 @@ import { DeliveryLabel } from '../../components/admin/DeliveryLabel';
 import type { Order } from '../../types';
 
 export function AdminOrders() {
-  const { orders, loading, updateOrderStatus, updateOwnerNote, updateShippingDetails, updatePaymentProof, getPaymentProofUrl, deleteOrder } = useOrders();
+  const { orders, loading, updateOrderStatus, updateOwnerNote, updateShippingDetails, deleteOrder } = useOrders();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
@@ -22,11 +22,7 @@ export function AdminOrders() {
   const [draftShippingNote, setDraftShippingNote] = useState('');
   const [savingStatus, setSavingStatus] = useState(false);
   const [printMode, setPrintMode] = useState<'label' | null>(null);
-  const [paymentProofUrl, setPaymentProofUrl] = useState<string | null>(null);
-  const [paymentProofLoading, setPaymentProofLoading] = useState(false);
-  const [savingPaymentProof, setSavingPaymentProof] = useState(false);
 
-  const pendingPaymentProofs = orders.filter(o => o.payment_proof_status === 'pending').length;
 
   const filtered = orders.filter(o => {
     const matchSearch = o.order_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -38,13 +34,6 @@ export function AdminOrders() {
 
   const openOrder = async (order: Order) => {
     setViewOrder(order);
-    setPaymentProofUrl(null);
-    if (order.payment_proof_path) {
-      setPaymentProofLoading(true);
-      const url = await getPaymentProofUrl(order.payment_proof_path);
-      setPaymentProofUrl(url);
-      setPaymentProofLoading(false);
-    }
     setDraftStatus(order.status);
     setDraftNote(order.owner_note || '');
     setDraftTracking(order.tracking_number || '');
@@ -55,13 +44,6 @@ export function AdminOrders() {
 
   const handleSaveStatus = async () => {
     if (!viewOrder) return;
-    if (
-      viewOrder.payment_proof_status === 'pending' &&
-      ['confirmed', 'processing', 'shipped', 'delivered'].includes(draftStatus)
-    ) {
-      window.alert('Please verify the payment screenshot before confirming or dispatching this order.');
-      return;
-    }
     setSavingStatus(true);
     await updateOrderStatus(viewOrder.id, draftStatus);
     if (draftNote !== (viewOrder.owner_note || '')) {
@@ -108,16 +90,6 @@ export function AdminOrders() {
           <h2 className="text-xl font-black text-gray-900">Orders</h2>
           <p className="text-sm text-gray-500">{orders.length} total orders</p>
         </div>
-
-        {pendingPaymentProofs > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-black text-amber-900">Payment verification required</p>
-              <p className="text-xs text-amber-700 mt-0.5">{pendingPaymentProofs} order(s) have a payment screenshot waiting for review.</p>
-            </div>
-            <span className="bg-amber-500 text-white text-xs font-black px-2.5 py-1 rounded-full">{pendingPaymentProofs} Pending</span>
-          </div>
-        )}
 
         <div className="flex gap-3 flex-wrap">
           <div className="flex-1 min-w-48 bg-white rounded-xl border border-gray-100 px-4 py-2.5 flex items-center gap-2">
@@ -243,79 +215,6 @@ export function AdminOrders() {
                 </>
               )}
             </div>
-
-            {viewOrder.payment_proof_path && (
-              <div className="border-t border-gray-100 mt-4 pt-4">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase text-gray-500">Payment Proof</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Status: <span className="font-bold text-gray-700 capitalize">{viewOrder.payment_proof_status}</span>
-                    </p>
-                  </div>
-                  {paymentProofLoading ? (
-                    <span className="text-xs text-gray-400">Loading proof...</span>
-                  ) : paymentProofUrl ? (
-                    <a href={paymentProofUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-orange-500 hover:text-orange-600">
-                      <ExternalLink size={15} /> View Screenshot
-                    </a>
-                  ) : (
-                    <span className="text-xs text-red-500">Proof unavailable</span>
-                  )}
-                </div>
-                {viewOrder.payment_proof_status === 'pending' && (
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={savingPaymentProof}
-                      onClick={async () => {
-                        setSavingPaymentProof(true);
-                        const error = await updatePaymentProof(viewOrder.id, 'verified');
-                        if (!error) {
-                          await updateOrderStatus(viewOrder.id, 'confirmed');
-                          setViewOrder({
-                            ...viewOrder,
-                            payment_proof_status: 'verified',
-                            payment_proof_verified_at: new Date().toISOString(),
-                            payment_proof_rejected_reason: null,
-                            status: 'confirmed',
-                          });
-                        }
-                        setSavingPaymentProof(false);
-                      }}
-                      className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white text-sm font-bold px-4 py-2 rounded-lg"
-                    >
-                      <CheckCircle size={15} /> {savingPaymentProof ? 'Saving...' : 'Verify & Confirm Order'}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={savingPaymentProof}
-                      onClick={async () => {
-                        const reason = window.prompt('Why is this payment proof rejected?', 'Payment proof could not be verified.');
-                        if (reason === null) return;
-                        setSavingPaymentProof(true);
-                        const error = await updatePaymentProof(viewOrder.id, 'rejected', reason.trim() || 'Payment proof could not be verified.');
-                        if (!error) {
-                          setViewOrder({
-                            ...viewOrder,
-                            payment_proof_status: 'rejected',
-                            payment_proof_verified_at: null,
-                            payment_proof_rejected_reason: reason.trim() || 'Payment proof could not be verified.',
-                          });
-                        }
-                        setSavingPaymentProof(false);
-                      }}
-                      className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-bold px-4 py-2 rounded-lg"
-                    >
-                      <XCircle size={15} /> Reject Proof
-                    </button>
-                  </div>
-                )}
-                {viewOrder.payment_proof_status === 'rejected' && viewOrder.payment_proof_rejected_reason && (
-                  <p className="mt-2 text-xs text-red-600">Reason: {viewOrder.payment_proof_rejected_reason}</p>
-                )}
-              </div>
-            )}
 
             {viewOrder.notes && (
               <div className="border-t border-gray-100 mt-4 pt-4">
