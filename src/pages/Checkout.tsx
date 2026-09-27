@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Loader2, Banknote, Wallet, Smartphone, Landmark, Sparkles, Copy, CheckCircle } from 'lucide-react';
+import { Loader2, Banknote, Wallet, Smartphone, Landmark, Sparkles, Copy, CheckCircle, Upload } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
@@ -23,6 +23,7 @@ export function Checkout() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
   const isFullAdvance = form.paymentMethod === 'full_advance';
   const isAboveThreshold = subtotal >= settings.advance_threshold;
@@ -53,6 +54,7 @@ export function Checkout() {
     if (!form.phone.trim()) e.phone = 'Required';
     if (!form.address.trim()) e.address = 'Required';
     if (!form.city) e.city = 'Required';
+    if (!paymentProof) e.paymentProof = 'Payment screenshot is required before placing this order.';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -60,10 +62,35 @@ export function Checkout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+
+    if (!paymentProof) {
+      setSubmitError('Please upload your payment screenshot before placing the order.');
+      return;
+    }
+
     setLoading(true);
     setSubmitError('');
 
+    const orderId = crypto.randomUUID();
+    const safeName = paymentProof.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const proofPath = `${orderId}/${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('payment-screenshots')
+      .upload(proofPath, paymentProof, {
+        cacheControl: '3600',
+        contentType: paymentProof.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      setLoading(false);
+      setSubmitError('Payment screenshot upload failed. Please try again with a JPG, PNG, WEBP image or PDF under 5MB.');
+      return;
+    }
+
     const { data: order, error } = await supabase.from('orders').insert({
+      id: orderId,
       customer_name: form.fullName,
       customer_phone: form.phone,
       customer_email: form.email || null,
@@ -74,15 +101,18 @@ export function Checkout() {
       subtotal, shipping: shippingFee, total,
       advance_amount: amountToPayNow,
       status: 'new',
+      payment_proof_path: proofPath,
+      payment_proof_status: 'pending',
+      payment_proof_uploaded_at: new Date().toISOString(),
     }).select().single();
 
     if (error || !order) {
       setLoading(false);
-      setSubmitError('Something went wrong while placing your order. Please try again, or send your order details directly via WhatsApp.');
+      setSubmitError('Your payment screenshot was uploaded, but the order could not be created. Please try again.');
       return;
     }
 
-    await supabase.from('order_items').insert(
+    const { error: itemsError } = await supabase.from('order_items').insert(
       items.map(item => ({
         order_id: order.id,
         product_id: item.product.id,
@@ -93,6 +123,12 @@ export function Checkout() {
         subtotal: item.product.price * item.quantity,
       }))
     );
+
+    if (itemsError) {
+      setLoading(false);
+      setSubmitError('The order was created, but its items could not be saved. Please contact support before submitting again.');
+      return;
+    }
 
     clearCart();
     setLoading(false);
@@ -135,9 +171,40 @@ export function Checkout() {
   );
 
   const PaymentNote = () => (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-      📸 {settings.payment_screenshot_note} <strong>{settings.whatsapp_number}</strong>.
-      Support available: <strong>{settings.payment_support_hours}</strong>.
+    <div className="space-y-3">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
+        📸 {settings.payment_screenshot_note} <strong>{settings.whatsapp_number}</strong>.
+        Support available: <strong>{settings.payment_support_hours}</strong>.
+      </div>
+      <div className="bg-white border-2 border-dashed border-orange-300 rounded-xl p-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div className="w-10 h-10 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center flex-shrink-0">
+            <Upload size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-gray-900">Upload Payment Screenshot <span className="text-red-500">*</span></p>
+            <p className="text-[11px] text-gray-500">JPG, PNG, WEBP or PDF · Max 5MB</p>
+            {paymentProof && <p className="text-xs text-green-600 font-semibold mt-1 truncate">{paymentProof.name}</p>}
+          </div>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files?.[0] || null;
+              if (file && file.size > 5 * 1024 * 1024) {
+                setPaymentProof(null);
+                setSubmitError('Payment screenshot must be 5MB or smaller.');
+                return;
+              }
+              setSubmitError('');
+              setPaymentProof(file);
+            }}
+          />
+        </label>
+        {errors.paymentProof && <p className="text-red-500 text-xs mt-2">{errors.paymentProof}</p>}
+        <p className="text-[11px] text-gray-500 mt-2">Your payment proof will be reviewed by the store before the order is confirmed.</p>
+      </div>
     </div>
   );
 
@@ -267,7 +334,7 @@ export function Checkout() {
                             <thead><tr className="border-b border-teal-300 text-left"><th className="w-[52%] py-2 pr-4">Order Total</th><th className="w-[48%] py-2 pl-4">Advance Required</th></tr></thead>
                             <tbody>
                               <tr><td className="py-2 pr-4 font-semibold">Under Rs. {settings.advance_threshold.toLocaleString()}</td><td className="py-2 pl-4 font-semibold">Rs. {settings.advance_flat_amount} flat</td></tr>
-                              <tr><td className="py-2 pr-4 font-semibold">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-2 pl-4 font-semibold">{settings.advance_percent}% of order total</td></tr>
+                              <tr><td className="py-2 pr-4 font-semibold">Rs. {settings.advance_threshold.toLocaleString()} and above</td><td className="py-2 pl-4 font-semibold">{settings.advance_percent}% + delivery</td></tr>
                             </tbody>
                           </table>
                           <p className="mt-2 text-xs text-gray-600">Support: {settings.payment_support_hours}</p>
@@ -349,7 +416,7 @@ export function Checkout() {
                   )}
                   {!isFullAdvance ? (
                     <div className="flex justify-between text-xs text-gray-500">
-                      <span>Remaining (Cash on Delivery)</span><span>Rs. {subtotal.toLocaleString()}</span>
+                      <span>Balance Due on Delivery</span><span>Rs. {Math.max(0, total - amountToPayNow).toLocaleString()}</span>
                     </div>
                   ) : null}
                 </div>
