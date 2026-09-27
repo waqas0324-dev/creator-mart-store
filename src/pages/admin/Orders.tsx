@@ -44,6 +44,8 @@ export function AdminOrders() {
   const [paymentProofLoading, setPaymentProofLoading] = useState(false);
   const [savingPaymentProof, setSavingPaymentProof] = useState(false);
 
+  const pendingPaymentProofs = orders.filter(o => o.payment_proof_status === 'pending').length;
+
   const filtered = orders.filter(o => {
     const matchSearch = o.order_number.toLowerCase().includes(search.toLowerCase()) ||
       o.customer_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -117,6 +119,16 @@ export function AdminOrders() {
           <h2 className="text-xl font-black text-gray-900">Orders</h2>
           <p className="text-sm text-gray-500">{orders.length} total orders</p>
         </div>
+
+        {pendingPaymentProofs > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-black text-amber-900">Payment verification required</p>
+              <p className="text-xs text-amber-700 mt-0.5">{pendingPaymentProofs} order(s) have a payment screenshot waiting for review.</p>
+            </div>
+            <span className="bg-amber-500 text-white text-xs font-black px-2.5 py-1 rounded-full">{pendingPaymentProofs} Pending</span>
+          </div>
+        )}
 
         <div className="flex gap-3 flex-wrap">
           <div className="flex-1 min-w-48 bg-white rounded-xl border border-gray-100 px-4 py-2.5 flex items-center gap-2">
