@@ -160,11 +160,11 @@ export function TrackOrderPage() {
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">{advanceVerified ? "Advance Paid" : "Advance Amount"}</p>
-                    <p className="font-bold text-green-600">Rs. {effectiveAdvance.toLocaleString()}</p>
+                    <p className="font-bold text-green-600">{order.advance_waived ? "Waived" : `Rs. ${effectiveAdvance.toLocaleString()}`}</p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">Remaining Price</p>
-                    <p className="font-bold text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</p>
+                    <p className="font-bold text-orange-500">Rs. {Math.max(0, order.total - effectiveAdvance).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">Payment Method</p>
