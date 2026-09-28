@@ -31,7 +31,6 @@ export function useOrders() {
   const updateShippingDetails = async (
     id: string,
     details: {
-      tracking_number: string | null;
       advance_waived?: boolean;
       advance_waiver_note?: string | null;
       parcel_pieces: number;
@@ -41,7 +40,6 @@ export function useOrders() {
     }
   ) => {
     const payload = {
-      tracking_number: details.tracking_number,
       ...(details.advance_waived !== undefined ? { advance_waived: details.advance_waived } : {}),
       ...(details.advance_waiver_note !== undefined ? { advance_waiver_note: details.advance_waiver_note } : {}),
       parcel_pieces: details.parcel_pieces,
