@@ -70,8 +70,8 @@ export function DeliveryLabel({ order }: Props) {
 
         <div className="grid grid-cols-3 border-b border-slate-200">
           <div className="px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Tracking / AWB / CN</p>
-            <p className="mt-1 text-lg font-black tracking-wide text-slate-900">{order.tracking_number || 'Pending courier assignment'}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Tracking ID</p>
+            <p className="mt-1 text-lg font-black tracking-wide text-slate-900">{order.tracking_number || 'Not assigned yet'}</p>
           </div>
           <div className="border-l border-slate-200 px-5 py-4">
             <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Pieces / Weight</p>
