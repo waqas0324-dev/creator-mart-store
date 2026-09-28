@@ -46,10 +46,17 @@ export function DeliveryLabel({ order }: Props) {
 
         <div className="grid grid-cols-[1.55fr_1fr] border-b border-slate-200">
           <div className="px-6 py-5">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Ship To</p>
-            <p className="mt-1 text-2xl font-black text-slate-900">{order.customer_name}</p>
-            <p className="mt-1 text-base font-bold text-slate-700">{order.customer_phone}</p>
-            <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-600">{address}</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Deliver To — Customer</p>
+            <div className="mt-3 grid grid-cols-[82px_1fr] gap-x-3 gap-y-2 text-xs">
+              <span className="font-bold text-slate-400">Name</span>
+              <span className="font-black text-slate-900">{order.customer_name || '—'}</span>
+              <span className="font-bold text-slate-400">Phone</span>
+              <span className="font-bold text-slate-800">{order.customer_phone || '—'}</span>
+              <span className="font-bold text-slate-400">Email</span>
+              <span className="font-semibold break-all text-slate-700">{order.customer_email || '—'}</span>
+              <span className="font-bold text-slate-400">Address</span>
+              <span className="font-semibold leading-relaxed text-slate-700">{address || '—'}</span>
+            </div>
           </div>
           <div className="border-l border-slate-200 bg-slate-50 px-5 py-5">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Order Reference</p>
