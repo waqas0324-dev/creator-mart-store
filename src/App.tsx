@@ -10,6 +10,7 @@ import { Navbar } from './components/Layout/Navbar';
 import { Footer } from './components/Layout/Footer';
 import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
+import { CategoriesPage } from './pages/CategoriesPage';
 import { ProductDetail } from './pages/ProductDetail';
 import { Cart } from './pages/Cart';
 import { Wishlist } from './pages/Wishlist';
@@ -126,6 +127,7 @@ function Router() {
       <main className="flex-1">
         {nav.page === 'home' && <Home />}
         {nav.page === 'shop' && <Shop />}
+        {nav.page === 'categories' && <CategoriesPage />}
         {nav.page === 'product' && <ProductDetail />}
         {nav.page === 'cart' && <Cart />}
         {nav.page === 'wishlist' && <Wishlist />}
