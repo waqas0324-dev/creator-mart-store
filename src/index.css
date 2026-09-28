@@ -141,3 +141,28 @@
     filter: none;
   }
 }
+
+/* Featured category image motion: simulated 3D product rotation stays inside the circular frame. */
+.category-orbit {
+  perspective: 700px;
+  transform-style: preserve-3d;
+}
+.category-orbit-image {
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+  animation: category-3d-orbit 6s ease-in-out infinite;
+}
+.category-orbit:hover .category-orbit-image {
+  animation-duration: 3.2s;
+}
+@keyframes category-3d-orbit {
+  0% { transform: rotateY(0deg) rotateX(0deg) scale(.88) translateZ(0); }
+  20% { transform: rotateY(90deg) rotateX(4deg) scale(.98) translateZ(8px); }
+  40% { transform: rotateY(180deg) rotateX(-3deg) scale(.88) translateZ(0); }
+  60% { transform: rotateY(270deg) rotateX(4deg) scale(1.03) translateZ(10px); }
+  80% { transform: rotateY(330deg) rotateX(-2deg) scale(.94) translateZ(4px); }
+  100% { transform: rotateY(360deg) rotateX(0deg) scale(.88) translateZ(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .category-orbit-image { animation: none; }
+}
