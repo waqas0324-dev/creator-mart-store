@@ -69,20 +69,20 @@ export function Home() {
       </section>
 
       {/* Trust Badges */}
-      <section className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section className="bg-white border-b border-gray-100 shadow-sm overflow-visible">
+        <div className="max-w-7xl mx-auto px-4 py-5 grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4 items-center">
           {[
             { Icon: Truck, title: 'FAST DELIVERY', sub: 'All Over Pakistan' },
             { Icon: Banknote, title: 'CASH ON DELIVERY', sub: 'Pay When You Receive' },
             { Icon: RotateCcw, title: '7 DAYS RETURN', sub: 'No Questions Asked' },
             { Icon: ShieldCheck, title: '100% ORIGINAL', sub: 'Original Products' },
           ].map(({ Icon, title, sub }) => (
-            <div key={title} className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0">
+            <div key={title} className="min-w-0 flex items-center gap-3 py-1">
+              <div className="w-11 h-11 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0">
                 <Icon size={20} className="text-orange-500" />
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-900">{title}</p>
+                <p className="text-xs font-bold leading-tight text-gray-900">{title}</p>
                 <p className="text-xs text-gray-500">{sub}</p>
               </div>
             </div>
@@ -104,14 +104,14 @@ export function Home() {
               {[...Array(8)].map((_, i) => <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-24" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-8 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-6 gap-4">
               {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => navigate('shop', { categorySlug: cat.slug })}
-                  className="group bg-gray-50 rounded-xl p-3 border border-gray-100 hover:border-orange-300 hover:shadow-md hover:bg-white transition-all duration-200 flex flex-col items-center gap-2"
+                  className="group bg-slate-50 rounded-2xl p-3 sm:p-4 border border-slate-200 hover:border-orange-300 hover:shadow-md hover:bg-white transition-all duration-300 flex flex-col items-center gap-2.5 overflow-hidden min-w-0"
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 group-hover:border-orange-300 transition-colors">
+                  <div className="category-orbit relative w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] rounded-full overflow-hidden border-2 border-slate-200 bg-white shadow-inner group-hover:border-orange-300 transition-colors flex-shrink-0">
                     <img
                       src={resolveCategoryImage(cat.image_url)}
                       alt={cat.name}
@@ -119,11 +119,11 @@ export function Home() {
                       onError={(e) => onImageError(e, cat.name)}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="category-orbit-image w-full h-full object-contain p-1.5"
                     />
                   </div>
                   <div className="text-center">
-                    <p className="text-xs font-bold text-gray-800 leading-tight">{cat.name}</p>
+                    <p className="text-sm font-bold text-gray-800 leading-tight break-words">{cat.name}</p>
                     <p className="text-xs text-gray-400">{cat.product_count}</p>
                   </div>
                 </button>
