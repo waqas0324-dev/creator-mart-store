@@ -100,7 +100,7 @@ export function Home() {
             </button>
           </div>
           {categoriesLoading ? (
-            <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
               {[...Array(8)].map((_, i) => <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-24" />)}
             </div>
           ) : (
