@@ -102,7 +102,7 @@ export function Home() {
           </div>
           {categoriesLoading ? (
             <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-              {[...Array(8)].map((_, i) => <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-24" />)}
+              {[...Array(6)].map((_, i) => <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-24" />)}
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-4">
@@ -112,7 +112,7 @@ export function Home() {
                   onClick={() => navigate('shop', { categorySlug: cat.slug })}
                   className="group bg-slate-50 rounded-2xl p-3 sm:p-4 border border-slate-200 hover:border-orange-300 hover:shadow-md hover:bg-white transition-all duration-300 flex flex-col items-center gap-2.5 overflow-hidden min-w-0"
                 >
-                  <div className="category-orbit relative w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] rounded-full overflow-hidden border-2 border-slate-200 bg-white shadow-inner group-hover:border-orange-300 transition-colors flex-shrink-0">
+                  <div className="category-orbit relative w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden border-2 border-slate-200 bg-white shadow-inner group-hover:border-orange-300 transition-colors flex-shrink-0">
                     <img
                       src={resolveCategoryImage(cat.image_url)}
                       alt={cat.name}
@@ -120,7 +120,7 @@ export function Home() {
                       onError={(e) => onImageError(e, cat.name)}
                       loading="lazy"
                       decoding="async"
-                      className="category-orbit-image w-[116%] h-[116%] object-contain rounded-full"
+                      className="category-orbit-image w-full h-full object-cover rounded-full p-1.5"
                     />
                   </div>
                   <div className="text-center">
