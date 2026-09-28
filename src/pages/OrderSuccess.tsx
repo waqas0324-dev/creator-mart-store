@@ -35,8 +35,7 @@ export function OrderSuccess() {
                 ['Order ID', order.order_number],
                 ['Customer', order.customer_name],
                 ['Phone', order.customer_phone],
-                ['Product Subtotal', `Rs. ${order.subtotal.toLocaleString()}`],
-                ['Delivery Charges', order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'],
+                ['Product Subtotal', `Rs. ${order.subtotal.toLocaleString()}`],                ['Delivery Charges', order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${order.payment_method === 'cash_on_delivery' ? (order.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'],
                 ['Order Total', `Rs. ${order.total.toLocaleString()}`],
                 ['Payment', order.payment_method.replace(/_/g, ' ')],
               ].map(([key, val]) => (
@@ -69,16 +68,6 @@ export function OrderSuccess() {
                     <span className="font-black text-orange-500">Rs. {Math.max(0, order.total - effectiveAdvance).toLocaleString()}</span>
                   </div>
                 </>
-              )}
-              {order.tracking_number && (
-                <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
-                  <span className="text-gray-500">Tracking / AWB</span>
-                  {order.tracking_url ? (
-                    <a href={order.tracking_url} target="_blank" rel="noreferrer" className="font-bold text-orange-500 underline">{order.tracking_number}</a>
-                  ) : (
-                    <span className="font-bold text-gray-900">{order.tracking_number}</span>
-                  )}
-                </div>
               )}
             </div>
             {order.order_items && order.order_items.length > 0 && (
