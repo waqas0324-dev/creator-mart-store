@@ -10,6 +10,115 @@ function slugify(name: string) {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+async function normalizeCategoryImage(file: File): Promise<File> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = objectUrl;
+    });
+
+    const maxSide = 1200;
+    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return file;
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const { data } = ctx.getImageData(0, 0, width, height);
+    const cornerPoints = [
+      [0, 0],
+      [width - 1, 0],
+      [0, height - 1],
+      [width - 1, height - 1],
+    ];
+    const bg = cornerPoints.reduce(
+      (sum, [x, y]) => {
+        const i = (y * width + x) * 4;
+        return [sum[0] + data[i], sum[1] + data[i + 1], sum[2] + data[i + 2]];
+      },
+      [0, 0, 0]
+    ).map(value => value / 4);
+
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+    const threshold = 34;
+    const step = Math.max(1, Math.floor(Math.min(width, height) / 500));
+
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const i = (y * width + x) * 4;
+        const alpha = data[i + 3];
+        const distance = Math.hypot(data[i] - bg[0], data[i + 1] - bg[1], data[i + 2] - bg[2]);
+        if (alpha > 18 && distance > threshold) {
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+    }
+
+    if (maxX < 0 || maxY < 0) return file;
+
+    const paddingX = Math.max(8, Math.round((maxX - minX + 1) * 0.06));
+    const paddingY = Math.max(8, Math.round((maxY - minY + 1) * 0.06));
+    minX = Math.max(0, minX - paddingX);
+    minY = Math.max(0, minY - paddingY);
+    maxX = Math.min(width - 1, maxX + paddingX);
+    maxY = Math.min(height - 1, maxY + paddingY);
+
+    const cropWidth = maxX - minX + 1;
+    const cropHeight = maxY - minY + 1;
+    const square = Math.max(cropWidth, cropHeight);
+    const output = document.createElement('canvas');
+    output.width = 1024;
+    output.height = 1024;
+    const out = output.getContext('2d');
+    if (!out) return file;
+
+    const scaleToSquare = Math.min(0.92 * output.width / square, 0.92 * output.height / square);
+    const drawWidth = cropWidth * scaleToSquare;
+    const drawHeight = cropHeight * scaleToSquare;
+    const offsetX = (output.width - drawWidth) / 2;
+    const offsetY = (output.height - drawHeight) / 2;
+
+    if (data.some((_, index) => index % 4 === 3 && data[index] < 250)) {
+      out.clearRect(0, 0, output.width, output.height);
+    } else {
+      out.fillStyle = '#ffffff';
+      out.fillRect(0, 0, output.width, output.height);
+    }
+
+    out.drawImage(
+      canvas,
+      minX,
+      minY,
+      cropWidth,
+      cropHeight,
+      offsetX,
+      offsetY,
+      drawWidth,
+      drawHeight
+    );
+
+    const blob = await new Promise<Blob | null>(resolve => output.toBlob(resolve, 'image/webp', 0.92));
+    if (!blob) return file;
+    const baseName = file.name.replace(/.[^.]+$/, '') || 'category-image';
+    return new File([blob], `${baseName}-normalized.webp`, { type: 'image/webp' });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 export function AdminCategories() {
   const { categories, loading, addCategory, updateCategory, deleteCategory } = useCategories();
   const [editing, setEditing] = useState<Category | null>(null);
@@ -27,8 +136,9 @@ export function AdminCategories() {
   const handleUpload = async (file: File) => {
     setUploading(true);
     setFormError('');
-    const path = `categories/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from('product-images').upload(path, file);
+    const normalizedFile = await normalizeCategoryImage(file);
+    const path = `categories/${Date.now()}-${normalizedFile.name}`;
+    const { error } = await supabase.storage.from('product-images').upload(path, normalizedFile, { upsert: false });
     if (!error) {
       const { data } = supabase.storage.from('product-images').getPublicUrl(path);
       // Cache-bust so a browser that cached the old image at this bucket
