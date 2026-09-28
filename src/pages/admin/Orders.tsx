@@ -18,8 +18,6 @@ export function AdminOrders() {
   const [draftNote, setDraftNote] = useState('');
   const [draftAdvanceWaived, setDraftAdvanceWaived] = useState(false);
   const [draftWaiverNote, setDraftWaiverNote] = useState('');
-  const [draftPieces, setDraftPieces] = useState('1');
-  const [draftWeight, setDraftWeight] = useState('');
   const [draftShippingNote, setDraftShippingNote] = useState('');
   const [savingStatus, setSavingStatus] = useState(false);
   const [printMode, setPrintMode] = useState<'label' | null>(null);
@@ -39,8 +37,6 @@ export function AdminOrders() {
     setDraftNote(order.owner_note || '');
     setDraftAdvanceWaived(Boolean(order.advance_waived));
     setDraftWaiverNote(order.advance_waiver_note || '');
-    setDraftPieces(String(order.parcel_pieces || 1));
-    setDraftWeight(order.parcel_weight_kg != null ? String(order.parcel_weight_kg) : '');
     setDraftShippingNote(order.shipping_note || '');
   };
 
@@ -52,11 +48,8 @@ export function AdminOrders() {
       await updateOwnerNote(viewOrder.id, draftNote);
     }
     await updateShippingDetails(viewOrder.id, {
-      tracking_number: null,
       advance_waived: viewOrder.payment_method === 'cash_on_delivery' ? draftAdvanceWaived : false,
       advance_waiver_note: viewOrder.payment_method === 'cash_on_delivery' && draftAdvanceWaived ? (draftWaiverNote.trim() || null) : null,
-      parcel_pieces: Math.max(1, Number(draftPieces) || 1),
-      parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
       shipping_note: draftShippingNote.trim() || null,
       status: draftStatus,
     });
@@ -64,11 +57,8 @@ export function AdminOrders() {
       ...viewOrder,
       status: draftStatus,
       owner_note: draftNote,
-      tracking_number: null,
       advance_waived: viewOrder.payment_method === 'cash_on_delivery' ? draftAdvanceWaived : false,
       advance_waiver_note: viewOrder.payment_method === 'cash_on_delivery' && draftAdvanceWaived ? (draftWaiverNote.trim() || null) : null,
-      parcel_pieces: Math.max(1, Number(draftPieces) || 1),
-      parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
       shipping_note: draftShippingNote.trim() || null,
       shipped_at: draftStatus === 'shipped' ? new Date().toISOString() : viewOrder.shipped_at,
     });
@@ -210,7 +200,7 @@ export function AdminOrders() {
 
             <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-600">Order Subtotal</span><span className="font-semibold">Rs. {viewOrder.subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className="font-semibold text-green-600">{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()} (${viewOrder.payment_method === 'cash_on_delivery' ? (viewOrder.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className={`font-semibold ${viewOrder.shipping > 0 ? (viewOrder.payment_method === 'cash_on_delivery' && viewOrder.advance_waived ? 'text-amber-700' : 'text-green-600') : 'text-gray-600'}`}>{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()} (${viewOrder.payment_method === 'cash_on_delivery' ? (viewOrder.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span></div>
               {(() => {
                 const advanceDiscount = Math.max(0, viewOrder.subtotal + viewOrder.shipping - viewOrder.total);
                 return (
@@ -220,7 +210,7 @@ export function AdminOrders() {
                       <div className="flex justify-between text-green-600"><span>Full Advance Discount</span><span className="font-semibold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
                     )}
                     {viewOrder.payment_method === 'cash_on_delivery' && viewOrder.advance_waived ? (
-                      <div className="flex justify-between text-amber-700"><span>Advance</span><span className="font-semibold">Waived by Admin</span></div>
+                      <div className="flex justify-between text-amber-700"><span>Advance</span><span className="font-semibold">Waived by Admin (Rs. 0 Paid)</span></div>
                     ) : viewOrder.advance_amount > 0 ? (
                       <div className="flex justify-between text-green-600"><span>Advance Paid</span><span className="font-semibold">Rs. {viewOrder.advance_amount.toLocaleString()}</span></div>
                     ) : null}
