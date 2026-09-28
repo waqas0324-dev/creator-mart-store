@@ -15,6 +15,7 @@ export function Home() {
   const { categories, loading: categoriesLoading } = useCategories();
   const { settings: hero } = useSiteSettings();
   const design = hero.design_settings;
+  const featuredCategories = categories.filter(cat => !['vlogging-kit', 'blogging-kit'].includes(cat.slug)).slice(0, 6);
 
   useSEO({
     title: `ABR Gadget | ${BRAND_NAME} - Creator Gear & Gadgets in Pakistan`,
@@ -104,8 +105,8 @@ export function Home() {
               {[...Array(8)].map((_, i) => <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-24" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-6 gap-4">
-              {categories.map(cat => (
+            <div className="grid grid-cols-3 gap-4">
+              {featuredCategories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => navigate('shop', { categorySlug: cat.slug })}
@@ -119,7 +120,7 @@ export function Home() {
                       onError={(e) => onImageError(e, cat.name)}
                       loading="lazy"
                       decoding="async"
-                      className="category-orbit-image w-full h-full object-contain p-1.5"
+                      className="category-orbit-image w-[116%] h-[116%] object-contain rounded-full"
                     />
                   </div>
                   <div className="text-center">
