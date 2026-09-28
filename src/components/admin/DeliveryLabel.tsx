@@ -8,7 +8,6 @@ interface Props {
 
 export function DeliveryLabel({ order }: Props) {
   const { settings } = useSiteSettings();
-  const itemCount = order.order_items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
   const effectiveAdvance = order.advance_waived ? 0 : (order.advance_amount || 0);
   const remainingPrice = Math.max(0, order.total - effectiveAdvance);
   const advanceDiscount = Math.max(0, order.subtotal + order.shipping - order.total);
@@ -68,17 +67,9 @@ export function DeliveryLabel({ order }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 border-b border-slate-200">
-          <div className="px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Pieces / Weight</p>
-            <p className="mt-1 text-lg font-black text-slate-900">
-              {order.parcel_pieces || 1} PCS{order.parcel_weight_kg != null ? ` · ${order.parcel_weight_kg} kg` : ''}
-            </p>
-          </div>
-          <div className="border-l border-slate-200 bg-slate-50 px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Payment</p>
-            <p className="mt-1 text-lg font-black text-slate-900">{isCod ? 'COD' : 'FULL ADVANCE'}</p>
-          </div>
+        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+          <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Payment</p>
+          <p className="mt-1 text-lg font-black text-slate-900">{isCod ? 'COD' : 'FULL ADVANCE'}</p>
         </div>
 
         <div className="border-b border-slate-200">
