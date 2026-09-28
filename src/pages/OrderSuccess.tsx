@@ -10,6 +10,7 @@ export function OrderSuccess() {
   const { order, loading } = useOrder(nav.orderId || '');
   const { settings } = useSiteSettings();
   const advanceVerified = ['confirmed', 'processing', 'shipped', 'delivered'].includes(order?.status || '');
+  const effectiveAdvance = order?.advance_waived ? 0 : (order?.advance_amount || 0);
 
   return (
     <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4 py-10">
@@ -44,19 +45,28 @@ export function OrderSuccess() {
                   <span className={`font-bold ${key === 'Order ID' || key === 'Order Total' ? 'text-orange-500' : 'text-gray-900 capitalize'}`}>{val}</span>
                 </div>
               ))}
+              {(() => {
+                const discount = Math.max(0, order.subtotal + order.shipping - order.total);
+                return discount > 0 ? (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Full Advance Discount</span>
+                    <span className="font-bold">-Rs. {discount.toLocaleString()}</span>
+                  </div>
+                ) : null;
+              })()}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Status</span>
                 <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded">{STATUS_LABELS[order.status] || order.status}</span>
               </div>
-              {order.advance_amount > 0 && (
+              {order && (order.advance_amount > 0 || order.advance_waived) && (
                 <>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">{advanceVerified ? "Advance Paid" : "Advance Amount"}</span>
-                    <span className="font-bold text-green-600">Rs. {order.advance_amount.toLocaleString()}</span>
+                    <span className="font-bold text-green-600">{order.advance_waived ? 'Waived' : `Rs. ${order.advance_amount.toLocaleString()}`}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
                     <span className="font-bold text-gray-700">{advanceVerified ? "Remaining Price" : "Expected Remaining Price"}</span>
-                    <span className="font-black text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
+                    <span className="font-black text-orange-500">Rs. {Math.max(0, order.total - effectiveAdvance).toLocaleString()}</span>
                   </div>
                 </>
               )}
@@ -85,7 +95,7 @@ export function OrderSuccess() {
           </div>
         ) : null}
 
-        {order && order.advance_amount > 0 && (
+        {order && !order.advance_waived && order.advance_amount > 0 && (
           <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-left">
             <p className="text-sm font-black text-green-800">Next step: send your payment screenshot</p>
             <p className="text-xs text-green-700 mt-1">
