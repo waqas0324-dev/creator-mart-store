@@ -68,15 +68,11 @@ export function DeliveryLabel({ order }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 border-b border-slate-200">
+        <div className="grid grid-cols-2 border-b border-slate-200">
           <div className="px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Tracking ID</p>
-            <p className="mt-1 text-lg font-black tracking-wide text-slate-900">{order.tracking_number || 'Not assigned yet'}</p>
-          </div>
-          <div className="border-l border-slate-200 px-5 py-4">
             <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Pieces / Weight</p>
             <p className="mt-1 text-lg font-black text-slate-900">
-              {order.parcel_pieces || 1} PCS · {order.parcel_weight_kg != null ? `${order.parcel_weight_kg} kg` : 'Weight pending'}
+              {order.parcel_pieces || 1} PCS{order.parcel_weight_kg != null ? ` · ${order.parcel_weight_kg} kg` : ''}
             </p>
           </div>
           <div className="border-l border-slate-200 bg-slate-50 px-5 py-4">
@@ -111,7 +107,7 @@ export function DeliveryLabel({ order }: Props) {
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Payment Summary</p>
             <div className="mt-2 space-y-1 text-xs">
               <div className="flex justify-between"><span>Product subtotal</span><span className="font-bold">Rs. {order.subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span>Delivery</span><span className="font-bold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'}</span></div>
+              <div className="flex justify-between"><span>Delivery</span><span className="font-bold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${isCod ? (order.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span></div>
               {advanceDiscount > 0 && (
                 <div className="flex justify-between text-green-700"><span>Full advance discount</span><span className="font-bold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
               )}
