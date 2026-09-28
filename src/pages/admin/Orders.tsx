@@ -17,6 +17,8 @@ export function AdminOrders() {
   const [draftStatus, setDraftStatus] = useState('');
   const [draftNote, setDraftNote] = useState('');
   const [draftTracking, setDraftTracking] = useState('');
+  const [draftAdvanceWaived, setDraftAdvanceWaived] = useState(false);
+  const [draftWaiverNote, setDraftWaiverNote] = useState('');
   const [draftPieces, setDraftPieces] = useState('1');
   const [draftWeight, setDraftWeight] = useState('');
   const [draftShippingNote, setDraftShippingNote] = useState('');
@@ -37,6 +39,8 @@ export function AdminOrders() {
     setDraftStatus(order.status);
     setDraftNote(order.owner_note || '');
     setDraftTracking(order.tracking_number || '');
+    setDraftAdvanceWaived(Boolean(order.advance_waived));
+    setDraftWaiverNote(order.advance_waiver_note || '');
     setDraftPieces(String(order.parcel_pieces || 1));
     setDraftWeight(order.parcel_weight_kg != null ? String(order.parcel_weight_kg) : '');
     setDraftShippingNote(order.shipping_note || '');
@@ -51,6 +55,8 @@ export function AdminOrders() {
     }
     await updateShippingDetails(viewOrder.id, {
       tracking_number: draftTracking.trim() || null,
+      advance_waived: viewOrder.payment_method === 'cash_on_delivery' ? draftAdvanceWaived : false,
+      advance_waiver_note: viewOrder.payment_method === 'cash_on_delivery' && draftAdvanceWaived ? (draftWaiverNote.trim() || null) : null,
       parcel_pieces: Math.max(1, Number(draftPieces) || 1),
       parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
       shipping_note: draftShippingNote.trim() || null,
@@ -61,6 +67,8 @@ export function AdminOrders() {
       status: draftStatus,
       owner_note: draftNote,
       tracking_number: draftTracking.trim() || null,
+      advance_waived: viewOrder.payment_method === 'cash_on_delivery' ? draftAdvanceWaived : false,
+      advance_waiver_note: viewOrder.payment_method === 'cash_on_delivery' && draftAdvanceWaived ? (draftWaiverNote.trim() || null) : null,
       parcel_pieces: Math.max(1, Number(draftPieces) || 1),
       parcel_weight_kg: draftWeight.trim() ? Number(draftWeight) : null,
       shipping_note: draftShippingNote.trim() || null,
@@ -205,13 +213,23 @@ export function AdminOrders() {
             <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-600">Order Subtotal</span><span className="font-semibold">Rs. {viewOrder.subtotal.toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className="font-semibold text-green-600">{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()}` : 'Free'}</span></div>
-              <div className="flex justify-between font-black text-base"><span>Grand Total</span><span className="text-orange-500">Rs. {viewOrder.total.toLocaleString()}</span></div>
-              {viewOrder.advance_amount > 0 && (
-                <>
-                  <div className="flex justify-between text-green-600"><span>Advance Paid</span><span className="font-semibold">Rs. {viewOrder.advance_amount.toLocaleString()}</span></div>
-                  <div className="flex justify-between font-black text-base border-t border-gray-100 pt-2"><span>Remaining Price</span><span>Rs. {(viewOrder.total - viewOrder.advance_amount).toLocaleString()}</span></div>
-                </>
-              )}
+              {(() => {
+                const advanceDiscount = Math.max(0, viewOrder.subtotal + viewOrder.shipping - viewOrder.total);
+                return (
+                  <>
+                    <div className="flex justify-between font-black text-base"><span>Grand Total</span><span className="text-orange-500">Rs. {viewOrder.total.toLocaleString()}</span></div>
+                    {advanceDiscount > 0 && (
+                      <div className="flex justify-between text-green-600"><span>Full Advance Discount</span><span className="font-semibold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
+                    )}
+                    {viewOrder.payment_method === 'cash_on_delivery' && viewOrder.advance_waived ? (
+                      <div className="flex justify-between text-amber-700"><span>Advance</span><span className="font-semibold">Waived by Admin</span></div>
+                    ) : viewOrder.advance_amount > 0 ? (
+                      <div className="flex justify-between text-green-600"><span>Advance Paid</span><span className="font-semibold">Rs. {viewOrder.advance_amount.toLocaleString()}</span></div>
+                    ) : null}
+                    <div className="flex justify-between font-black text-base border-t border-gray-100 pt-2"><span>Remaining Price</span><span>Rs. {Math.max(0, viewOrder.total - (viewOrder.advance_waived ? 0 : viewOrder.advance_amount)).toLocaleString()}</span></div>
+                  </>
+                );
+              })()}
             </div>
 
             {viewOrder.notes && (
@@ -235,13 +253,36 @@ export function AdminOrders() {
             <div className="border-t border-gray-100 mt-4 pt-4">
               <div className="flex items-center gap-2 mb-3">
                 <Tag size={15} className="text-orange-500" />
-                <p className="text-xs font-bold uppercase text-gray-500">Tracking Information</p>
+                <p className="text-xs font-bold uppercase text-gray-500">Shipment Tracking</p>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Tracking ID <span className="text-gray-400">(optional)</span></label>
-                <input value={draftTracking} onChange={e => setDraftTracking(e.target.value)} placeholder="Enter tracking ID when available" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
-              </div>
+              <label className="block text-xs text-gray-500 mb-1">Tracking / AWB / CN <span className="text-gray-400">(optional)</span></label>
+              <input value={draftTracking} onChange={e => setDraftTracking(e.target.value)} placeholder="Enter only when courier gives you the tracking number" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
             </div>
+            {viewOrder.payment_method === 'cash_on_delivery' && (
+              <div className="border-t border-gray-100 mt-4 pt-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={draftAdvanceWaived}
+                    onChange={e => setDraftAdvanceWaived(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-orange-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-gray-800">Waive COD advance</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">Use only when the customer is personally approved for no advance. Delivery charges remain payable on delivery.</span>
+                  </span>
+                </label>
+                {draftAdvanceWaived && (
+                  <textarea
+                    value={draftWaiverNote}
+                    onChange={e => setDraftWaiverNote(e.target.value)}
+                    rows={2}
+                    placeholder="Reason / approval note (recommended)"
+                    className="mt-3 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400"
+                  />
+                )}
+              </div>
+            )}
 
             <div className="mt-4">
               <p className="text-xs font-bold uppercase text-gray-500 mb-2">Order Status</p>
