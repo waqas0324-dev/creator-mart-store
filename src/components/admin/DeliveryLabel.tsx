@@ -9,7 +9,9 @@ interface Props {
 export function DeliveryLabel({ order }: Props) {
   const { settings } = useSiteSettings();
   const itemCount = order.order_items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-  const remainingPrice = Math.max(0, order.total - (order.advance_amount || 0));
+  const effectiveAdvance = order.advance_waived ? 0 : (order.advance_amount || 0);
+  const remainingPrice = Math.max(0, order.total - effectiveAdvance);
+  const advanceDiscount = Math.max(0, order.subtotal + order.shipping - order.total);
   const isCod = order.payment_method === 'cash_on_delivery';
   const address = [order.customer_address, order.customer_area, order.customer_city].filter(Boolean).join(', ');
   const firstItem = order.order_items?.[0];
@@ -22,9 +24,9 @@ export function DeliveryLabel({ order }: Props) {
           <div className="flex items-center gap-4">
             <div className="flex h-16 min-w-[170px] items-center justify-center rounded-xl bg-white px-3 py-2">
               <img
-                src="/images/logo/abr-gadgets.png"
+                src="/images/logo/abr-gadgets-transparent.png"
                 alt={BRAND_NAME}
-                className="max-h-12 w-auto max-w-[160px] object-contain"
+                className="max-h-14 w-auto max-w-[190px] object-contain"
               />
             </div>
             <div>
@@ -80,7 +82,7 @@ export function DeliveryLabel({ order }: Props) {
             <p className="mt-2 text-xl font-black tracking-wide text-slate-900">
               {order.tracking_number || 'To be assigned'}
             </p>
-            <p className="mt-1 text-[10px] text-slate-400">Add the shipment tracking ID here when it becomes available.</p>
+            <p className="mt-1 text-[10px] text-slate-400">Only enter the courier AWB/CN here after it has been assigned.</p>
           </div>
           <div className="border-l border-slate-200 bg-orange-50 px-6 py-5">
             <p className="text-[10px] font-black uppercase tracking-widest text-orange-600">
@@ -91,7 +93,7 @@ export function DeliveryLabel({ order }: Props) {
             </p>
             {isCod && order.advance_amount > 0 && (
               <p className="mt-1 text-xs font-semibold text-green-700">
-                Advance received: Rs. {order.advance_amount.toLocaleString()}
+                {order.advance_waived ? 'No advance — approved by admin' : `Advance received: Rs. ${order.advance_amount.toLocaleString()}`}
               </p>
             )}
           </div>
@@ -115,8 +117,15 @@ export function DeliveryLabel({ order }: Props) {
             </div>
             <div>
               <p className="text-[9px] uppercase text-slate-400">Advance Paid</p>
-              <p className="font-black text-green-700">Rs. {(order.advance_amount || 0).toLocaleString()}</p>
+              <p className="font-black text-green-700">{order.advance_waived ? "Waived" : `Rs. ${(order.advance_amount || 0).toLocaleString()}`}</p>
             </div>
+            {advanceDiscount > 0 && (
+              <div>
+                <p className="text-[9px] uppercase text-slate-400">Advance Discount</p>
+                <p className="font-black text-green-700">-Rs. {advanceDiscount.toLocaleString()}</p>
+              </div>
+            )}
+
           </div>
         </div>
 
