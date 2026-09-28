@@ -32,6 +32,8 @@ export function useOrders() {
     id: string,
     details: {
       tracking_number: string | null;
+      advance_waived?: boolean;
+      advance_waiver_note?: string | null;
       parcel_pieces: number;
       parcel_weight_kg: number | null;
       shipping_note: string | null;
@@ -40,6 +42,8 @@ export function useOrders() {
   ) => {
     const payload = {
       tracking_number: details.tracking_number,
+      ...(details.advance_waived !== undefined ? { advance_waived: details.advance_waived } : {}),
+      ...(details.advance_waiver_note !== undefined ? { advance_waiver_note: details.advance_waiver_note } : {}),
       parcel_pieces: details.parcel_pieces,
       parcel_weight_kg: details.parcel_weight_kg,
       shipping_note: details.shipping_note,
