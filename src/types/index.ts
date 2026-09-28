@@ -171,6 +171,7 @@ export interface PendingOrder {
 export type Page =
   | 'home'
   | 'shop'
+  | 'categories'
   | 'product'
   | 'cart'
   | 'wishlist'
