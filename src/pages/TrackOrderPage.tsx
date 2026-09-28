@@ -181,7 +181,7 @@ export function TrackOrderPage() {
             {/* Tracking Timeline */}
             {!isCancelled ? (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h2 className="font-black text-gray-900 mb-1">Order Tracking Timeline</h2>
+                <h2 className="font-black text-gray-900 mb-1">Order Status Timeline</h2>
                 <p className="text-gray-400 text-xs mb-6">Follow your order journey from placement to delivery</p>
 
                 <div className="relative">
@@ -274,7 +274,7 @@ export function TrackOrderPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Delivery Charges</span>
-                    <span className="font-semibold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'}</span>
+                    <span className="font-semibold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${order.payment_method === 'cash_on_delivery' ? (order.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span>
                   </div>
                   <div className="flex justify-between font-black text-base pt-1 border-t border-gray-100">
                     <span>Order Total</span>
