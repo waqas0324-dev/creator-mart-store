@@ -71,7 +71,7 @@ export function TrackOrderPage() {
             Track Your Order
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Enter your order tracking ID below to see the current status of your order.
+            Enter your Order ID below to see the current status of your order.
           </p>
         </div>
       </div>
@@ -80,7 +80,7 @@ export function TrackOrderPage() {
         {/* Search Card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
           <form onSubmit={handleSearch}>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Order Tracking ID</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Order ID</label>
             <div className="flex gap-3">
               <div className="flex-1 relative">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -88,7 +88,7 @@ export function TrackOrderPage() {
                   type="text"
                   value={orderNumber}
                   onChange={e => setOrderNumber(e.target.value)}
-                  placeholder="e.g. #ABR123456"
+                  placeholder="e.g. ABR-20260928-0009"
                   className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all"
                 />
               </div>
@@ -116,7 +116,7 @@ export function TrackOrderPage() {
             </div>
             <p className="text-red-600 font-bold text-sm">{error}</p>
             <p className="text-gray-500 text-xs mt-2">
-              Your order tracking ID was sent to your phone via SMS and also shown on the order confirmation page.
+              Your Order ID is shown on the order confirmation page. Use that same ID here.
             </p>
           </div>
         )}
@@ -318,9 +318,9 @@ export function TrackOrderPage() {
             <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Truck size={32} className="text-orange-400" />
             </div>
-            <h3 className="font-black text-gray-900 text-lg mb-1">Track Your Shipment</h3>
+            <h3 className="font-black text-gray-900 text-lg mb-1">Track Your Order</h3>
             <p className="text-gray-400 text-sm max-w-md mx-auto">
-              Enter your order tracking ID above to see real-time updates on your order status — from processing to shipping to delivery.
+              Enter your Order ID above to see updates on your order status — from confirmation to processing to delivery.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               {statusSteps.map((step, _i) => {
