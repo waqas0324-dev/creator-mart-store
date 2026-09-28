@@ -123,12 +123,7 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
                     </>
                   )}
                 </div>
-                {order.tracking_number && (
-                  <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between gap-3 text-xs items-center">
-                    <span className="text-gray-500">Tracking ID</span>
-                    <span className="font-bold text-gray-800">{order.tracking_number}</span>
-                  </div>
-                )}
+
               </div>
 
               {order.payment_proof_status === 'pending' && (
