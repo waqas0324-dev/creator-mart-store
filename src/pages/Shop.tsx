@@ -30,14 +30,15 @@ export function Shop() {
 
   const fetchProducts = async () => {
     setLoading(true);
+    const activeCategory = nav.categorySlug || selectedCategory;
     let query = supabase
       .from('products')
       .select('*, categories(id, name, slug)')
       .lte('price', maxPrice);
 
-    if (selectedCategory) {
+    if (activeCategory) {
       const { data: cat } = await supabase
-        .from('categories').select('id').eq('slug', selectedCategory).single();
+        .from('categories').select('id').eq('slug', activeCategory).single();
       if (cat) query = query.eq('category_id', cat.id);
     }
 
@@ -56,7 +57,7 @@ export function Shop() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, [selectedCategory, searchQuery, maxPrice, sortBy]);
+  useEffect(() => { fetchProducts(); }, [nav.categorySlug, selectedCategory, searchQuery, maxPrice, sortBy]);
 
   const activeCategoryName = categories.find(c => c.slug === selectedCategory)?.name;
   useSEO({
