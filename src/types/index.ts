@@ -48,6 +48,8 @@ export interface Order {
   status: string;
   coupon_code: string | null;
   advance_amount: number;
+  advance_waived: boolean;
+  advance_waiver_note: string | null;
   notes: string | null;
   owner_note: string | null;
   courier_name: string | null;
