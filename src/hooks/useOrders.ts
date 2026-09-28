@@ -33,18 +33,14 @@ export function useOrders() {
     details: {
       advance_waived?: boolean;
       advance_waiver_note?: string | null;
-      parcel_pieces: number;
-      parcel_weight_kg: number | null;
-      shipping_note: string | null;
+      shipping_note?: string | null;
       status?: string;
     }
   ) => {
     const payload = {
       ...(details.advance_waived !== undefined ? { advance_waived: details.advance_waived } : {}),
       ...(details.advance_waiver_note !== undefined ? { advance_waiver_note: details.advance_waiver_note } : {}),
-      parcel_pieces: details.parcel_pieces,
-      parcel_weight_kg: details.parcel_weight_kg,
-      shipping_note: details.shipping_note,
+      ...(details.shipping_note !== undefined ? { shipping_note: details.shipping_note } : {}),
       ...(details.status === 'shipped' ? { shipped_at: new Date().toISOString() } : {}),
     };
     await supabase.from('orders').update(payload).eq('id', id);
