@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Trash2, Eye, X, Tag, MessageCircle } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useOrders } from '../../hooks/useOrders';
@@ -318,7 +319,7 @@ export function AdminOrders() {
       )}
 
       {/* Print-only layout (hidden on screen, shown via @media print) */}
-      {viewOrder && printMode === 'label' && <DeliveryLabel order={viewOrder} />}
+      {viewOrder && printMode === 'label' && createPortal(<DeliveryLabel order={viewOrder} />, document.body)}
     </AdminLayout>
   );
 }
