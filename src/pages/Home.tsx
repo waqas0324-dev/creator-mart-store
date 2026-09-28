@@ -96,7 +96,7 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-black text-gray-900 uppercase tracking-wide">Featured Categories</h2>
-            <button onClick={() => navigate('shop')} className="flex items-center gap-1 text-orange-500 hover:text-orange-600 text-sm font-semibold transition-colors">
+            <button onClick={() => navigate('categories')} className="flex items-center gap-1 text-orange-500 hover:text-orange-600 text-sm font-semibold transition-colors">
               View All <ChevronRight size={16} />
             </button>
           </div>
