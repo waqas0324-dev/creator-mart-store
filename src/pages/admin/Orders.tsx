@@ -16,7 +16,6 @@ export function AdminOrders() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [draftStatus, setDraftStatus] = useState('');
   const [draftNote, setDraftNote] = useState('');
-  const [draftTracking, setDraftTracking] = useState('');
   const [draftAdvanceWaived, setDraftAdvanceWaived] = useState(false);
   const [draftWaiverNote, setDraftWaiverNote] = useState('');
   const [draftPieces, setDraftPieces] = useState('1');
@@ -38,7 +37,6 @@ export function AdminOrders() {
     setViewOrder(order);
     setDraftStatus(order.status);
     setDraftNote(order.owner_note || '');
-    setDraftTracking(order.tracking_number || '');
     setDraftAdvanceWaived(Boolean(order.advance_waived));
     setDraftWaiverNote(order.advance_waiver_note || '');
     setDraftPieces(String(order.parcel_pieces || 1));
@@ -54,7 +52,7 @@ export function AdminOrders() {
       await updateOwnerNote(viewOrder.id, draftNote);
     }
     await updateShippingDetails(viewOrder.id, {
-      tracking_number: draftTracking.trim() || null,
+      tracking_number: null,
       advance_waived: viewOrder.payment_method === 'cash_on_delivery' ? draftAdvanceWaived : false,
       advance_waiver_note: viewOrder.payment_method === 'cash_on_delivery' && draftAdvanceWaived ? (draftWaiverNote.trim() || null) : null,
       parcel_pieces: Math.max(1, Number(draftPieces) || 1),
@@ -66,7 +64,7 @@ export function AdminOrders() {
       ...viewOrder,
       status: draftStatus,
       owner_note: draftNote,
-      tracking_number: draftTracking.trim() || null,
+      tracking_number: null,
       advance_waived: viewOrder.payment_method === 'cash_on_delivery' ? draftAdvanceWaived : false,
       advance_waiver_note: viewOrder.payment_method === 'cash_on_delivery' && draftAdvanceWaived ? (draftWaiverNote.trim() || null) : null,
       parcel_pieces: Math.max(1, Number(draftPieces) || 1),
@@ -139,7 +137,7 @@ export function AdminOrders() {
                       <td className="px-4 py-3 text-gray-600">{order.customer_phone}</td>
                       <td className="px-4 py-3">
                         <p className="font-bold">Rs. {order.total.toLocaleString()}</p>
-                        {order.advance_amount > 0 && <p className="text-[11px] text-green-600 font-semibold">Remaining: Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</p>}
+                        {(order.advance_amount > 0 || order.advance_waived) && <p className="text-[11px] text-green-600 font-semibold">Remaining: Rs. {Math.max(0, order.total - (order.advance_waived ? 0 : order.advance_amount)).toLocaleString()}</p>}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600 capitalize">{order.payment_method.replace(/_/g, ' ')}</td>
                       <td className="px-4 py-3">
@@ -212,7 +210,7 @@ export function AdminOrders() {
 
             <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-600">Order Subtotal</span><span className="font-semibold">Rs. {viewOrder.subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className="font-semibold text-green-600">{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()}` : 'Free'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className="font-semibold text-green-600">{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()} (${viewOrder.payment_method === 'cash_on_delivery' ? (viewOrder.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span></div>
               {(() => {
                 const advanceDiscount = Math.max(0, viewOrder.subtotal + viewOrder.shipping - viewOrder.total);
                 return (
@@ -250,14 +248,6 @@ export function AdminOrders() {
               />
             </div>
 
-            <div className="border-t border-gray-100 mt-4 pt-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Tag size={15} className="text-orange-500" />
-                <p className="text-xs font-bold uppercase text-gray-500">Shipment Tracking</p>
-              </div>
-              <label className="block text-xs text-gray-500 mb-1">Tracking ID <span className="text-gray-400">(optional)</span></label>
-              <input value={draftTracking} onChange={e => setDraftTracking(e.target.value)} placeholder="Enter tracking ID when it is available" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
-            </div>
             {viewOrder.payment_method === 'cash_on_delivery' && (
               <div className="border-t border-gray-100 mt-4 pt-4">
                 <label className="flex items-start gap-3 cursor-pointer">
