@@ -6,7 +6,7 @@ interface NavigationContextValue { nav: NavState; navigate: (page: Page, params?
 const NavigationContext = createContext<NavigationContextValue | null>(null);
 
 const PAGE_PATHS: Record<Page, string> = {
-  home: '/', shop: '/shop', product: '/product', cart: '/cart', wishlist: '/wishlist', checkout: '/checkout', payment: '/payment',
+  home: '/', shop: '/shop', categories: '/categories', product: '/product', cart: '/cart', wishlist: '/wishlist', checkout: '/checkout', payment: '/payment',
   'order-success': '/order-success', 'track-order': '/track-order', 'new-arrivals': '/new-arrivals', 'best-sellers': '/best-sellers',
   contact: '/contact', about: '/about', 'return-policy': '/return-policy', 'privacy-policy': '/privacy-policy',
   admin: '/admin', 'admin-login': '/admin-login', 'admin-products': '/admin-products', 'admin-categories': '/admin-categories',
