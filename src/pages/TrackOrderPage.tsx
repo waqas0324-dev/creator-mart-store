@@ -52,6 +52,7 @@ export function TrackOrderPage() {
   const currentStepIndex = order ? statusSteps.findIndex(s => s.key === order.status) : -1;
   const isCancelled = order?.status === 'cancelled';
   const advanceVerified = ['confirmed', 'processing', 'shipped', 'delivered'].includes(order?.status || '');
+  const effectiveAdvance = order?.advance_waived ? 0 : (order?.advance_amount || 0);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -159,7 +160,7 @@ export function TrackOrderPage() {
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">{advanceVerified ? "Advance Paid" : "Advance Amount"}</p>
-                    <p className="font-bold text-green-600">Rs. {order.advance_amount.toLocaleString()}</p>
+                    <p className="font-bold text-green-600">Rs. {effectiveAdvance.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">Remaining Price</p>
