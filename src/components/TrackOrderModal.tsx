@@ -104,7 +104,7 @@ export function TrackOrderModal({ isOpen, onClose }: TrackOrderModalProps) {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Delivery Charges</span>
-                    <span className="font-semibold text-gray-800">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'}</span>
+                    <span className="font-semibold text-gray-800">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${order.payment_method === 'cash_on_delivery' ? (order.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span>
                   </div>
                   <div className="flex justify-between border-t border-gray-200 pt-2">
                     <span className="font-bold text-gray-700">Order Total</span>
