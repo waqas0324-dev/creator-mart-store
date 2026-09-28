@@ -30,45 +30,57 @@
   animation-play-state: paused;
 }
 
-/* Print layouts (Packing Slip / Delivery Label) — only #print-area is visible when printing */
+/* Print layouts (Delivery Label) — render the label as a standalone document. */
 @media print {
-  html, body, #root {
-    height: auto !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  body * { visibility: hidden !important; }
-  #print-area, #print-area * { visibility: visible !important; }
-  #root {
-    height: 0 !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-  }
-  #print-area {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
+  @page { size: A4 portrait; margin: 8mm; }
+
+  html, body {
     width: 100% !important;
     height: auto !important;
-    max-height: 100vh !important;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body > * {
+    visibility: hidden !important;
+  }
+
+  body > #print-area,
+  body > #print-area * {
+    visibility: visible !important;
+  }
+
+  #root {
+    display: none !important;
+  }
+
+  body > #print-area {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
+    page-break-after: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
   #print-area > div {
     width: 100% !important;
     max-width: 820px !important;
     margin: 0 auto !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
+    page-break-after: avoid !important;
   }
-  @page { size: A4 portrait; margin: 8mm; }
 }
-
 
 /* Global editable design animations */
 @keyframes design-fade-up {
