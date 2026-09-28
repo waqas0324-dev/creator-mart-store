@@ -128,7 +128,18 @@ export function AdminOrders() {
                       <td className="px-4 py-3 text-gray-600">{order.customer_phone}</td>
                       <td className="px-4 py-3">
                         <p className="font-bold">Rs. {order.total.toLocaleString()}</p>
-                        {(order.advance_amount > 0 || order.advance_waived) && <p className="text-[11px] text-green-600 font-semibold">Remaining: Rs. {Math.max(0, order.total - (order.advance_waived ? 0 : order.advance_amount)).toLocaleString()}</p>}
+                        {(order.advance_amount > 0 || order.advance_waived) && (
+                          <>
+                            <p className="text-[11px] text-green-600 font-semibold">
+                              Remaining: Rs. {Math.max(0, order.total - (order.advance_waived ? 0 : order.advance_amount)).toLocaleString()}
+                            </p>
+                            {order.advance_waived && order.shipping > 0 && (
+                              <p className="text-[10px] text-amber-700 font-semibold">
+                                Delivery: Rs. {order.shipping.toLocaleString()} Unpaid
+                              </p>
+                            )}
+                          </>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-600 capitalize">{order.payment_method.replace(/_/g, ' ')}</td>
                       <td className="px-4 py-3">
