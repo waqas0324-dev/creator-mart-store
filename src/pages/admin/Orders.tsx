@@ -255,8 +255,8 @@ export function AdminOrders() {
                 <Tag size={15} className="text-orange-500" />
                 <p className="text-xs font-bold uppercase text-gray-500">Shipment Tracking</p>
               </div>
-              <label className="block text-xs text-gray-500 mb-1">Tracking / AWB / CN <span className="text-gray-400">(optional)</span></label>
-              <input value={draftTracking} onChange={e => setDraftTracking(e.target.value)} placeholder="Enter only when courier gives you the tracking number" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
+              <label className="block text-xs text-gray-500 mb-1">Tracking ID <span className="text-gray-400">(optional)</span></label>
+              <input value={draftTracking} onChange={e => setDraftTracking(e.target.value)} placeholder="Enter tracking ID when it is available" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400" />
             </div>
             {viewOrder.payment_method === 'cash_on_delivery' && (
               <div className="border-t border-gray-100 mt-4 pt-4">
