@@ -199,25 +199,39 @@
 }
 
 
-/* Professional customer action buttons — subtle hover zoom + press feedback */
+/* Professional customer action buttons — also driven by Developer Studio. */
 .btn-interactive {
   transition-property: transform, box-shadow, background-color, color, border-color;
-  transition-duration: 200ms;
+  transition-duration: var(--site-btn-transition, 240ms);
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
+  will-change: transform, box-shadow, background-color, color;
 }
 .btn-interactive:hover {
-  transform: translateY(-1px) scale(1.025);
+  background-color: var(--site-btn-hover-bg, inherit);
+  color: var(--site-btn-hover-text, inherit);
+  box-shadow: var(--site-btn-hover-shadow, none);
+}
+html[data-design-animation="lift"] .btn-interactive:hover {
+  transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px));
+}
+html[data-design-animation="scale"] .btn-interactive:hover {
+  transform: scale(var(--site-btn-hover-scale, 1.02));
+}
+html[data-design-animation="lift-scale"] .btn-interactive:hover {
+  transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px)) scale(var(--site-btn-hover-scale, 1.02));
+}
+html[data-design-animation="none"] .btn-interactive:hover,
+html[data-design-animation="none"] .btn-interactive:active {
+  transform: none;
 }
 .btn-interactive:active {
-  transform: scale(0.98);
+  transform: scale(var(--site-btn-click-scale, 0.98));
 }
 @media (prefers-reduced-motion: reduce) {
   .btn-interactive { transition: none; }
   .btn-interactive:hover,
-  .btn-interactive:active { transform: none; }
+  .btn-interactive:active { transform: none !important; box-shadow: none !important; }
 }
-
 
 /* Global storefront button interactions — driven by Developer Studio settings. */
 button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]) {
