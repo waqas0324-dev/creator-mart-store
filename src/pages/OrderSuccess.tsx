@@ -9,8 +9,8 @@ export function OrderSuccess() {
   const { nav, navigate } = useNavigation();
   const { order, loading } = useOrder(nav.orderId || '');
   const { settings } = useSiteSettings();
-  const advanceVerified = ['confirmed', 'processing', 'shipped', 'delivered'].includes(order?.status || '');
-  const effectiveAdvance = order?.advance_waived ? 0 : (order?.advance_amount || 0);
+  const advanceVerified = order?.advance_payment_status === 'received';
+  const effectiveAdvance = advanceVerified ? (order?.advance_amount || 0) : 0;
 
   return (
     <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4 py-10">
@@ -34,8 +34,9 @@ export function OrderSuccess() {
               {[
                 ['Order ID', order.order_number],
                 ['Customer', order.customer_name],
-                ['Phone', order.customer_phone],
-                ['Product Subtotal', `Rs. ${order.subtotal.toLocaleString()}`],                ['Delivery Charges', order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${order.payment_method === 'cash_on_delivery' ? (order.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'],
+                ['Mobile', order.customer_phone],
+                ['WhatsApp', order.customer_whatsapp || order.customer_phone],
+                ['Product Subtotal', `Rs. ${order.subtotal.toLocaleString()}`],                ['Delivery Charges', order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${order.payment_method === 'cash_on_delivery' ? (order.advance_payment_status === 'received' ? 'Paid' : 'Pending') : 'Paid'})` : 'Free'],
                 ['Order Total', `Rs. ${order.total.toLocaleString()}`],
                 ['Payment', order.payment_method.replace(/_/g, ' ')],
               ].map(([key, val]) => (
@@ -61,7 +62,7 @@ export function OrderSuccess() {
                 <>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">{advanceVerified ? "Advance Paid" : "Advance Amount"}</span>
-                    <span className="font-bold text-green-600">{order.advance_waived ? 'Waived' : `Rs. ${order.advance_amount.toLocaleString()}`}</span>
+                    <span className={`font-bold ${advanceVerified ? 'text-green-600' : 'text-amber-600'}`}>{advanceVerified ? `Rs. ${order.advance_amount.toLocaleString()} — Received` : `Rs. ${order.advance_amount.toLocaleString()} — Pending`}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
                     <span className="font-bold text-gray-700">{advanceVerified ? "Remaining Price" : "Expected Remaining Price"}</span>
@@ -84,7 +85,7 @@ export function OrderSuccess() {
           </div>
         ) : null}
 
-        {order && !order.advance_waived && order.advance_amount > 0 && (
+        {order && order.advance_amount > 0 && !advanceVerified && (
           <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-left">
             <p className="text-sm font-black text-green-800">Next step: send your payment screenshot</p>
             <p className="text-xs text-green-700 mt-1">
