@@ -118,6 +118,29 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
+    const root = document.documentElement;
+    const buttons = settings.design_settings.buttons;
+    const animations = settings.design_settings.animations;
+    root.style.setProperty('--site-btn-bg', buttons.bgColor);
+    root.style.setProperty('--site-btn-hover-bg', buttons.hoverBgColor);
+    root.style.setProperty('--site-btn-text', buttons.textColor);
+    root.style.setProperty('--site-btn-hover-text', buttons.hoverTextColor);
+    root.style.setProperty('--site-btn-hover-scale', String(buttons.hoverScale));
+    root.style.setProperty('--site-btn-hover-lift', String(animations.hoverLift));
+    root.style.setProperty('--site-btn-click-scale', String(animations.clickScale));
+    root.style.setProperty('--site-btn-transition', String(buttons.transitionMs) + 'ms');
+    root.style.setProperty('--site-btn-hover-shadow',
+      buttons.hoverShadow === 'medium'
+        ? '0 10px 24px rgba(0,0,0,0.18)'
+        : buttons.hoverShadow === 'soft'
+          ? '0 6px 16px rgba(0,0,0,0.12)'
+          : 'none'
+    );
+    root.dataset.designAnimation = animations.enabled ? animations.style : 'none';
+  }, [settings.design_settings]);
+
+
+  useEffect(() => {
     fetchSettings();
 
     const isDevEditor = window.location.pathname.startsWith('/ws-studio');
