@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink,
-  Image, Menu, X, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2
+  Image, Menu, X, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2, Megaphone, BadgeCheck
 } from 'lucide-react';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
@@ -20,12 +20,14 @@ const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] =
   { value: 'xl', label: 'Extra Large' },
 ];
 
-type Section = 'logo' | 'header' | 'hero' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
+type Section = 'logo' | 'header' | 'hero' | 'announcement' | 'trust' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
 
 const SECTIONS: { id: Section; label: string; icon: typeof Image; description: string }[] = [
   { id: 'logo', label: 'Logo', icon: Image, description: 'Logo image and sizing' },
   { id: 'header', label: 'Header / Navbar', icon: Menu, description: 'Height, colors, typography and borders' },
   { id: 'hero', label: 'Hero', icon: Layout, description: 'Hero banner, border and presentation' },
+  { id: 'announcement', label: 'Announcement Bar', icon: Megaphone, description: 'Top scrolling strip and messages' },
+  { id: 'trust', label: 'Trust Badges', icon: BadgeCheck, description: 'Four badges below the hero' },
   { id: 'buttons', label: 'Buttons & Animations', icon: Sparkles, description: 'Button colors, radius and interactions' },
   { id: 'checkout', label: 'Checkout / Payment', icon: CreditCard, description: 'COD, advance payment and payment details' },
   { id: 'footer', label: 'Footer', icon: PanelBottom, description: 'All footer content and links' },
@@ -73,9 +75,10 @@ export function DevPanel() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<Partial<SiteSettings>>({});
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
-    if (Object.keys(pendingRef.current).length === 0) setForm(settings);
+    if (!dirtyRef.current && Object.keys(pendingRef.current).length === 0) setForm(settings);
   }, [settings]);
 
   useEffect(() => () => {
@@ -83,6 +86,7 @@ export function DevPanel() {
   }, []);
 
   const queueAutoSave = (payload: Partial<SiteSettings>) => {
+    dirtyRef.current = true;
     pendingRef.current = { ...pendingRef.current, ...payload };
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus('saving');
@@ -96,9 +100,10 @@ export function DevPanel() {
         setSaveStatus('error');
         return;
       }
+      dirtyRef.current = false;
       setSaveStatus('saved');
       showToast('Changes saved successfully', 'success');
-    }, 700);
+    }, 1000);
   };
 
   const update = <K extends keyof SiteSettings>(field: K, value: SiteSettings[K]) => {
@@ -112,14 +117,12 @@ export function DevPanel() {
   };
 
   const updateDesign = <K extends keyof DesignSettings>(section: K, patch: Partial<DesignSettings[K]>) => {
-    setForm(prev => {
-      const nextDesign = {
-        ...prev.design_settings,
-        [section]: { ...prev.design_settings[section], ...patch },
-      };
-      queueAutoSave({ design_settings: nextDesign });
-      return { ...prev, design_settings: nextDesign };
-    });
+    const nextDesign = {
+      ...form.design_settings,
+      [section]: { ...form.design_settings[section], ...patch },
+    };
+    setForm(prev => ({ ...prev, design_settings: nextDesign }));
+    queueAutoSave({ design_settings: nextDesign });
   };
   
   const resetDesignSection = (section: 'header' | 'hero') => {
@@ -167,7 +170,10 @@ export function DevPanel() {
     const error = await updateSettings(changes);
     setSaving(false);
     setSaveStatus(error ? 'error' : 'saved');
-    if (!error) showToast('Changes saved successfully', 'success');
+    if (!error) {
+      dirtyRef.current = false;
+      showToast('Changes saved successfully', 'success');
+    }
   };
 
   const handleLogout = async () => {
@@ -267,6 +273,50 @@ export function DevPanel() {
         <div><label className={LABEL_CLASS}>Trust checklist</label><div className="grid sm:grid-cols-3 gap-3"><input value={form.trust_item_1} onChange={e => update('trust_item_1', e.target.value)} className={INPUT_CLASS} /><input value={form.trust_item_2} onChange={e => update('trust_item_2', e.target.value)} className={INPUT_CLASS} /><input value={form.trust_item_3} onChange={e => update('trust_item_3', e.target.value)} className={INPUT_CLASS} /></div></div>
       </div>;
     }
+
+    if (activeSection === 'announcement') return (
+      <div className={cardCls}>
+        <SectionTitle title="Announcement Bar" text="Edit the scrolling strip that runs across the store. Changes save automatically." />
+        <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3 cursor-pointer">
+          <span><span className="block text-sm font-bold text-white">Show announcement bar</span><span className="block text-xs text-gray-500 mt-1">Turn the top scrolling strip on or off.</span></span>
+          <input type="checkbox" checked={form.announcement_enabled} onChange={e => update('announcement_enabled', e.target.checked)} className="w-5 h-5 accent-purple-600" />
+        </label>
+        <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3 cursor-pointer">
+          <span><span className="block text-sm font-bold text-white">Show WhatsApp message</span><span className="block text-xs text-gray-500 mt-1">Uses the WhatsApp number from Contact settings.</span></span>
+          <input type="checkbox" checked={form.announcement_whatsapp_enabled} onChange={e => update('announcement_whatsapp_enabled', e.target.checked)} className="w-5 h-5 accent-purple-600" />
+        </label>
+        <TextArea label="Scrolling messages — separate each message with |" value={form.announcement_messages} onChange={v => update('announcement_messages', v)} rows={4} />
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+          <p className="text-xs font-bold text-gray-400 mb-2">Preview</p>
+          <div className="bg-black text-white rounded-lg overflow-hidden">
+            <div className="py-2 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">
+              {form.announcement_whatsapp_enabled && <span className="px-4">WhatsApp: {form.whatsapp_number} — Send Your Order Details Directly</span>}
+              {form.announcement_messages.split('|').map(s => s.trim()).filter(Boolean).map((msg, i) => <span key={i} className="px-4">{msg}</span>)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    if (activeSection === 'trust') return (
+      <div className={cardCls}>
+        <SectionTitle title="Trust Badges" text="Edit the four icon badges displayed directly below the hero banner." />
+        {([
+          ['trust_badge_1_title', 'trust_badge_1_subtitle', 'Fast Delivery'],
+          ['trust_badge_2_title', 'trust_badge_2_subtitle', 'Cash on Delivery'],
+          ['trust_badge_3_title', 'trust_badge_3_subtitle', '7 Days Return'],
+          ['trust_badge_4_title', 'trust_badge_4_subtitle', '100% Original'],
+        ] as const).map(([titleKey, subtitleKey, label], i) => (
+          <div key={titleKey} className="border border-gray-800 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-black uppercase tracking-widest text-purple-400">Badge {i + 1} — {label}</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="Heading" value={form[titleKey]} onChange={v => update(titleKey, v)} />
+              <Field label="Subtitle" value={form[subtitleKey]} onChange={v => update(subtitleKey, v)} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
 
     if (activeSection === 'buttons') {
       const b = form.design_settings.buttons, a = form.design_settings.animations;
