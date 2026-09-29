@@ -120,13 +120,6 @@ export function ProductCard({ product }: ProductCardProps) {
               borderRadius: design.buttons.radius,
               fontWeight: design.buttons.fontWeight,
               transitionDuration: design.buttons.transitionMs + 'ms',
-              '--design-hover-scale': design.buttons.hoverScale,
-              '--design-click-scale': design.animations.clickScale,
-              '--design-hover-lift': design.animations.hoverLift,
-              '--design-transition': design.buttons.transitionMs + 'ms',
-              '--design-hover-bg': design.buttons.hoverBgColor,
-              '--design-hover-text': design.buttons.hoverTextColor,
-              '--design-hover-shadow': design.buttons.hoverShadow,
             } as React.CSSProperties}
           >
             <ShoppingCart size={13} className="flex-shrink-0" />
