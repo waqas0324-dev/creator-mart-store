@@ -69,8 +69,8 @@ const DEFAULTS: SiteSettings = {
   design_settings: {
     header: { height: 72, bgColor: '#111827', textColor: '#e5e7eb', hoverColor: '#fb923c', borderColor: '#1f2937', borderWidth: 1, fontSize: 14, fontWeight: 700 },
     hero: { borderWidth: 0, borderColor: '#e5e7eb', radius: 0, shadow: 'none' },
-    buttons: { radius: 8, fontWeight: 700, hoverScale: 1.03, transitionMs: 200, bgColor: '#f97316', hoverBgColor: '#ea580c', textColor: '#ffffff' },
-    animations: { enabled: true, hoverLift: 2, clickScale: 0.98 },
+    buttons: { radius: 8, fontWeight: 700, hoverScale: 1.02, transitionMs: 240, bgColor: '#f97316', hoverBgColor: '#ea580c', hoverTextColor: '#ffffff', textColor: '#ffffff', hoverShadow: 'soft' },
+    animations: { enabled: true, style: 'lift-scale', hoverLift: 2, clickScale: 0.98 },
   },
 };
 
@@ -93,7 +93,23 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       .eq('id', 1)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setSettings(data as SiteSettings);
+        if (data) {
+          const incoming = data as Partial<SiteSettings>;
+          const incomingDesign = incoming.design_settings as Partial<SiteSettings['design_settings']> | undefined;
+          const design = incomingDesign || {};
+          setSettings({
+            ...DEFAULTS,
+            ...incoming,
+            design_settings: {
+              ...DEFAULTS.design_settings,
+              ...design,
+              header: { ...DEFAULTS.design_settings.header, ...(design.header || {}) },
+              hero: { ...DEFAULTS.design_settings.hero, ...(design.hero || {}) },
+              buttons: { ...DEFAULTS.design_settings.buttons, ...(design.buttons || {}) },
+              animations: { ...DEFAULTS.design_settings.animations, ...(design.animations || {}) },
+            },
+          } as SiteSettings);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
