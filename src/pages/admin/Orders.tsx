@@ -134,16 +134,14 @@ export function AdminOrders() {
                       <td className="px-4 py-3 text-gray-600">{order.customer_phone}</td>
                       <td className="px-4 py-3">
                         <p className="font-bold">Rs. {order.total.toLocaleString()}</p>
-                        {(order.advance_amount > 0 || order.advance_waived) && (
+                        {order.advance_amount > 0 && (
                           <>
-                            <p className="text-[11px] text-green-600 font-semibold">
-                              Remaining: Rs. {Math.max(0, order.total - (order.advance_waived ? 0 : order.advance_amount)).toLocaleString()}
+                            <p className={`text-[11px] font-semibold ${order.advance_payment_status === 'received' ? 'text-green-600' : 'text-amber-700'}`}>
+                              Advance: Rs. {order.advance_amount.toLocaleString()} — {order.advance_payment_status === 'received' ? 'Received' : 'Pending'}
                             </p>
-                            {order.advance_waived && order.shipping > 0 && (
-                              <p className="text-[10px] text-amber-700 font-semibold">
-                                Delivery: Rs. {order.shipping.toLocaleString()} Unpaid
-                              </p>
-                            )}
+                            <p className="text-[11px] text-gray-600 font-semibold">
+                              Remaining: Rs. {Math.max(0, order.total - (order.advance_payment_status === 'received' ? order.advance_amount : 0)).toLocaleString()}
+                            </p>
                           </>
                         )}
                       </td>
@@ -218,6 +216,10 @@ export function AdminOrders() {
             )}
 
             <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
+              {(() => {
+                const effectiveAdvance = viewOrder.advance_payment_status === 'received' ? (viewOrder.advance_amount || 0) : 0;
+                return null;
+              })()}
               <div className="flex justify-between"><span className="text-gray-600">Order Subtotal</span><span className="font-semibold">Rs. {viewOrder.subtotal.toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className={`font-semibold ${viewOrder.shipping > 0 ? (viewOrder.payment_method === 'cash_on_delivery' && viewOrder.advance_payment_status !== 'received' ? 'text-amber-700' : 'text-green-600') : 'text-gray-600'}`}>{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()} (${viewOrder.payment_method === 'cash_on_delivery' ? (viewOrder.advance_payment_status === 'received' ? 'Paid' : 'Pending') : 'Paid'})` : 'Free'}</span></div>
               {(() => {
@@ -234,7 +236,7 @@ export function AdminOrders() {
                         <span className="font-semibold">Rs. {viewOrder.advance_amount.toLocaleString()} — {viewOrder.advance_payment_status === 'received' ? 'Received' : 'Pending'}</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-black text-base border-t border-gray-100 pt-2"><span>Remaining Price</span><span>Rs. {Math.max(0, viewOrder.total - effectiveAdvance).toLocaleString()}</span></div>
+                    <div className="flex justify-between font-black text-base border-t border-gray-100 pt-2"><span>Remaining Price</span><span>Rs. {Math.max(0, viewOrder.total - (viewOrder.advance_payment_status === 'received' ? viewOrder.advance_amount : 0)).toLocaleString()}</span></div>
                   </>
                 );
               })()}
