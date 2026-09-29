@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, ArrowLeft, Loader2, Upload, Star } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, Upload, Star, Link as LinkIcon, Plus } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
@@ -22,6 +22,7 @@ export function AdminProductForm() {
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(isEdit);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -233,6 +234,47 @@ export function AdminProductForm() {
                 <><Upload size={24} className="text-gray-400" /><span className="text-sm font-semibold text-gray-600">Click to upload product images</span><span className="text-xs text-gray-400">Select multiple JPG, PNG or WebP images — up to 5MB each</span></>
               )}
             </button>
+
+            <div className="flex items-center gap-3">
+              <div className="h-px bg-gray-200 flex-1" />
+              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">or add by URL</span>
+              <div className="h-px bg-gray-200 flex-1" />
+            </div>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <LinkIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="url"
+                  value={imageUrlInput}
+                  onChange={e => setImageUrlInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const url = imageUrlInput.trim();
+                      if (url) {
+                        setGalleryImages(prev => Array.from(new Set([...prev, url])));
+                        setImageUrlInput('');
+                      }
+                    }
+                  }}
+                  placeholder="https://example.com/product-image.jpg"
+                  className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = imageUrlInput.trim();
+                  if (!url) return;
+                  setGalleryImages(prev => Array.from(new Set([...prev, url])));
+                  setImageUrlInput('');
+                }}
+                className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors"
+              >
+                <Plus size={16} /> Add URL
+              </button>
+            </div>
 
             {galleryImages.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
