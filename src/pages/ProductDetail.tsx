@@ -204,13 +204,14 @@ export function ProductDetail() {
                 </div>
                 <button
                   onClick={handleAddToCart}
-                  className={`flex-1 flex items-center justify-center gap-2 font-bold py-2.5 rounded-lg transition-all btn-interactive ${added ? 'bg-green-500 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}
+                  data-design-button="true"
+            className={`flex-1 flex items-center justify-center gap-2 font-bold py-2.5 rounded-lg transition-all btn-interactive ${added ? 'bg-green-500 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}
                 >
                   {added ? <Check size={18} /> : <ShoppingCart size={18} />}
                   {added ? 'Added!' : 'Add to Cart'}
                 </button>
               </div>
-              <button onClick={() => { addItem(product, quantity); navigate('checkout'); }} className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-2.5 rounded-lg transition-colors mb-3 btn-interactive">
+              <button onClick={() => { addItem(product, quantity); navigate('checkout'); }} data-design-button="true" className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-2.5 rounded-lg transition-colors mb-3 btn-interactive">
                 Buy Now
               </button>
               <a
