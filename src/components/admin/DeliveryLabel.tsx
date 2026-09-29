@@ -8,7 +8,7 @@ interface Props {
 
 export function DeliveryLabel({ order }: Props) {
   const { settings } = useSiteSettings();
-  const effectiveAdvance = order.advance_waived ? 0 : (order.advance_amount || 0);
+  const effectiveAdvance = order.advance_payment_status === 'received' ? (order.advance_amount || 0) : 0;
   const remainingPrice = Math.max(0, order.total - effectiveAdvance);
   const advanceDiscount = Math.max(0, order.subtotal + order.shipping - order.total);
   const isCod = order.payment_method === 'cash_on_delivery';
@@ -38,7 +38,7 @@ export function DeliveryLabel({ order }: Props) {
               {isCod ? `Rs. ${remainingPrice.toLocaleString()}` : 'PAID'}
             </p>
             <p className="text-[9px] font-semibold text-orange-100">
-              {isCod ? (order.advance_waived ? 'Collect on delivery · No advance' : 'Collect on delivery') : 'Full advance received'}
+              {isCod ? 'Collect on delivery' : (order.advance_payment_status === 'received' ? 'Full advance received' : 'Advance pending verification')}
             </p>
           </div>
         </div>
@@ -51,6 +51,8 @@ export function DeliveryLabel({ order }: Props) {
               <span className="font-black text-slate-900">{order.customer_name || '—'}</span>
               <span className="font-bold text-slate-400">Phone</span>
               <span className="font-bold text-slate-800">{order.customer_phone || '—'}</span>
+              <span className="font-bold text-slate-400">WhatsApp</span>
+              <span className="font-bold text-slate-800">{order.customer_whatsapp || order.customer_phone || '—'}</span>
               <span className="font-bold text-slate-400">Email</span>
               <span className="font-semibold break-all text-slate-700">{order.customer_email || '—'}</span>
               <span className="font-bold text-slate-400">Address</span>
@@ -98,15 +100,15 @@ export function DeliveryLabel({ order }: Props) {
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Payment Summary</p>
             <div className="mt-2 space-y-1 text-xs">
               <div className="flex justify-between"><span>Product subtotal</span><span className="font-bold">Rs. {order.subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span>Delivery</span><span className="font-bold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${isCod ? (order.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span></div>
+              <div className="flex justify-between"><span>Delivery</span><span className="font-bold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${isCod ? (order.advance_payment_status === 'received' ? 'Paid' : 'Pending') : 'Paid'})` : 'Free'}</span></div>
               {advanceDiscount > 0 && (
                 <div className="flex justify-between text-green-700"><span>Full advance discount</span><span className="font-bold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
               )}
               <div className="flex justify-between border-t border-slate-200 pt-1 font-black"><span>Order total</span><span>Rs. {order.total.toLocaleString()}</span></div>
               {isCod && (
                 <div className="flex justify-between text-green-700">
-                  <span>{order.advance_waived ? 'Advance' : 'Advance received'}</span>
-                  <span className="font-bold">{order.advance_waived ? 'Waived' : `Rs. ${(order.advance_amount || 0).toLocaleString()}`}</span>
+                  <span>Advance payment</span>
+                  <span className="font-bold">`Rs. ${(order.advance_amount || 0).toLocaleString()} (${order.advance_payment_status === 'received' ? 'Received' : 'Pending'})`</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-orange-200 pt-1 text-sm font-black text-orange-600">
@@ -117,11 +119,11 @@ export function DeliveryLabel({ order }: Props) {
           </div>
         </div>
 
-        {(order.shipping_note || order.notes || order.advance_waiver_note) && (
+        {(order.shipping_note || order.notes) && (
           <div className="border-b border-slate-200 bg-amber-50 px-5 py-3">
             <p className="text-[9px] font-black uppercase tracking-widest text-amber-700">Dispatch Note</p>
             <p className="mt-1 text-xs font-bold text-slate-800">
-              {order.shipping_note || order.notes || order.advance_waiver_note}
+              {order.shipping_note || order.notes}
             </p>
           </div>
         )}
