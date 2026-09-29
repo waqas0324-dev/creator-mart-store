@@ -22,7 +22,7 @@ export function Cart() {
           <ShoppingBag size={64} className="mx-auto text-gray-200 mb-4" />
           <h2 className="text-2xl font-black text-gray-700 mb-2">Your cart is empty</h2>
           <p className="text-gray-400 mb-6">Add some products to get started!</p>
-          <button onClick={() => navigate('shop')} className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-lg transition-colors btn-interactive">
+          <button onClick={() => navigate('shop')} data-design-button="true" className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-lg transition-colors btn-interactive">
             Continue Shopping
           </button>
         </div>
@@ -100,7 +100,7 @@ export function Cart() {
                   <span className="text-orange-500">Rs. {total.toLocaleString()}</span>
                 </div>
               </div>
-              <button onClick={() => navigate('checkout')} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 btn-interactive">
+              <button onClick={() => navigate('checkout')} data-design-button="true" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 btn-interactive">
                 <ShoppingBag size={18} />
                 Proceed to Checkout
               </button>
