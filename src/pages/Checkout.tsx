@@ -42,7 +42,6 @@ export function Checkout() {
 
   const updatePhone = (value: string) => setForm(prev => ({ ...prev, phone: value, whatsapp: prev.whatsapp === prev.phone ? value : prev.whatsapp }));
 
-  const usePhoneAsWhatsApp = () => setForm(prev => ({ ...prev, whatsapp: prev.phone }));
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
