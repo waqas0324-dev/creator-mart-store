@@ -32,10 +32,10 @@ export function DeliveryLabel({ order }: Props) {
           </div>
           <div className="min-w-[210px] bg-orange-500 px-5 py-4 text-right">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-100">
-              {isCod ? 'Cash on Delivery' : 'Paid in Full'}
+              {isCod ? 'Cash on Delivery' : (order.advance_payment_status === 'received' ? 'Paid in Full' : 'Payment Pending')}
             </p>
             <p className="mt-1 text-2xl font-black">
-              {isCod ? `Rs. ${remainingPrice.toLocaleString()}` : 'PAID'}
+              {isCod ? `Rs. ${remainingPrice.toLocaleString()}` : (order.advance_payment_status === 'received' ? 'PAID' : `Rs. ${order.total.toLocaleString()}`)}
             </p>
             <p className="text-[9px] font-semibold text-orange-100">
               {isCod ? 'Collect on delivery' : (order.advance_payment_status === 'received' ? 'Full advance received' : 'Advance pending verification')}
