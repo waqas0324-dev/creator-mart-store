@@ -125,6 +125,16 @@ export interface SiteSettings {
   whatsapp_number: string;
   store_address: string;
   announcement_messages: string;
+  announcement_enabled: boolean;
+  announcement_whatsapp_enabled: boolean;
+  trust_badge_1_title: string;
+  trust_badge_1_subtitle: string;
+  trust_badge_2_title: string;
+  trust_badge_2_subtitle: string;
+  trust_badge_3_title: string;
+  trust_badge_3_subtitle: string;
+  trust_badge_4_title: string;
+  trust_badge_4_subtitle: string;
   facebook_url: string | null;
   instagram_url: string | null;
   tiktok_url: string | null;
