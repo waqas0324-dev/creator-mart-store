@@ -58,7 +58,7 @@ export function OrderSuccess() {
                 <span className="text-gray-500">Status</span>
                 <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded">{STATUS_LABELS[order.status] || order.status}</span>
               </div>
-              {order && (order.advance_amount > 0 || order.advance_waived) && (
+              {order && order.advance_amount > 0 && (
                 <>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">{advanceVerified ? "Advance Paid" : "Advance Amount"}</span>
