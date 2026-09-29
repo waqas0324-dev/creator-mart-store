@@ -3,7 +3,7 @@ export const ORDER_STATUSES = ['new', 'confirmed', 'processing', 'shipped', 'del
 export type OrderStatus = typeof ORDER_STATUSES[number];
 
 export const STATUS_LABELS: Record<string, string> = {
-  new: 'New',
+  new: 'Pending',
   confirmed: 'Confirmed',
   processing: 'Processing',
   shipped: 'Shipped',
@@ -12,7 +12,7 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 export const STATUS_COLORS: Record<string, string> = {
-  new: 'bg-gray-100 text-gray-700',
+  new: 'bg-amber-100 text-amber-700',
   confirmed: 'bg-blue-100 text-blue-700',
   processing: 'bg-yellow-100 text-yellow-700',
   shipped: 'bg-purple-100 text-purple-700',
