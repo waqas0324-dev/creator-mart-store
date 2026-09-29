@@ -73,10 +73,10 @@ export function Home() {
       <section className="bg-white border-b border-gray-100 shadow-sm overflow-visible">
         <div className="max-w-7xl mx-auto px-4 py-5 grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4 items-center">
           {[
-            { Icon: Truck, title: 'FAST DELIVERY', sub: 'All Over Pakistan' },
-            { Icon: Banknote, title: 'CASH ON DELIVERY', sub: 'Pay When You Receive' },
-            { Icon: RotateCcw, title: '7 DAYS RETURN', sub: 'No Questions Asked' },
-            { Icon: ShieldCheck, title: '100% ORIGINAL', sub: 'Original Products' },
+            { Icon: Truck, title: hero.trust_badge_1_title, sub: hero.trust_badge_1_subtitle },
+            { Icon: Banknote, title: hero.trust_badge_2_title, sub: hero.trust_badge_2_subtitle },
+            { Icon: RotateCcw, title: hero.trust_badge_3_title, sub: hero.trust_badge_3_subtitle },
+            { Icon: ShieldCheck, title: hero.trust_badge_4_title, sub: hero.trust_badge_4_subtitle },
           ].map(({ Icon, title, sub }) => (
             <div key={title} className="min-w-0 flex items-center gap-3 py-1">
               <div className="w-11 h-11 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0">
