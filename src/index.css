@@ -207,9 +207,11 @@
   will-change: transform, box-shadow, background-color, color;
 }
 .btn-interactive:hover {
+  box-shadow: var(--site-btn-hover-shadow, none);
+}
+.btn-interactive[data-design-button="true"]:hover {
   background-color: var(--site-btn-hover-bg, inherit);
   color: var(--site-btn-hover-text, inherit);
-  box-shadow: var(--site-btn-hover-shadow, none);
 }
 html[data-design-animation="lift"] .btn-interactive:hover {
   transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px));
