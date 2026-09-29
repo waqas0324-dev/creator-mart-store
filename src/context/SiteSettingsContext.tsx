@@ -123,11 +123,22 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       if (!window.location.pathname.startsWith('/ws-studio') && document.visibilityState === 'visible') fetchSettings();
     };
     window.addEventListener('focus', refreshWhenVisible);
+    window.addEventListener('pageshow', refreshWhenVisible);
     document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    // Realtime is the primary path. This lightweight polling fallback keeps
+    // customer tabs in sync even when Supabase Realtime is delayed/disabled.
+    const pollId = window.setInterval(() => {
+      if (!window.location.pathname.startsWith('/ws-studio') && document.visibilityState === 'visible') {
+        fetchSettings();
+      }
+    }, 8000);
 
     return () => {
       window.removeEventListener('focus', refreshWhenVisible);
+      window.removeEventListener('pageshow', refreshWhenVisible);
       document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.clearInterval(pollId);
       channelRef.current = null;
       supabase.removeChannel(channel);
     };
