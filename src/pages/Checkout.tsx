@@ -16,7 +16,7 @@ export function Checkout() {
   const { settings } = useSiteSettings();
 
   const [form, setForm] = useState({
-    fullName: '', phone: '', email: '', address: '',
+    fullName: '', phone: '', whatsapp: '', email: '', address: '',
     city: '', area: '', paymentMethod: 'cash_on_delivery' as PayMethod,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -39,6 +39,10 @@ export function Checkout() {
   const amountToPayNow = isFullAdvance ? total : advanceRequired;
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const updatePhone = (value: string) => setForm(prev => ({ ...prev, phone: value, whatsapp: prev.whatsapp === prev.phone ? value : prev.whatsapp }));
+
+  const usePhoneAsWhatsApp = () => setForm(prev => ({ ...prev, whatsapp: prev.phone }));
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -228,7 +232,7 @@ export function Checkout() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
-                    <input type="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => update('phone', e.target.value)} className={inputCls('phone')} />
+                    <input type="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => updatePhone(e.target.value)} className={inputCls('phone')} />
                     {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                   </div>
                   <div>
