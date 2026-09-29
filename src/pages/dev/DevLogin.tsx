@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ShieldCheck, Eye, EyeOff, Loader2, LogIn } from 'lucide-react';
+import { ShieldCheck, Eye, EyeOff, Loader2, LogIn, KeyRound } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
 import { devLogin } from '../../lib/devAuth';
+import { supabase } from '../../lib/supabase';
 
 export function DevLogin() {
   const { navigate } = useNavigation();
@@ -10,6 +11,35 @@ export function DevLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('cm_dev_email_hint') || '' : '';
+
+  const maskEmail = (value: string) => {
+    const [name, domain] = value.split('@');
+    if (!name || !domain) return value;
+    return `${name.slice(0, 1)}***@${domain}`;
+  };
+
+  const handleForgotPassword = async () => {
+    const targetEmail = email.trim() || savedEmail;
+    setError('');
+    setResetMessage('');
+    if (!targetEmail) {
+      setError('Enter your Developer Studio email first, then tap Forgot password.');
+      return;
+    }
+    setResetting(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+      redirectTo: window.location.origin + '/ws-studio',
+    });
+    setResetting(false);
+    if (resetError) {
+      setError(resetError.message);
+      return;
+    }
+    setResetMessage('Password reset email sent. Check your inbox and spam folder.');
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +52,7 @@ export function DevLogin() {
         setError(err);
         return;
       }
+      localStorage.setItem('cm_dev_email_hint', email.trim().toLowerCase());
       setLoading(false);
       navigate('dev-panel');
     } catch {
@@ -50,6 +81,16 @@ export function DevLogin() {
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">
               {error}
+            </div>
+          )}
+          {resetMessage && (
+            <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl text-sm mb-4">
+              {resetMessage}
+            </div>
+          )}
+          {savedEmail && (
+            <div className="bg-purple-500/10 border border-purple-500/20 text-purple-300 px-3 py-2 rounded-lg text-xs mb-4">
+              Email hint: <span className="font-bold">{maskEmail(savedEmail)}</span>
             </div>
           )}
 
@@ -81,11 +122,20 @@ export function DevLogin() {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || resetting}
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={16} />}
               {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={loading || resetting}
+              className="w-full text-xs font-semibold text-gray-400 hover:text-purple-300 py-2 flex items-center justify-center gap-2 transition-colors"
+            >
+              <KeyRound size={14} />
+              {resetting ? 'Sending reset email...' : 'Forgot password?'}
             </button>
           </form>
         </div>
