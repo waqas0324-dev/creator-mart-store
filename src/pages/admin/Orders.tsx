@@ -189,7 +189,7 @@ export function AdminOrders() {
               {[
                 ['Customer Name', viewOrder.customer_name],
                 ['Mobile', viewOrder.customer_phone],
-                ['WhatsApp', viewOrder.customer_whatsapp || viewOrder.customer_phone],
+                ['WhatsApp', viewOrder.customer_whatsapp || '—'],
                 ['Email', viewOrder.customer_email || '—'],
                 ['City', viewOrder.customer_city],
                 ['Delivery Address', `${viewOrder.customer_address}${viewOrder.customer_area ? ', ' + viewOrder.customer_area : ''}`],
@@ -291,7 +291,7 @@ export function AdminOrders() {
 
             <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-gray-100">
               <a
-                href={`https://wa.me/${toWhatsAppNumber(viewOrder.customer_whatsapp || viewOrder.customer_phone)}?text=${encodeURIComponent(`Hi ${viewOrder.customer_name}, this is regarding your order ${viewOrder.order_number}.`)}`}
+                href={`https://wa.me/${toWhatsAppNumber(viewOrder.customer_whatsapp)}?text=${encodeURIComponent(`Hi ${viewOrder.customer_name}, this is regarding your order ${viewOrder.order_number}.`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors"
