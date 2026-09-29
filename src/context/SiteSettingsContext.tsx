@@ -39,6 +39,7 @@ const DEFAULTS: SiteSettings = {
   why_advance_note: 'Most COD refusals happen after the parcel has already been shipped, causing an unrecoverable loss. A small advance for delivery charges simply confirms your order is genuine — the rest of your product price is paid on delivery. Serious buyers have no issue with it, and if we ever cancel your order, your advance is refunded in full.',
   whatsapp_number: '03484800547',
   store_address: 'Kanganpur, Tehsil Chunian, District Kasur',
+  store_location_url: 'https://www.google.com/maps/search/?api=1&query=Kanganpur+Tehsil+Chunian+District+Kasur',
   announcement_messages: 'Free Delivery All Over Pakistan|New Products Added Every Week|Follow Us for Daily Deals & Discounts',
   announcement_enabled: true,
   announcement_whatsapp_enabled: true,
