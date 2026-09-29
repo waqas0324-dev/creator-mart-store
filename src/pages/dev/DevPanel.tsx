@@ -31,7 +31,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
   { id: 'buttons', label: 'Buttons & Animations', icon: Sparkles, description: 'Button colors, radius and interactions' },
   { id: 'checkout', label: 'Checkout / Payment', icon: CreditCard, description: 'COD, advance payment and payment details' },
   { id: 'footer', label: 'Footer', icon: PanelBottom, description: 'All footer content and links' },
-  { id: 'contact', label: 'Contact / Announcement', icon: MapPin, description: 'WhatsApp, address and top bar' },
+  { id: 'contact', label: 'Contact', icon: MapPin, description: 'WhatsApp number and store address' },
   { id: 'social', label: 'Social Media', icon: Share2, description: 'Social profile links' },
   { id: 'security', label: 'Account & Security', icon: ShieldCheck, description: 'Private account, password and security activity' },
 ];
@@ -395,10 +395,9 @@ export function DevPanel() {
 
     if (activeSection === 'contact') return (
       <div className={cardCls}>
-        <SectionTitle title="Contact / Announcement" text="Store contact details and the top scrolling announcement bar." />
+        <SectionTitle title="Contact" text="Store contact details used across the website." />
         <Field label="Official WhatsApp number" value={form.whatsapp_number} onChange={v => update('whatsapp_number', v)} />
         <Field label="Store address" value={form.store_address} onChange={v => update('store_address', v)} />
-        <TextArea label="Top scrolling messages — separate with |" value={form.announcement_messages} onChange={v => update('announcement_messages', v)} rows={3} />
       </div>
     );
 
