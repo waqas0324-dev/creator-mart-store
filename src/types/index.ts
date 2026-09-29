@@ -125,6 +125,7 @@ export interface SiteSettings {
   cod_language: 'ur' | 'en';
   whatsapp_number: string;
   store_address: string;
+  store_location_url: string | null;
   announcement_messages: string;
   announcement_enabled: boolean;
   announcement_whatsapp_enabled: boolean;
