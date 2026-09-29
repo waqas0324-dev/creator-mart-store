@@ -164,7 +164,7 @@ export function TrackOrderPage() {
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">{advanceVerified ? "Advance Paid" : "Advance Amount"}</p>
-                    <p className={`font-bold ${advanceVerified ? 'text-green-600' : 'text-amber-600'}`}>{`Rs. ${(order.advance_amount || 0).toLocaleString()} — ${advanceVerified ? 'Received' : 'Pending'`}</p>
+                    <p className={`font-bold ${advanceVerified ? 'text-green-600' : 'text-amber-600'}`}>Rs. {(order.advance_amount || 0).toLocaleString()} — {advanceVerified ? 'Received' : 'Pending'}</p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">Remaining Price</p>
@@ -286,9 +286,9 @@ export function TrackOrderPage() {
                   </div>
                   {order.advance_amount > 0 && (
                     <>
-                      <div className="flex justify-between text-green-600">
-                        <span>Advance Paid</span>
-                        <span className="font-semibold">Rs. {order.advance_amount.toLocaleString()}</span>
+                      <div className={`flex justify-between ${advanceVerified ? 'text-green-600' : 'text-amber-600'}`}>
+                        <span>Advance Payment</span>
+                        <span className="font-semibold">Rs. {order.advance_amount.toLocaleString()} — {advanceVerified ? 'Received' : 'Pending'}</span>
                       </div>
                       <div className="flex justify-between font-black border-t border-gray-100 pt-2">
                         <span>{advanceVerified ? "Remaining Price" : "Expected Remaining Price"}</span>
