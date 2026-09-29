@@ -398,16 +398,18 @@ export function DevPanel() {
         <SectionTitle title="Contact" text="Store contact details used across the website." />
         <Field label="Official WhatsApp number" value={form.whatsapp_number} onChange={v => update('whatsapp_number', v)} />
         <Field label="Store address" value={form.store_address} onChange={v => update('store_address', v)} />
+        <Field label="Google Maps location link" value={form.store_location_url || ''} onChange={v => update('store_location_url', v || null)} placeholder="https://www.google.com/maps/search/?api=1&query=..." />
+        <p className="text-xs text-gray-500">Clicking the address on the store will open this Google Maps location.</p>
       </div>
     );
 
     return (
       <div className={cardCls}>
-        <SectionTitle title="Social Media" text="Leave a URL blank to hide that social icon from the footer." />
+        <SectionTitle title="Social Media" text="WhatsApp, Facebook, Instagram and TikTok are editable here. Changes save automatically." />
+        <Field label="WhatsApp Number" value={form.whatsapp_number} onChange={v => update('whatsapp_number', v)} placeholder="03xx xxxxxxx" />
         <Field label="Facebook URL" value={form.facebook_url || ''} onChange={v => update('facebook_url', v || null)} placeholder="https://facebook.com/yourpage" />
         <Field label="Instagram URL" value={form.instagram_url || ''} onChange={v => update('instagram_url', v || null)} placeholder="https://instagram.com/yourpage" />
         <Field label="TikTok URL" value={form.tiktok_url || ''} onChange={v => update('tiktok_url', v || null)} placeholder="https://tiktok.com/@yourpage" />
-        <Field label="YouTube URL" value={form.youtube_url || ''} onChange={v => update('youtube_url', v || null)} placeholder="https://youtube.com/@yourpage" />
       </div>
     );
   };
