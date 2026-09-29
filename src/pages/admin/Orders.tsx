@@ -10,15 +10,14 @@ import { DeliveryLabel } from '../../components/admin/DeliveryLabel';
 import type { Order } from '../../types';
 
 export function AdminOrders() {
-  const { orders, loading, updateOrderStatus, updateOwnerNote, updateShippingDetails, deleteOrder } = useOrders();
+  const { orders, loading, updateOwnerNote, updateShippingDetails, updateAdvancePaymentVerification, deleteOrder } = useOrders();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [draftStatus, setDraftStatus] = useState('');
   const [draftNote, setDraftNote] = useState('');
-  const [draftAdvanceWaived, setDraftAdvanceWaived] = useState(false);
-  const [draftWaiverNote, setDraftWaiverNote] = useState('');
+  const [draftAdvancePaymentStatus, setDraftAdvancePaymentStatus] = useState<'pending' | 'received'>('pending');
   const [draftShippingNote, setDraftShippingNote] = useState('');
   const [savingStatus, setSavingStatus] = useState(false);
   const [printMode, setPrintMode] = useState<'label' | null>(null);
@@ -36,32 +35,39 @@ export function AdminOrders() {
     setViewOrder(order);
     setDraftStatus(order.status);
     setDraftNote(order.owner_note || '');
-    setDraftAdvanceWaived(Boolean(order.advance_waived));
-    setDraftWaiverNote(order.advance_waiver_note || '');
+    setDraftAdvancePaymentStatus(order.advance_payment_status || 'pending');
     setDraftShippingNote(order.shipping_note || '');
   };
 
   const handleSaveStatus = async () => {
     if (!viewOrder) return;
     setSavingStatus(true);
-    await updateOrderStatus(viewOrder.id, draftStatus);
+    const requiresAdvanceVerification = viewOrder.advance_amount > 0;
+    const paymentReceived = !requiresAdvanceVerification || draftAdvancePaymentStatus === 'received';
+    const nextStatus = requiresAdvanceVerification
+      ? (paymentReceived ? (draftStatus === 'new' ? 'confirmed' : draftStatus) : 'new')
+      : draftStatus;
+
+    const paymentError = await updateAdvancePaymentVerification(viewOrder.id, paymentReceived, nextStatus);
+    if (paymentError) {
+      setSavingStatus(false);
+      return;
+    }
     if (draftNote !== (viewOrder.owner_note || '')) {
       await updateOwnerNote(viewOrder.id, draftNote);
     }
     await updateShippingDetails(viewOrder.id, {
-      advance_waived: viewOrder.payment_method === 'cash_on_delivery' ? draftAdvanceWaived : false,
-      advance_waiver_note: viewOrder.payment_method === 'cash_on_delivery' && draftAdvanceWaived ? (draftWaiverNote.trim() || null) : null,
       shipping_note: draftShippingNote.trim() || null,
-      status: draftStatus,
+      status: nextStatus,
     });
     setViewOrder({
       ...viewOrder,
-      status: draftStatus,
+      status: nextStatus,
       owner_note: draftNote,
-      advance_waived: viewOrder.payment_method === 'cash_on_delivery' ? draftAdvanceWaived : false,
-      advance_waiver_note: viewOrder.payment_method === 'cash_on_delivery' && draftAdvanceWaived ? (draftWaiverNote.trim() || null) : null,
+      advance_payment_status: paymentReceived ? 'received' : 'pending',
+      advance_payment_received_at: paymentReceived ? (viewOrder.advance_payment_received_at || new Date().toISOString()) : null,
       shipping_note: draftShippingNote.trim() || null,
-      shipped_at: draftStatus === 'shipped' ? new Date().toISOString() : viewOrder.shipped_at,
+      shipped_at: nextStatus === 'shipped' ? new Date().toISOString() : viewOrder.shipped_at,
     });
     setSavingStatus(false);
   };
@@ -182,7 +188,8 @@ export function AdminOrders() {
             <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
               {[
                 ['Customer Name', viewOrder.customer_name],
-                ['Phone', viewOrder.customer_phone],
+                ['Mobile', viewOrder.customer_phone],
+                ['WhatsApp', viewOrder.customer_whatsapp || viewOrder.customer_phone],
                 ['Email', viewOrder.customer_email || '—'],
                 ['City', viewOrder.customer_city],
                 ['Delivery Address', `${viewOrder.customer_address}${viewOrder.customer_area ? ', ' + viewOrder.customer_area : ''}`],
@@ -212,7 +219,7 @@ export function AdminOrders() {
 
             <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-600">Order Subtotal</span><span className="font-semibold">Rs. {viewOrder.subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className={`font-semibold ${viewOrder.shipping > 0 ? (viewOrder.payment_method === 'cash_on_delivery' && viewOrder.advance_waived ? 'text-amber-700' : 'text-green-600') : 'text-gray-600'}`}>{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()} (${viewOrder.payment_method === 'cash_on_delivery' ? (viewOrder.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className={`font-semibold ${viewOrder.shipping > 0 ? (viewOrder.payment_method === 'cash_on_delivery' && viewOrder.advance_payment_status !== 'received' ? 'text-amber-700' : 'text-green-600') : 'text-gray-600'}`}>{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()} (${viewOrder.payment_method === 'cash_on_delivery' ? (viewOrder.advance_payment_status === 'received' ? 'Paid' : 'Pending') : 'Paid'})` : 'Free'}</span></div>
               {(() => {
                 const advanceDiscount = Math.max(0, viewOrder.subtotal + viewOrder.shipping - viewOrder.total);
                 return (
@@ -221,12 +228,13 @@ export function AdminOrders() {
                     {advanceDiscount > 0 && (
                       <div className="flex justify-between text-green-600"><span>Full Advance Discount</span><span className="font-semibold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
                     )}
-                    {viewOrder.payment_method === 'cash_on_delivery' && viewOrder.advance_waived ? (
-                      <div className="flex justify-between text-amber-700"><span>Advance</span><span className="font-semibold">Waived by Admin (Rs. 0 Paid)</span></div>
-                    ) : viewOrder.advance_amount > 0 ? (
-                      <div className="flex justify-between text-green-600"><span>Advance Paid</span><span className="font-semibold">Rs. {viewOrder.advance_amount.toLocaleString()}</span></div>
-                    ) : null}
-                    <div className="flex justify-between font-black text-base border-t border-gray-100 pt-2"><span>Remaining Price</span><span>Rs. {Math.max(0, viewOrder.total - (viewOrder.advance_waived ? 0 : viewOrder.advance_amount)).toLocaleString()}</span></div>
+                    {viewOrder.advance_amount > 0 && (
+                      <div className={`flex justify-between ${viewOrder.advance_payment_status === 'received' ? 'text-green-600' : 'text-amber-700'}`}>
+                        <span>Advance Payment</span>
+                        <span className="font-semibold">Rs. {viewOrder.advance_amount.toLocaleString()} — {viewOrder.advance_payment_status === 'received' ? 'Received' : 'Pending'}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-black text-base border-t border-gray-100 pt-2"><span>Remaining Price</span><span>Rs. {Math.max(0, viewOrder.total - effectiveAdvance).toLocaleString()}</span></div>
                   </>
                 );
               })()}
@@ -250,29 +258,14 @@ export function AdminOrders() {
               />
             </div>
 
-            {viewOrder.payment_method === 'cash_on_delivery' && (
+            {viewOrder.advance_amount > 0 && (
               <div className="border-t border-gray-100 mt-4 pt-4">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={draftAdvanceWaived}
-                    onChange={e => setDraftAdvanceWaived(e.target.checked)}
-                    className="mt-1 h-4 w-4 accent-orange-500"
-                  />
-                  <span>
-                    <span className="block text-sm font-bold text-gray-800">Waive COD advance</span>
-                    <span className="block text-xs text-gray-500 mt-0.5">Use only when the customer is personally approved for no advance. Delivery charges remain payable on delivery.</span>
-                  </span>
-                </label>
-                {draftAdvanceWaived && (
-                  <textarea
-                    value={draftWaiverNote}
-                    onChange={e => setDraftWaiverNote(e.target.value)}
-                    rows={2}
-                    placeholder="Reason / approval note (recommended)"
-                    className="mt-3 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-400"
-                  />
-                )}
+                <p className="text-xs font-bold uppercase text-gray-500 mb-2">Advance Payment Verification</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => setDraftAdvancePaymentStatus('pending')} className={`rounded-lg border-2 px-3 py-2 text-sm font-bold ${draftAdvancePaymentStatus === 'pending' ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-gray-200 text-gray-500'}`}>Not Received / Pending</button>
+                  <button type="button" onClick={() => setDraftAdvancePaymentStatus('received')} className={`rounded-lg border-2 px-3 py-2 text-sm font-bold ${draftAdvancePaymentStatus === 'received' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500'}`}>Payment Received</button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Verify the WhatsApp screenshot first. Payment Received will automatically confirm a new order; Pending keeps the order unconfirmed.</p>
               </div>
             )}
 
@@ -298,7 +291,7 @@ export function AdminOrders() {
 
             <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-gray-100">
               <a
-                href={`https://wa.me/${toWhatsAppNumber(viewOrder.customer_phone)}?text=${encodeURIComponent(`Hi ${viewOrder.customer_name}, this is regarding your order ${viewOrder.order_number}.`)}`}
+                href={`https://wa.me/${toWhatsAppNumber(viewOrder.customer_whatsapp || viewOrder.customer_phone)}?text=${encodeURIComponent(`Hi ${viewOrder.customer_name}, this is regarding your order ${viewOrder.order_number}.`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors"
