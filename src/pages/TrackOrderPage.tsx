@@ -51,8 +51,8 @@ export function TrackOrderPage() {
 
   const currentStepIndex = order ? statusSteps.findIndex(s => s.key === order.status) : -1;
   const isCancelled = order?.status === 'cancelled';
-  const advanceVerified = ['confirmed', 'processing', 'shipped', 'delivered'].includes(order?.status || '');
-  const effectiveAdvance = order?.advance_waived ? 0 : (order?.advance_amount || 0);
+  const advanceVerified = order?.advance_payment_status === 'received';
+  const effectiveAdvance = advanceVerified ? (order?.advance_amount || 0) : 0;
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -147,8 +147,12 @@ export function TrackOrderPage() {
                     <p className="font-semibold text-gray-800">{order.customer_name}</p>
                   </div>
                   <div>
-                    <p className="text-gray-400 text-xs mb-0.5">Phone</p>
+                    <p className="text-gray-400 text-xs mb-0.5">Mobile</p>
                     <p className="font-semibold text-gray-800">{order.customer_phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs mb-0.5">WhatsApp</p>
+                    <p className="font-semibold text-gray-800">{order.customer_whatsapp || order.customer_phone}</p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">City</p>
@@ -160,7 +164,7 @@ export function TrackOrderPage() {
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">{advanceVerified ? "Advance Paid" : "Advance Amount"}</p>
-                    <p className="font-bold text-green-600">{order.advance_waived ? "Waived" : `Rs. ${effectiveAdvance.toLocaleString()}`}</p>
+                    <p className={`font-bold ${advanceVerified ? 'text-green-600' : 'text-amber-600'}`}>{`Rs. ${(order.advance_amount || 0).toLocaleString()} — ${advanceVerified ? 'Received' : 'Pending'`}</p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">Remaining Price</p>
@@ -274,7 +278,7 @@ export function TrackOrderPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Delivery Charges</span>
-                    <span className="font-semibold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${order.payment_method === 'cash_on_delivery' ? (order.advance_waived ? 'Unpaid' : 'Paid') : 'Paid'})` : 'Free'}</span>
+                    <span className="font-semibold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${order.payment_method === 'cash_on_delivery' ? (order.advance_payment_status === 'received' ? 'Paid' : 'Pending') : 'Paid'})` : 'Free'}</span>
                   </div>
                   <div className="flex justify-between font-black text-base pt-1 border-t border-gray-100">
                     <span>Order Total</span>
@@ -288,7 +292,7 @@ export function TrackOrderPage() {
                       </div>
                       <div className="flex justify-between font-black border-t border-gray-100 pt-2">
                         <span>{advanceVerified ? "Remaining Price" : "Expected Remaining Price"}</span>
-                        <span className="text-orange-500">Rs. {Math.max(0, order.total - order.advance_amount).toLocaleString()}</span>
+                        <span className="text-orange-500">Rs. {Math.max(0, order.total - effectiveAdvance).toLocaleString()}</span>
                       </div>
                     </>
                   )}
@@ -306,7 +310,8 @@ export function TrackOrderPage() {
                 <p className="font-semibold text-gray-800">{order.customer_name}</p>
                 <p>{order.customer_address}</p>
                 <p>{order.customer_city}{order.customer_area ? `, ${order.customer_area}` : ''}</p>
-                <p>{order.customer_phone}</p>
+                <p>Mobile: {order.customer_phone}</p>
+                <p>WhatsApp: {order.customer_whatsapp || order.customer_phone}</p>
               </div>
             </div>
           </div>
