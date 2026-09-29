@@ -39,8 +39,8 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
 const ORIGINAL_DESIGN_SETTINGS: DesignSettings = {
   header: { height: 72, bgColor: '#111827', textColor: '#e5e7eb', hoverColor: '#fb923c', borderColor: '#1f2937', borderWidth: 1, fontSize: 14, fontWeight: 700 },
   hero: { borderWidth: 0, borderColor: '#e5e7eb', radius: 0, shadow: 'none' },
-  buttons: { radius: 8, fontWeight: 700, hoverScale: 1.03, transitionMs: 200, bgColor: '#f97316', hoverBgColor: '#ea580c', textColor: '#ffffff' },
-  animations: { enabled: true, hoverLift: 2, clickScale: 0.98 },
+  buttons: { radius: 8, fontWeight: 700, hoverScale: 1.02, transitionMs: 240, bgColor: '#f97316', hoverBgColor: '#ea580c', hoverTextColor: '#ffffff', textColor: '#ffffff', hoverShadow: 'soft' },
+  animations: { enabled: true, style: 'lift-scale', hoverLift: 2, clickScale: 0.98 },
 };
 
 const INPUT_CLASS = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition-colors';
@@ -322,15 +322,30 @@ export function DevPanel() {
           <ColorField label="Button background" value={b.bgColor} onChange={v => updateDesign('buttons', { bgColor: v })} />
           <ColorField label="Button hover background" value={b.hoverBgColor} onChange={v => updateDesign('buttons', { hoverBgColor: v })} />
           <ColorField label="Button text color" value={b.textColor} onChange={v => updateDesign('buttons', { textColor: v })} />
+          <ColorField label="Hover text color" value={b.hoverTextColor} onChange={v => updateDesign('buttons', { hoverTextColor: v })} />
           <Field label="Border radius (px)" value={b.radius} type="number" onChange={v => updateDesign('buttons', { radius: Number(v) || 0 })} />
           <Field label="Font weight" value={b.fontWeight} type="number" onChange={v => updateDesign('buttons', { fontWeight: Number(v) || 400 })} />
           <Field label="Hover scale" value={b.hoverScale} type="number" onChange={v => updateDesign('buttons', { hoverScale: Number(v) || 1 })} />
           <Field label="Transition (ms)" value={b.transitionMs} type="number" onChange={v => updateDesign('buttons', { transitionMs: Number(v) || 0 })} />
+          <select value={b.hoverShadow} onChange={e => updateDesign('buttons', { hoverShadow: e.target.value })} className={INPUT_CLASS}>
+            <option value="none">No hover shadow</option>
+            <option value="soft">Soft CM Shop style</option>
+            <option value="medium">Medium</option>
+          </select>
         </div>
         <div className="border-t border-gray-800 pt-5 space-y-4">
           <h4 className="text-sm font-bold text-white">Interaction animation</h4>
           <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3 cursor-pointer"><span className="text-sm text-gray-300">Enable subtle animations</span><input type="checkbox" checked={a.enabled} onChange={e => updateDesign('animations', { enabled: e.target.checked })} className="w-5 h-5 accent-purple-600" /></label>
           <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LABEL_CLASS}>Hover animation style</label>
+              <select value={a.style} onChange={e => updateDesign('animations', { style: e.target.value as typeof a.style })} className={INPUT_CLASS}>
+                <option value="none">None</option>
+                <option value="lift">Lift</option>
+                <option value="scale">Scale</option>
+                <option value="lift-scale">Lift + Scale (CM Shop style)</option>
+              </select>
+            </div>
             <Field label="Hover lift (px)" value={a.hoverLift} type="number" onChange={v => updateDesign('animations', { hoverLift: Number(v) || 0 })} />
             <Field label="Click scale" value={a.clickScale} type="number" onChange={v => updateDesign('animations', { clickScale: Number(v) || 1 })} />
           </div>
