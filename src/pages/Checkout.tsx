@@ -55,6 +55,7 @@ export function Checkout() {
     const e: Record<string, string> = {};
     if (!form.fullName.trim()) e.fullName = 'Required';
     if (!form.phone.trim()) e.phone = 'Required';
+    if (!form.whatsapp.trim()) e.whatsapp = 'Required';
     if (!form.address.trim()) e.address = 'Required';
     if (!form.city) e.city = 'Required';
     setErrors(e);
@@ -74,6 +75,7 @@ export function Checkout() {
       id: orderId,
       customer_name: form.fullName,
       customer_phone: form.phone,
+      customer_whatsapp: form.whatsapp,
       customer_email: form.email || null,
       customer_address: form.address,
       customer_city: form.city,
@@ -81,6 +83,8 @@ export function Checkout() {
       payment_method: form.paymentMethod,
       subtotal, shipping: shippingFee, total,
       advance_amount: amountToPayNow,
+      advance_payment_status: 'pending',
+      advance_payment_received_at: null,
       status: 'new',
       payment_proof_path: null,
       payment_proof_status: 'not_required',
@@ -234,6 +238,14 @@ export function Checkout() {
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
                     <input type="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => updatePhone(e.target.value)} className={inputCls('phone')} />
                     {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-gray-700">WhatsApp Number <span className="text-red-500">*</span></label>
+                      <button type="button" onClick={usePhoneAsWhatsApp} className="text-[11px] font-bold text-green-600 hover:text-green-700">Same as Mobile</button>
+                    </div>
+                    <input type="tel" placeholder="03xx xxx xxxx" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} className={inputCls('whatsapp')} />
+                    {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
