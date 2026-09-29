@@ -45,7 +45,9 @@ export function AdminOrders() {
     const requiresAdvanceVerification = viewOrder.advance_amount > 0;
     const paymentReceived = !requiresAdvanceVerification || draftAdvancePaymentStatus === 'received';
     const nextStatus = requiresAdvanceVerification
-      ? (paymentReceived ? (draftStatus === 'new' ? 'confirmed' : draftStatus) : 'new')
+      ? (paymentReceived
+        ? (draftStatus === 'new' ? 'confirmed' : draftStatus)
+        : (draftStatus === 'cancelled' ? 'cancelled' : 'new'))
       : draftStatus;
 
     const paymentError = await updateAdvancePaymentVerification(viewOrder.id, paymentReceived, nextStatus);
