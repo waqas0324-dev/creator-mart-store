@@ -40,7 +40,7 @@ export function Checkout() {
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
-  const updatePhone = (value: string) => setForm(prev => ({ ...prev, phone: value, whatsapp: prev.whatsapp === prev.phone ? value : prev.whatsapp }));
+  const updatePhone = (value: string) => setForm(prev => ({ ...prev, phone: value }));
 
 
   const copyToClipboard = (text: string, key: string) => {
@@ -123,7 +123,7 @@ export function Checkout() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         <p className="text-gray-500 text-lg font-semibold">Your cart is empty.</p>
-        <button onClick={() => navigate('shop')} className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-lg font-semibold">Continue Shopping</button>
+        <button onClick={() => navigate('shop')} className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-lg font-semibold btn-interactive">Continue Shopping</button>
       </div>
     );
   }
@@ -239,9 +239,8 @@ export function Checkout() {
                     {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                   </div>
                   <div>
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="mb-1">
                       <label className="block text-xs font-semibold text-gray-700">WhatsApp Number <span className="text-red-500">*</span></label>
-                      <button type="button" onClick={usePhoneAsWhatsApp} className="text-[11px] font-bold text-green-600 hover:text-green-700">Same as Mobile</button>
                     </div>
                     <input type="tel" placeholder="03xx xxx xxxx" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} className={inputCls('whatsapp')} />
                     {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp}</p>}
@@ -394,7 +393,7 @@ export function Checkout() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full mt-5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 btn-interactive"
                 >
                   {loading && <Loader2 size={18} className="animate-spin" />}
                   {loading ? 'Placing Order...' : 'Place Order'}
