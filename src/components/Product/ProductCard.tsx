@@ -113,7 +113,21 @@ export function ProductCard({ product }: ProductCardProps) {
           <button
             onClick={() => { addItem(product); showToast('Your product has been added to cart', 'cart'); }}
             className={design.animations.enabled ? "flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 design-interactive" : "flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3"}
-            style={{ backgroundColor: design.buttons.bgColor, color: design.buttons.textColor, borderRadius: design.buttons.radius, fontWeight: design.buttons.fontWeight, transitionDuration: design.buttons.transitionMs + 'ms', '--design-hover-scale': design.buttons.hoverScale, '--design-click-scale': design.animations.clickScale, '--design-hover-lift': design.animations.hoverLift, '--design-transition': design.buttons.transitionMs + 'ms' } as React.CSSProperties}
+            data-design-animation={design.animations.style}
+            style={{
+              backgroundColor: design.buttons.bgColor,
+              color: design.buttons.textColor,
+              borderRadius: design.buttons.radius,
+              fontWeight: design.buttons.fontWeight,
+              transitionDuration: design.buttons.transitionMs + 'ms',
+              '--design-hover-scale': design.buttons.hoverScale,
+              '--design-click-scale': design.animations.clickScale,
+              '--design-hover-lift': design.animations.hoverLift,
+              '--design-transition': design.buttons.transitionMs + 'ms',
+              '--design-hover-bg': design.buttons.hoverBgColor,
+              '--design-hover-text': design.buttons.hoverTextColor,
+              '--design-hover-shadow': design.buttons.hoverShadow,
+            } as React.CSSProperties}
           >
             <ShoppingCart size={13} className="flex-shrink-0" />
             <span className="truncate">Add to Cart</span>
