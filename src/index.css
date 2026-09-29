@@ -219,20 +219,35 @@
 }
 
 
-/* Global fallback button micro-interactions — covers buttons that do not use a design animation class. */
+/* Global storefront button interactions — driven by Developer Studio settings. */
 button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]) {
-  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 180ms ease,
-    background-color 180ms ease,
-    color 180ms ease,
-    border-color 180ms ease;
-  will-change: transform;
+  transition: transform var(--site-btn-transition, 240ms) cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow var(--site-btn-transition, 240ms) ease,
+    background-color var(--site-btn-transition, 240ms) ease,
+    color var(--site-btn-transition, 240ms) ease,
+    border-color var(--site-btn-transition, 240ms) ease;
+  will-change: transform, box-shadow, background-color, color;
 }
 button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):hover {
-  transform: translateY(-1px) scale(1.015);
+  background-color: var(--site-btn-hover-bg, inherit);
+  color: var(--site-btn-hover-text, inherit);
+  box-shadow: var(--site-btn-hover-shadow, none);
+}
+html[data-design-animation="lift"] button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):hover {
+  transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px));
+}
+html[data-design-animation="scale"] button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):hover {
+  transform: scale(var(--site-btn-hover-scale, 1.02));
+}
+html[data-design-animation="lift-scale"] button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):hover {
+  transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px)) scale(var(--site-btn-hover-scale, 1.02));
 }
 button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):active {
-  transform: scale(0.985);
+  transform: scale(var(--site-btn-click-scale, 0.98));
+}
+html[data-design-animation="none"] button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):hover,
+html[data-design-animation="none"] button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):active {
+  transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
   button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]) {
@@ -240,6 +255,7 @@ button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):acti
   }
   button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):hover,
   button:not(.design-interactive):not(.btn-interactive):not([data-no-motion]):active {
-    transform: none;
+    transform: none !important;
+    box-shadow: none !important;
   }
 }
