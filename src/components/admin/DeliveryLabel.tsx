@@ -108,7 +108,7 @@ export function DeliveryLabel({ order }: Props) {
               {isCod && (
                 <div className="flex justify-between text-green-700">
                   <span>Advance payment</span>
-                  <span className="font-bold">`Rs. ${(order.advance_amount || 0).toLocaleString()} (${order.advance_payment_status === 'received' ? 'Received' : 'Pending'})`</span>
+                  <span className="font-bold">Rs. {(order.advance_amount || 0).toLocaleString()} ({order.advance_payment_status === 'received' ? 'Received' : 'Pending'})</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-orange-200 pt-1 text-sm font-black text-orange-600">
