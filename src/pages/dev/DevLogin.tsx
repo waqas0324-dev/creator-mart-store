@@ -13,7 +13,56 @@ export function DevLogin() {
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
   const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('cm_dev_email_hint') || '' : '';
+
+  useEffect(() => {
+    let mounted = true;
+    const checkRecovery = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (mounted && data.session) {
+        const hash = window.location.hash;
+        if (hash.includes('type=recovery') || new URLSearchParams(window.location.search).get('type') === 'recovery') {
+          setRecoveryMode(true);
+        }
+      }
+    };
+    checkRecovery();
+    const { data: listener } = supabase.auth.onAuthStateChange(event => {
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
+    });
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleRecoveryPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setResetMessage('');
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setUpdatingPassword(true);
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    setUpdatingPassword(false);
+    if (updateError) {
+      setError(updateError.message);
+      return;
+    }
+    setResetMessage('Password updated successfully. Opening Developer Studio...');
+    localStorage.setItem('cm_dev_email_hint', email.trim().toLowerCase() || savedEmail);
+    setTimeout(() => navigate('dev-panel'), 700);
+  };
 
   const maskEmail = (value: string) => {
     const [name, domain] = value.split('@');
@@ -94,6 +143,19 @@ export function DevLogin() {
             </div>
           )}
 
+          {recoveryMode ? (
+            <form onSubmit={handleRecoveryPassword} className="space-y-4">
+              <div>
+                <p className="text-sm font-bold text-white mb-1">Set a new password</p>
+                <p className="text-xs text-gray-500">Choose a new Developer Studio password with at least 8 characters.</p>
+              </div>
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New password" className={inputCls} autoComplete="new-password" />
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm new password" className={inputCls} autoComplete="new-password" />
+              <button type="submit" disabled={updatingPassword} className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white font-bold py-3 rounded-xl transition-colors">
+                {updatingPassword ? 'Updating password...' : 'Update Password'}
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">Email Address</label>
@@ -138,6 +200,7 @@ export function DevLogin() {
               {resetting ? 'Sending reset email...' : 'Forgot password?'}
             </button>
           </form>
+          )}
         </div>
       </div>
     </div>
