@@ -126,19 +126,15 @@ export function DevPanel() {
   };
   
   const resetDesignSection = (section: 'header' | 'hero') => {
-    setForm(prev => {
-      const nextDesign = { ...prev.design_settings, [section]: { ...ORIGINAL_DESIGN_SETTINGS[section] } };
-      queueAutoSave({ design_settings: nextDesign });
-      return { ...prev, design_settings: nextDesign };
-    });
+    const nextDesign = { ...form.design_settings, [section]: { ...ORIGINAL_DESIGN_SETTINGS[section] } };
+    setForm(prev => ({ ...prev, design_settings: nextDesign }));
+    queueAutoSave({ design_settings: nextDesign });
   };
 
   const resetButtonsDesign = () => {
-    setForm(prev => {
-      const nextDesign = { ...prev.design_settings, buttons: { ...ORIGINAL_DESIGN_SETTINGS.buttons }, animations: { ...ORIGINAL_DESIGN_SETTINGS.animations } };
-      queueAutoSave({ design_settings: nextDesign });
-      return { ...prev, design_settings: nextDesign };
-    });
+    const nextDesign = { ...form.design_settings, buttons: { ...ORIGINAL_DESIGN_SETTINGS.buttons }, animations: { ...ORIGINAL_DESIGN_SETTINGS.animations } };
+    setForm(prev => ({ ...prev, design_settings: nextDesign }));
+    queueAutoSave({ design_settings: nextDesign });
   };
 
   const uploadTo = async (file: File, folder: string): Promise<string | null> => {
