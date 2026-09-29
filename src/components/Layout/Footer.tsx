@@ -1,4 +1,4 @@
-import { Phone, Mail, MapPin, Facebook, Instagram, Youtube } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook, Instagram } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { BRAND_NAME, toWhatsAppNumber } from '../../lib/brand';
@@ -10,15 +10,14 @@ export function Footer() {
   const { navigate } = useNavigation();
   const { settings } = useSiteSettings();
 
+  const waNumber = toWhatsAppNumber(settings.whatsapp_number);
+  const waLink = `https://wa.me/${waNumber}`;
   const socialLinks = [
+    { url: waLink, Icon: WhatsAppIcon, label: 'WhatsApp' },
     { url: settings.facebook_url, Icon: Facebook, label: 'Facebook' },
     { url: settings.instagram_url, Icon: Instagram, label: 'Instagram' },
     { url: settings.tiktok_url, Icon: TikTokIcon, label: 'TikTok' },
-    { url: settings.youtube_url, Icon: Youtube, label: 'YouTube' },
   ].filter(s => s.url);
-
-  const waNumber = toWhatsAppNumber(settings.whatsapp_number);
-  const waLink = `https://wa.me/${waNumber}`;
 
   return (
     <footer className="bg-gray-900 text-gray-300">
@@ -49,9 +48,6 @@ export function Footer() {
             {settings.footer_description}
           </p>
           <div className="flex gap-3">
-            <a href={waLink} target="_blank" rel="noreferrer" className="w-8 h-8 bg-gray-700 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
-              <WhatsAppIcon size={14} />
-            </a>
             {socialLinks.map(({ url, Icon, label }) => (
               <a
                 key={label}
@@ -124,7 +120,7 @@ export function Footer() {
             </li>
             <li className="flex items-start gap-2 text-sm text-gray-400">
               <MapPin size={14} className="mt-0.5 text-orange-400 flex-shrink-0" />
-              <span>{settings.store_address}</span>
+              <a href={settings.store_location_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.store_address)}`} target="_blank" rel="noreferrer" className="hover:text-orange-400 transition-colors">{settings.store_address}</a>
             </li>
           </ul>
         </div>
