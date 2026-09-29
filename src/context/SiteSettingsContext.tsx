@@ -40,6 +40,16 @@ const DEFAULTS: SiteSettings = {
   whatsapp_number: '03484800547',
   store_address: 'Kanganpur, Tehsil Chunian, District Kasur',
   announcement_messages: 'Free Delivery All Over Pakistan|New Products Added Every Week|Follow Us for Daily Deals & Discounts',
+  announcement_enabled: true,
+  announcement_whatsapp_enabled: true,
+  trust_badge_1_title: 'FAST DELIVERY',
+  trust_badge_1_subtitle: 'All Over Pakistan',
+  trust_badge_2_title: 'CASH ON DELIVERY',
+  trust_badge_2_subtitle: 'Pay When You Receive',
+  trust_badge_3_title: '7 DAYS RETURN',
+  trust_badge_3_subtitle: 'No Questions Asked',
+  trust_badge_4_title: '100% ORIGINAL',
+  trust_badge_4_subtitle: 'Original Products',
   facebook_url: null,
   instagram_url: null,
   tiktok_url: null,
@@ -93,13 +103,14 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     fetchSettings();
 
+    const isDevEditor = window.location.pathname.startsWith('/ws-studio');
     const channel = supabase
       .channel('site-settings-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.1' }, payload => {
-        if (payload.new) setSettings(payload.new as SiteSettings);
+        if (!isDevEditor && payload.new) setSettings(payload.new as SiteSettings);
       })
       .on('broadcast', { event: 'settings-updated' }, ({ payload }) => {
-        if (payload && typeof payload === 'object') {
+        if (!isDevEditor && payload && typeof payload === 'object') {
           setSettings(prev => ({ ...prev, ...(payload as Partial<SiteSettings>) }));
         }
       });
@@ -108,7 +119,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
     channel.subscribe();
 
     const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') fetchSettings();
+      if (!window.location.pathname.startsWith('/ws-studio') && document.visibilityState === 'visible') fetchSettings();
     };
     window.addEventListener('focus', refreshWhenVisible);
     document.addEventListener('visibilitychange', refreshWhenVisible);
@@ -123,23 +134,25 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
 
   const updateSettings = useCallback(async (payload: Partial<SiteSettings>) => {
     setSettings(prev => ({ ...prev, ...payload }));
-    const { error } = await supabase.from('site_settings').update(payload).eq('id', 1);
-    if (error) {
+    try {
+      const { error } = await supabase.from('site_settings').update(payload).eq('id', 1);
+      if (error) {
+        await fetchSettings();
+        return error.message;
+      }
+
+      if (channelRef.current && !window.location.pathname.startsWith('/ws-studio')) {
+        await channelRef.current.send({
+          type: 'broadcast',
+          event: 'settings-updated',
+          payload,
+        });
+      }
+      return null;
+    } catch (error) {
       await fetchSettings();
-      return error.message;
+      return error instanceof Error ? error.message : 'Unable to save settings.';
     }
-
-    // Broadcast the saved values immediately so every already-open storefront
-    // tab updates without a manual refresh. Postgres Realtime remains the durable fallback.
-    if (channelRef.current) {
-      await channelRef.current.send({
-        type: 'broadcast',
-        event: 'settings-updated',
-        payload,
-      });
-    }
-
-    return null;
   }, [fetchSettings]);
 
   return (
