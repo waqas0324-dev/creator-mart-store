@@ -82,7 +82,7 @@
   }
 }
 
-/* Global editable design animations */
+/* Global editable design animations — settings are controlled from Developer Studio */
 @keyframes design-fade-up {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -92,14 +92,43 @@
 }
 .design-interactive {
   transition-property: transform, box-shadow, background-color, color, border-color;
-  transition-timing-function: ease;
-  transition-duration: var(--design-transition, 200ms);
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: var(--design-transition, 240ms);
+  will-change: transform, box-shadow, background-color, color;
 }
 .design-interactive:hover {
-  transform: translateY(calc(var(--design-hover-lift, 2) * -1px)) scale(var(--design-hover-scale, 1.03));
+  background-color: var(--design-hover-bg, inherit) !important;
+  color: var(--design-hover-text, inherit) !important;
+  box-shadow: var(--design-hover-shadow, 0 8px 20px rgba(0,0,0,0.12));
+}
+.design-interactive[data-design-animation="lift"]:hover {
+  transform: translateY(calc(var(--design-hover-lift, 2) * -1px));
+}
+.design-interactive[data-design-animation="scale"]:hover {
+  transform: scale(var(--design-hover-scale, 1.02));
+}
+.design-interactive[data-design-animation="lift-scale"]:hover {
+  transform: translateY(calc(var(--design-hover-lift, 2) * -1px)) scale(var(--design-hover-scale, 1.02));
+}
+.design-interactive[data-design-animation="none"]:hover {
+  transform: none;
+  box-shadow: none;
 }
 .design-interactive:active {
   transform: scale(var(--design-click-scale, 0.98));
+}
+.design-interactive[data-design-animation="none"]:active {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .design-interactive {
+    transition: none;
+  }
+  .design-interactive:hover,
+  .design-interactive:active {
+    transform: none !important;
+    box-shadow: none !important;
+  }
 }
 
 /* COD policy highlight — the glow belongs to the Urdu policy text, not the payment button */
