@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, ArrowLeft, Loader2, Upload, Link as LinkIcon } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, Upload, Star } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
@@ -13,7 +13,6 @@ export function AdminProductForm() {
   const { nav, navigate } = useNavigation();
   const { categories } = useCategories();
   const isEdit = !!nav.adminProductId;
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: '', slug: '', description: '', price: '', original_price: '', category_id: '',
@@ -27,8 +26,6 @@ export function AdminProductForm() {
   const [fetchLoading, setFetchLoading] = useState(isEdit);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
 
   useEffect(() => {
     if (!isEdit || !nav.adminProductId) return;
@@ -43,8 +40,9 @@ export function AdminProductForm() {
           stock: String(p.stock), is_featured: p.is_featured, is_bestseller: p.is_bestseller,
           discount_percent: String(p.discount_percent || ''),
         });
-        if (p.image_url) setImageMode('url');
-        setGalleryImages(Array.isArray(p.images) ? p.images : []);
+        const savedImages = Array.isArray(p.images) ? p.images : [];
+        const unifiedImages = Array.from(new Set([p.image_url, ...savedImages].filter(Boolean)));
+        setGalleryImages(unifiedImages);
       }
       setFetchLoading(false);
     });
@@ -65,42 +63,6 @@ export function AdminProductForm() {
       }
       return next;
     });
-  };
-
-  const handleFileUpload = async (file: File) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setErrors(prev => ({ ...prev, image_url: 'Please select an image file' }));
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, image_url: 'Image must be under 5MB' }));
-      return;
-    }
-
-    setUploading(true);
-    setErrors(prev => { const { image_url: _unused, ...rest } = prev; return rest; });
-
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const filePath = `products/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-    if (uploadError) {
-      setErrors(prev => ({ ...prev, image_url: 'Upload failed. Please try again.' }));
-      setUploading(false);
-      return;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-
-    update('image_url', publicUrl);
-    setUploading(false);
   };
 
   const handleGalleryUpload = async (files: FileList) => {
@@ -125,11 +87,21 @@ export function AdminProductForm() {
     setGalleryImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const setPrimaryImage = (index: number) => {
+    setGalleryImages(prev => {
+      if (index <= 0 || index >= prev.length) return prev;
+      const next = [...prev];
+      const [primary] = next.splice(index, 1);
+      next.unshift(primary);
+      return next;
+    });
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = 'Product name is required';
     if (!form.price || isNaN(Number(form.price))) e.price = 'Valid price is required';
-    if (!form.image_url.trim()) e.image_url = 'Image is required';
+    if (galleryImages.length === 0) e.image_url = 'At least one product image is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -143,7 +115,8 @@ export function AdminProductForm() {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
       description: form.description.trim(), price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
-      category_id: form.category_id || null, image_url: form.image_url.trim(),
+      category_id: form.category_id || null,
+      image_url: galleryImages[0] || '',
       images: galleryImages,
       rating: Number(form.rating), review_count: Number(form.review_count),
       stock: Number(form.stock), is_featured: form.is_featured, is_bestseller: form.is_bestseller,
@@ -227,112 +200,79 @@ export function AdminProductForm() {
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Product Image</h3>
-            <div className="flex gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => setImageMode('upload')}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${imageMode === 'upload' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                <Upload size={14} /> Upload
-              </button>
-              <button
-                type="button"
-                onClick={() => setImageMode('url')}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${imageMode === 'url' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                <LinkIcon size={14} /> URL
-              </button>
-            </div>
-
-            {imageMode === 'upload' ? (
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); }}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="w-full border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-xl py-8 flex flex-col items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                >
-                  {uploading ? (
-                    <><Loader2 size={24} className="animate-spin text-orange-500" /><span className="text-sm font-semibold text-gray-600">Uploading...</span></>
-                  ) : (
-                    <><Upload size={24} className="text-gray-400" /><span className="text-sm font-semibold text-gray-600">Click to upload image</span><span className="text-xs text-gray-400">JPG, PNG, WebP up to 5MB</span></>
-                  )}
-                </button>
-                {form.image_url && (
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-                      <img src={form.image_url} alt="Preview" onError={(e) => onImageError(e, 'Preview')} className="w-full h-full object-cover" />
-                    </div>
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm text-orange-500 hover:text-orange-600 font-semibold">Change</button>
-                  </div>
-                )}
-                {errors.image_url && <p className="text-red-500 text-xs mt-1">{errors.image_url}</p>}
-              </div>
-            ) : (
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Image URL <span className="text-red-500">*</span></label>
-                <input type="text" value={form.image_url} onChange={e => update('image_url', e.target.value)} className={inputCls('image_url')} placeholder="https://images.pexels.com/..." />
-                {errors.image_url && <p className="text-red-500 text-xs mt-1">{errors.image_url}</p>}
-                {form.image_url && (
-                  <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
-                    <img src={form.image_url} alt="Preview" onError={(e) => onImageError(e, 'Preview')} className="w-full h-full object-cover" />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
             <div>
-              <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Additional Photos (Gallery)</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Add more angles/photos of this product — shown as thumbnails on the product page.</p>
+              <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Product Images</h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Add all product photos here. The first image is automatically the main product image; all images appear in the product gallery.
+              </p>
             </div>
+
             <input
               ref={galleryInputRef}
               type="file"
               accept="image/*"
               multiple
               className="hidden"
-              onChange={e => { if (e.target.files && e.target.files.length > 0) handleGalleryUpload(e.target.files); }}
+              onChange={e => {
+                if (e.target.files && e.target.files.length > 0) {
+                  handleGalleryUpload(e.target.files);
+                  e.currentTarget.value = '';
+                }
+              }}
             />
-            <div className="flex flex-wrap gap-3">
-              {galleryImages.map((img, i) => (
-                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 group">
-                  <img src={img} alt={`Gallery ${i + 1}`} onError={(e) => onImageError(e, 'Preview')} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeGalleryImage(i)}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-xs transition-colors"
-                    aria-label="Remove image"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => galleryInputRef.current?.click()}
-                disabled={galleryUploading}
-                className="w-20 h-20 border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors disabled:opacity-50"
-              >
-                {galleryUploading ? (
-                  <Loader2 size={18} className="animate-spin text-orange-500" />
-                ) : (
-                  <>
-                    <Upload size={16} className="text-gray-400" />
-                    <span className="text-[10px] text-gray-400 font-semibold">Add</span>
-                  </>
-                )}
-              </button>
-            </div>
+
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={galleryUploading}
+              className="w-full border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-xl py-8 flex flex-col items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            >
+              {galleryUploading ? (
+                <><Loader2 size={24} className="animate-spin text-orange-500" /><span className="text-sm font-semibold text-gray-600">Uploading images...</span></>
+              ) : (
+                <><Upload size={24} className="text-gray-400" /><span className="text-sm font-semibold text-gray-600">Click to upload product images</span><span className="text-xs text-gray-400">Select multiple JPG, PNG or WebP images — up to 5MB each</span></>
+              )}
+            </button>
+
+            {galleryImages.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                {galleryImages.map((img, i) => (
+                  <div key={img + i} className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                    <div className="aspect-square">
+                      <img
+                        src={img}
+                        alt={`Product image ${i + 1}`}
+                        onError={(e) => onImageError(e, 'Preview')}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {i === 0 && (
+                      <div className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+                        MAIN
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryImage(i)}
+                      disabled={i === 0}
+                      className="absolute bottom-2 left-2 bg-white/95 hover:bg-white text-gray-800 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm disabled:opacity-60"
+                    >
+                      {i === 0 ? 'Main Image' : 'Set as Main'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeGalleryImage(i)}
+                      className="absolute top-2 right-2 w-6 h-6 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-xs transition-colors"
+                      aria-label="Remove image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {errors.image_url && <p className="text-red-500 text-xs mt-1">{errors.image_url}</p>}
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
