@@ -84,8 +84,8 @@ export interface OrderItem {
 export interface DesignSettings {
   header: { height: number; bgColor: string; textColor: string; hoverColor: string; borderColor: string; borderWidth: number; fontSize: number; fontWeight: number };
   hero: { borderWidth: number; borderColor: string; radius: number; shadow: string };
-  buttons: { radius: number; fontWeight: number; hoverScale: number; transitionMs: number; bgColor: string; hoverBgColor: string; textColor: string };
-  animations: { enabled: boolean; hoverLift: number; clickScale: number };
+  buttons: { radius: number; fontWeight: number; hoverScale: number; transitionMs: number; bgColor: string; hoverBgColor: string; hoverTextColor: string; textColor: string; hoverShadow: string };
+  animations: { enabled: boolean; style: 'none' | 'lift' | 'scale' | 'lift-scale'; hoverLift: number; clickScale: number };
 }
 
 export interface SiteSettings {
