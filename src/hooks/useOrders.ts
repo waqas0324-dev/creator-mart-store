@@ -31,20 +31,26 @@ export function useOrders() {
   const updateShippingDetails = async (
     id: string,
     details: {
-      advance_waived?: boolean;
-      advance_waiver_note?: string | null;
       shipping_note?: string | null;
       status?: string;
     }
   ) => {
     const payload = {
-      ...(details.advance_waived !== undefined ? { advance_waived: details.advance_waived } : {}),
-      ...(details.advance_waiver_note !== undefined ? { advance_waiver_note: details.advance_waiver_note } : {}),
       ...(details.shipping_note !== undefined ? { shipping_note: details.shipping_note } : {}),
       ...(details.status === 'shipped' ? { shipped_at: new Date().toISOString() } : {}),
     };
     await supabase.from('orders').update(payload).eq('id', id);
     await fetchOrders();
+  };
+
+  const updateAdvancePaymentVerification = async (id: string, received: boolean, status: string) => {
+    const { error } = await supabase.from('orders').update({
+      advance_payment_status: received ? 'received' : 'pending',
+      advance_payment_received_at: received ? new Date().toISOString() : null,
+      status,
+    }).eq('id', id);
+    if (!error) await fetchOrders();
+    return error?.message || null;
   };
 
   const updatePaymentProof = async (
@@ -74,7 +80,7 @@ export function useOrders() {
     await fetchOrders();
   };
 
-  return { orders, loading, refetch: fetchOrders, updateOrderStatus, updateOwnerNote, updateShippingDetails, updatePaymentProof, getPaymentProofUrl, deleteOrder };
+  return { orders, loading, refetch: fetchOrders, updateOrderStatus, updateOwnerNote, updateShippingDetails, updateAdvancePaymentVerification, updatePaymentProof, getPaymentProofUrl, deleteOrder };
 }
 
 export function useOrder(id: string) {
