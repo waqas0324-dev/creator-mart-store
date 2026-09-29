@@ -216,10 +216,6 @@ export function AdminOrders() {
             )}
 
             <div className="border-t border-gray-100 pt-4 space-y-2 text-sm">
-              {(() => {
-                const effectiveAdvance = viewOrder.advance_payment_status === 'received' ? (viewOrder.advance_amount || 0) : 0;
-                return null;
-              })()}
               <div className="flex justify-between"><span className="text-gray-600">Order Subtotal</span><span className="font-semibold">Rs. {viewOrder.subtotal.toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-gray-600">Delivery Charges</span><span className={`font-semibold ${viewOrder.shipping > 0 ? (viewOrder.payment_method === 'cash_on_delivery' && viewOrder.advance_payment_status !== 'received' ? 'text-amber-700' : 'text-green-600') : 'text-gray-600'}`}>{viewOrder.shipping > 0 ? `Rs. ${viewOrder.shipping.toLocaleString()} (${viewOrder.payment_method === 'cash_on_delivery' ? (viewOrder.advance_payment_status === 'received' ? 'Paid' : 'Pending') : 'Paid'})` : 'Free'}</span></div>
               {(() => {
