@@ -31,7 +31,7 @@ export function ProductDetail() {
           '@context': 'https://schema.org',
           '@type': 'Product',
           name: product.name,
-          image: product.image_url ? [product.image_url] : undefined,
+          image: images.length > 0 ? images : undefined,
           description: product.description || undefined,
           sku: product.id,
           brand: { '@type': 'Brand', name: BRAND_NAME },
@@ -61,7 +61,9 @@ export function ProductDetail() {
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
 
-  const images = product?.images && product.images.length > 0 ? product.images : product ? [product.image_url] : [];
+  const images = product
+    ? Array.from(new Set([product.image_url, ...(Array.isArray(product.images) ? product.images : [])].filter(Boolean)))
+    : [];
 
   useEffect(() => {
     if (images.length <= 1) return;
