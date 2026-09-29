@@ -37,6 +37,7 @@ export interface Order {
   order_number: string;
   customer_name: string;
   customer_phone: string;
+  customer_whatsapp: string;
   customer_email: string | null;
   customer_address: string;
   customer_city: string;
@@ -48,8 +49,8 @@ export interface Order {
   status: string;
   coupon_code: string | null;
   advance_amount: number;
-  advance_waived: boolean;
-  advance_waiver_note: string | null;
+  advance_payment_status: 'pending' | 'received';
+  advance_payment_received_at: string | null;
   notes: string | null;
   owner_note: string | null;
   courier_name: string | null;
