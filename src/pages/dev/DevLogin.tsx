@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ShieldCheck, Eye, EyeOff, Loader2, LogIn, KeyRound } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
 import { devLogin } from '../../lib/devAuth';
