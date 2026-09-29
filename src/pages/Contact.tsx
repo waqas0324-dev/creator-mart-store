@@ -118,7 +118,7 @@ export function Contact() {
             <div className="mt-6 rounded-2xl overflow-hidden border border-gray-200 shadow-sm h-56">
               <iframe
                 title="ABR Shop Location"
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(settings.store_address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                src={settings.store_location_url || `https://maps.google.com/maps?q=${encodeURIComponent(settings.store_address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -128,7 +128,7 @@ export function Contact() {
               />
             </div>
             <a
-              href={`https://maps.google.com/maps?q=${encodeURIComponent(settings.store_address)}`}
+              href={settings.store_location_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.store_address)}`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 mt-2 text-xs text-orange-500 hover:text-orange-600 font-semibold transition-colors"
