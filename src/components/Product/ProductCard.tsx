@@ -113,7 +113,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <button
             onClick={() => { addItem(product); showToast('Your product has been added to cart', 'cart'); }}
             className={design.animations.enabled ? "flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 design-interactive" : "flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3"}
-            data-design-animation={design.animations.style}
+            data-design-animation={design.animations.style}\n            data-design-button="true"
             style={{
               backgroundColor: design.buttons.bgColor,
               color: design.buttons.textColor,
