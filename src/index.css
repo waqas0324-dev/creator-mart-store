@@ -168,3 +168,23 @@
 @media (prefers-reduced-motion: reduce) {
   .category-orbit-image { animation: none; }
 }
+
+
+/* Professional customer action buttons — subtle hover zoom + press feedback */
+.btn-interactive {
+  transition-property: transform, box-shadow, background-color, color, border-color;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.btn-interactive:hover {
+  transform: translateY(-1px) scale(1.025);
+}
+.btn-interactive:active {
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-interactive { transition: none; }
+  .btn-interactive:hover,
+  .btn-interactive:active { transform: none; }
+}
