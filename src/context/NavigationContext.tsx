@@ -73,6 +73,10 @@ function buildUrl(page: Page, params?: Partial<Omit<NavState, 'page'>>): string 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [nav, setNav] = useState<NavState>(() => parseLocation());
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [nav.page]);
+
+  useEffect(() => {
     const onPopState = () => setNav(parseLocation());
     window.addEventListener('popstate', onPopState);
     window.addEventListener('hashchange', onPopState);
