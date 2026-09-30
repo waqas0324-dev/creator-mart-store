@@ -305,7 +305,7 @@ export function AdminProductForm() {
                     ['headingBg','Heading BG'],['headingText','Heading Text'],['accent','Accent'],['tableBorder','Table Lines'],['sectionBg','Section BG'],
                   ].map(([key,label]) => (
                     <label key={key} className="text-[11px] font-semibold text-gray-600">{label}
-                      <div className="flex items-center gap-2 mt-1"><input type="color" value={descriptionDoc.style[key as keyof typeof descriptionDoc.style]} onChange={e=>setDescriptionDoc(prev=>({...prev,style:{...prev.style,[key]:e.target.value}}))} className="w-9 h-9 rounded border border-gray-200 p-0.5 bg-white"/><span className="text-[10px] text-gray-400">{descriptionDoc.style[key as keyof typeof descriptionDoc.style]}</span></div>
+                      <div className="flex items-center gap-2 mt-1"><input type="color" value={descriptionDoc.style[key as keyof typeof descriptionDoc.style]} onChange={e=>setDescriptionDoc(prev=>({...prev,style:{...prev.style,[key as keyof typeof prev.style]:e.target.value}}))} className="w-9 h-9 rounded border border-gray-200 p-0.5 bg-white"/><span className="text-[10px] text-gray-400">{descriptionDoc.style[key as keyof typeof descriptionDoc.style]}</span></div>
                     </label>
                   ))}
                 </div>
