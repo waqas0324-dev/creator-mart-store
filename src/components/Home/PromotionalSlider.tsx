@@ -64,7 +64,7 @@ export function PromotionalSlider() {
               <button aria-label="Previous promotion" onClick={() => setIndex(i => (i - 1 + slides.length) % slides.length)} className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/95 border border-gray-200 text-gray-700 shadow-md flex items-center justify-center hover:bg-white hover:text-orange-500 transition-colors">
                 <ChevronLeft size={20}/>
               </button>
-              <button aria-label="Next promotion" onClick={() => setIndex(i => (i + 1) % slides.length)} className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/95 border border-gray-200 text-gray-700 shadow-md flex items-center justify-center hover:bg-white hover:text-orange-500 transition-colors">
+              <button aria-label="Next promotion" onClick={() => setIndex(i => (i + 1) % slides.length)} style={{ backgroundColor: cfg.arrowBgColor, color: cfg.arrowTextColor }} className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-gray-200 shadow-md flex items-center justify-center hover:opacity-80 transition-colors">
                 <ChevronRight size={20}/>
               </button>
             </>
@@ -85,7 +85,7 @@ export function PromotionalSlider() {
                     <div className="min-w-0 md:pr-3 order-1">
                       {slideItem.badge && <p className="text-[10px] sm:text-xs font-black tracking-[0.22em] text-gray-500 uppercase mb-3">{slideItem.badge}</p>}
                       <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-black leading-[1.02] tracking-tight text-[#17213b]">{slideItem.title}</h2>
-                      <p className="mt-4 text-sm sm:text-[15px] leading-6 text-gray-500 max-w-md">{slideItem.description}</p>
+                      <p style={{ color: cfg.mutedTextColor }} className="mt-4 text-sm sm:text-[15px] leading-6 max-w-md">{slideItem.description}</p>
                       <div className="mt-6 flex flex-wrap gap-3">
                         {(slideItem.features || []).slice(0, 3).map((feature, i) => {
                           const Icon = featureIcons[i] || Zap;
@@ -109,10 +109,10 @@ export function PromotionalSlider() {
                       <div className="w-full max-w-[210px]">
                         <span className="inline-flex px-3 py-1 rounded-full bg-[#d8a53c] text-[#1d2437] text-[9px] font-black tracking-wider uppercase mb-3">{slideItem.badge === 'TOP PICK' ? 'BEST VALUE' : (slideItem.badge || 'BEST VALUE')}</span>
                         <div className="flex items-end gap-2">
-                          <span className="text-3xl sm:text-4xl font-black text-[#17213b]"><span className="text-xs font-bold mr-1 align-middle">Rs</span>{Number(slideItem.price || itemProduct?.price || 0).toLocaleString()}</span>
+                          <span style={{ color: cfg.textColor }} className="text-3xl sm:text-4xl font-black"><span className="text-xs font-bold mr-1 align-middle">Rs</span>{Number(slideItem.price || itemProduct?.price || 0).toLocaleString()}</span>
                         </div>
-                        {slideItem.old_price && <div className="text-xs text-gray-400 mt-1 line-through">Rs {Number(slideItem.old_price).toLocaleString()}</div>}
-                        <p className="mt-2 text-xs sm:text-sm leading-5 text-gray-500 max-w-[190px]">Crystal clear quality. Perfect for creators on the go.</p>
+                        {slideItem.old_price && <div style={{ color: cfg.mutedTextColor }} className="text-xs mt-1 line-through">Rs {Number(slideItem.old_price).toLocaleString()}</div>}
+                        <p style={{ color: cfg.mutedTextColor }} className="mt-2 text-xs sm:text-sm leading-5 max-w-[190px]">Crystal clear quality. Perfect for creators on the go.</p>
                         <button onClick={itemGo} className="mt-5 inline-flex items-center justify-center gap-2 bg-[#17213b] hover:bg-[#111827] text-white font-black px-6 py-3 rounded-lg shadow-md transition-colors">Shop Now <ArrowRight size={16}/></button>
                       </div>
                     </div>
