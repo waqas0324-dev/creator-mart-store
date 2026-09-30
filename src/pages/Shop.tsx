@@ -29,6 +29,11 @@ export function Shop() {
   const [topRated, setTopRated] = useState<Product[]>([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  useEffect(() => {
+    supabase.from('products').select('id', { count: 'exact', head: true })
+      .then(({ count }) => setTotalProductCount(count || 0));
+  }, []);
+
   const normalize = (value: unknown) =>
     String(value ?? '')
       .toLowerCase()
@@ -45,7 +50,11 @@ export function Shop() {
     earbuds: ['earbuds', 'airpods', 'airpod', 'airbods'],
     trip: ['tripod', 'tripods'],
     tripod: ['tripod', 'tripods'],
-    studio: ['studio', 'light', 'lights', 'ring', 'led'],
+    studio: ['studio', 'light', 'lights', 'ring', 'ringlight', 'led', 'ledlight'],
+    light: ['light', 'lights', 'ring', 'ringlight', 'studio', 'led'],
+    lights: ['light', 'lights', 'ring', 'ringlight', 'studio', 'led'],
+    ring: ['ring', 'ringlight', 'light', 'lights', 'studio', 'led'],
+    ringlight: ['ringlight', 'ring', 'light', 'lights', 'studio', 'led'],
     mic: ['mic', 'microphone', 'microphones'],
     microphone: ['mic', 'microphone', 'microphones'],
     vlog: ['vlog', 'vlogging', 'creator'],
