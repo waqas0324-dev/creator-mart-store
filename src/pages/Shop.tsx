@@ -28,9 +28,51 @@ export function Shop() {
   const [topRated, setTopRated] = useState<Product[]>([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  const normalize = (value: unknown) =>
+    String(value ?? '')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+
+  const aliases: Record<string, string[]> = {
+    air: ['airpods', 'airpod', 'earbuds', 'earbud'],
+    airpod: ['airpods', 'airpod', 'earbuds', 'earbud'],
+    airpods: ['airpods', 'airpod', 'earbuds', 'earbud'],
+    earbud: ['earbuds', 'airpods', 'airpod'],
+    earbuds: ['earbuds', 'airpods', 'airpod'],
+    trip: ['tripod', 'tripods'],
+    tripod: ['tripod', 'tripods'],
+    studio: ['studio', 'light', 'lights', 'ring', 'led'],
+    mic: ['mic', 'microphone', 'microphones'],
+    microphone: ['mic', 'microphone', 'microphones'],
+    vlog: ['vlog', 'vlogging', 'creator'],
+    vlogging: ['vlog', 'vlogging', 'creator'],
+  };
+
+  const matchesSearch = (product: Product, value: string) => {
+    const query = normalize(value);
+    if (!query) return true;
+    const haystack = normalize([
+      product.name,
+      product.slug,
+      product.description,
+      product.categories?.name,
+    ].filter(Boolean).join(' '));
+
+    return query
+      .split(/\s+/)
+      .filter(Boolean)
+      .every(term =>
+        haystack.includes(term) ||
+        (aliases[term] || []).some(alias => haystack.includes(normalize(alias)))
+      );
+  };
+
   const fetchProducts = async () => {
     setLoading(true);
-    const activeCategory = nav.categorySlug || selectedCategory;
+    const activeCategory = selectedCategory;
     let query = supabase
       .from('products')
       .select('*, categories(id, name, slug)')
@@ -38,16 +80,12 @@ export function Shop() {
 
     if (activeCategory) {
       const { data: cat } = await supabase
-        .from('categories').select('id').eq('slug', activeCategory).single();
+        .from('categories').select('id').eq('slug', activeCategory).maybeSingle();
       if (cat) query = query.eq('category_id', cat.id);
     }
 
-    if (searchQuery) {
-      query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
-    }
-
     const { data } = await query;
-    let sorted = (data as Product[]) || [];
+    let sorted = ((data as Product[]) || []).filter(product => matchesSearch(product, searchQuery));
     switch (sortBy) {
       case 'price_asc': sorted = [...sorted].sort((a, b) => a.price - b.price); break;
       case 'price_desc': sorted = [...sorted].sort((a, b) => b.price - a.price); break;
@@ -57,7 +95,7 @@ export function Shop() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, [nav.categorySlug, selectedCategory, searchQuery, maxPrice, sortBy]);
+  useEffect(() => { fetchProducts(); }, [selectedCategory, searchQuery, maxPrice, sortBy]);
 
   const activeCategoryName = categories.find(c => c.slug === selectedCategory)?.name;
   useSEO({
