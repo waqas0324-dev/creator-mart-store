@@ -5,6 +5,7 @@ import { useNavigation } from '../../context/NavigationContext';
 import { supabase } from '../../lib/supabase';
 import { STATUS_COLORS, STATUS_LABELS } from '../../lib/orderStatus';
 import type { Order } from '../../types';
+import { PromoSlideManager } from '../../components/admin/PromoSlideManager';
 
 export function AdminDashboard() {
   const { navigate } = useNavigation();
@@ -65,6 +66,8 @@ export function AdminDashboard() {
             </button>
           ))}
         </div>
+
+        <PromoSlideManager />
 
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">

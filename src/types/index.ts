@@ -81,11 +81,27 @@ export interface OrderItem {
   created_at: string;
 }
 
+export interface PromoSlide {
+  id: string; enabled: boolean; order: number; product_id: string | null; image_url: string; title: string;
+  price: number; old_price: number | null; badge: string; description: string; features: string[];
+}
+export interface PromoSliderSettings {
+  enabled: boolean; heading: string; subheading: string; auto_play: boolean; auto_play_ms: number;
+  show_arrows: boolean; show_dots: boolean; background: string; accent: string; text_color: string;
+  radius: number; slides: PromoSlide[];
+}
+export interface RecentlyViewedSettings {
+  enabled: boolean; heading: string; max_items: number; auto_play: boolean; auto_play_ms: number;
+}
+export interface AnnouncementBarSettings {
+  height: number; fontSize: number; fontWeight: number; horizontalPadding: number;
+}
 export interface DesignSettings {
   header: { height: number; bgColor: string; textColor: string; hoverColor: string; borderColor: string; borderWidth: number; fontSize: number; fontWeight: number };
   hero: { borderWidth: number; borderColor: string; radius: number; shadow: string };
   buttons: { radius: number; fontWeight: number; hoverScale: number; transitionMs: number; bgColor: string; hoverBgColor: string; hoverTextColor: string; textColor: string; hoverShadow: string };
   animations: { enabled: boolean; style: 'none' | 'lift' | 'scale' | 'lift-scale'; hoverLift: number; clickScale: number };
+  announcementBar: AnnouncementBarSettings; promoSlider: PromoSliderSettings; recentlyViewed: RecentlyViewedSettings;
 }
 
 export interface SiteSettings {

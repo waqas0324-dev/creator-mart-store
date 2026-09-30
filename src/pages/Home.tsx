@@ -6,16 +6,20 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useSEO } from '../hooks/useSEO';
 import { BRAND_NAME } from '../lib/brand';
 import { ProductCard } from '../components/Product/ProductCard';
+import { PromotionalSlider } from '../components/Home/PromotionalSlider';
+import { RecentlyViewed } from '../components/Home/RecentlyViewed';
 import { onImageError, resolveCategoryImage } from '../lib/imageFallback';
 
 export function Home() {
   const { navigate } = useNavigation();
   const { products: featuredProducts, loading: featuredLoading } = useProducts({ featured: true });
   const { products: bestSellers, loading: bestsellersLoading } = useProducts({ bestseller: true });
+  const { products: allProducts, loading: allProductsLoading } = useProducts();
   const { categories, loading: categoriesLoading } = useCategories();
   const { settings: hero } = useSiteSettings();
   const design = hero.design_settings;
   const featuredCategories = categories.filter(cat => !['vlogging-kit', 'blogging-kit'].includes(cat.slug)).slice(0, 6);
+  const [visibleProducts, setVisibleProducts] = React.useState(10);
 
   useSEO({
     title: `ABR Gadget | ${BRAND_NAME} - Creator Gear & Gadgets in Pakistan`,
@@ -110,9 +114,9 @@ export function Home() {
                 <button
                   key={cat.id}
                   onClick={() => navigate('shop', { categorySlug: cat.slug })}
-                  className="group bg-slate-50 rounded-xl p-2.5 sm:p-3 md:p-3 border border-slate-200 hover:border-orange-300 hover:shadow-md hover:bg-white transition-all duration-300 flex flex-col items-center gap-2 overflow-hidden min-w-0 min-h-[142px] sm:min-h-[154px]"
+                  className="group bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-200 hover:border-orange-200 hover:shadow-sm hover:bg-white transition-all duration-300 flex flex-col items-center gap-2 overflow-hidden min-w-0 min-h-[142px] sm:min-h-[154px]"
                 >
-                  <div className="relative w-[82px] h-[82px] sm:w-[96px] sm:h-[96px] md:w-[104px] md:h-[104px] rounded-full overflow-hidden border-2 border-slate-200 bg-white shadow-inner group-hover:border-orange-300 transition-colors flex-shrink-0">
+                  <div className="relative w-[92px] h-[92px] sm:w-[108px] sm:h-[108px] md:w-[118px] md:h-[118px] rounded-full overflow-hidden border border-slate-200 bg-white shadow-inner group-hover:border-orange-300 transition-colors flex-shrink-0">
                     <img
                       src={resolveCategoryImage(cat.image_url)}
                       alt={cat.name}
@@ -120,7 +124,7 @@ export function Home() {
                       onError={(e) => onImageError(e, cat.name)}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-full object-contain rounded-full p-2 sm:p-2.5 md:p-3"
+                      className="w-full h-full object-contain rounded-full p-1 sm:p-1.5 md:p-2 transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                   </div>
                   <div className="text-center">
@@ -178,6 +182,18 @@ export function Home() {
           )}
         </div>
       </section>
+      <section className="bg-gray-50 py-10">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-6"><div><h2 className="text-xl font-black text-gray-900 uppercase tracking-wide">All Products</h2><p className="text-xs text-gray-500 mt-1">Browse the complete creator-gadget collection.</p></div><button onClick={()=>navigate('shop')} className="flex items-center gap-1 text-orange-500 text-sm font-semibold">Shop All <ChevronRight size={16}/></button></div>
+          {allProductsLoading ? <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">{[...Array(5)].map((_,i)=><div key={i} className="animate-pulse bg-gray-200 rounded-xl h-64"/>)}</div> : <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">{allProducts.slice(0,visibleProducts).map(p=><ProductCard key={p.id} product={p}/>)}</div>
+            {allProducts.length>visibleProducts&&<div className="flex justify-center mt-7"><button onClick={()=>setVisibleProducts(v=>Math.min(v+10,allProducts.length))} className="px-7 py-3 rounded-xl bg-white border border-orange-200 text-orange-600 font-black hover:bg-orange-50">Load More Products</button></div>}
+          </>}
+        </div>
+      </section>
+      <PromotionalSlider />
+      <section className="bg-white py-6"><div className="max-w-7xl mx-auto px-4"><div className="rounded-2xl bg-orange-500 text-white px-6 py-8 sm:px-10 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-sm"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-orange-100">Creator Gear • Nationwide Delivery</p><h2 className="text-2xl sm:text-3xl font-black mt-1">Ready to upgrade your setup?</h2><p className="text-sm text-orange-50 mt-1">Shop microphones, lights, tripods and everyday creator accessories.</p></div><button onClick={()=>navigate('shop')} className="shrink-0 bg-white text-orange-600 hover:bg-orange-50 font-black px-6 py-3 rounded-xl">Shop All Products</button></div></div></section>
+      <RecentlyViewed />
     </div>
   );
 }

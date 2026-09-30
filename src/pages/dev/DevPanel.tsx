@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink,
-  Image, Menu, X, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2, Megaphone, BadgeCheck
+  Image, Menu, X, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2, Megaphone, BadgeCheck, Plus, Trash2
 } from 'lucide-react';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
@@ -11,7 +11,7 @@ import { devLogout } from '../../lib/devAuth';
 import { useToast } from '../../context/ToastContext';
 import { AccountSecurity } from '../../components/AccountSecurity';
 import { AccountManagement } from '../../components/AccountManagement';
-import type { DesignSettings, SiteSettings } from '../../types';
+import type { DesignSettings, SiteSettings, PromoSlide } from '../../types';
 
 const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] = [
   { value: 'sm', label: 'Small' },
@@ -20,7 +20,7 @@ const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] =
   { value: 'xl', label: 'Extra Large' },
 ];
 
-type Section = 'logo' | 'header' | 'hero' | 'announcement' | 'trust' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
+type Section = 'logo' | 'header' | 'hero' | 'announcement' | 'trust' | 'slider' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
 
 const SECTIONS: { id: Section; label: string; icon: typeof Image; description: string }[] = [
   { id: 'logo', label: 'Logo', icon: Image, description: 'Logo image and sizing' },
@@ -28,6 +28,7 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
   { id: 'hero', label: 'Hero', icon: Layout, description: 'Hero banner, border and presentation' },
   { id: 'announcement', label: 'Announcement Bar', icon: Megaphone, description: 'Top scrolling strip and messages' },
   { id: 'trust', label: 'Trust Badges', icon: BadgeCheck, description: 'Four badges below the hero' },
+  { id: 'slider', label: 'Promotional Slider', icon: Sparkles, description: 'Slides, layout, timing and Recently Viewed' },
   { id: 'buttons', label: 'Buttons & Animations', icon: Sparkles, description: 'Button colors, radius and interactions' },
   { id: 'checkout', label: 'Checkout / Payment', icon: CreditCard, description: 'COD, advance payment and payment details' },
   { id: 'footer', label: 'Footer', icon: PanelBottom, description: 'All footer content and links' },
@@ -41,6 +42,9 @@ const ORIGINAL_DESIGN_SETTINGS: DesignSettings = {
   hero: { borderWidth: 0, borderColor: '#e5e7eb', radius: 0, shadow: 'none' },
   buttons: { radius: 8, fontWeight: 700, hoverScale: 1.02, transitionMs: 240, bgColor: '#f97316', hoverBgColor: '#ea580c', hoverTextColor: '#ffffff', textColor: '#ffffff', hoverShadow: 'soft' },
   animations: { enabled: true, style: 'lift-scale', hoverLift: 2, clickScale: 0.98 },
+  announcementBar: { height: 38, fontSize: 12, fontWeight: 800, horizontalPadding: 24 },
+  promoSlider: { enabled: true, heading: 'Featured Deals', subheading: 'Creator gear selected for your next setup', auto_play: true, auto_play_ms: 5000, show_arrows: true, show_dots: true, background: '#fff7ed', accent: '#f97316', text_color: '#111827', radius: 24, slides: [] },
+  recentlyViewed: { enabled: true, heading: 'Recently Viewed Products', max_items: 8, auto_play: true, auto_play_ms: 4000 },
 };
 
 const INPUT_CLASS = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition-colors';
@@ -282,8 +286,8 @@ export function DevPanel() {
           <input type="checkbox" checked={form.announcement_whatsapp_enabled} onChange={e => update('announcement_whatsapp_enabled', e.target.checked)} className="w-5 h-5 accent-purple-600" />
         </label>
         <TextArea label="Scrolling messages — separate each message with |" value={form.announcement_messages} onChange={v => update('announcement_messages', v)} rows={4} />
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <p className="text-xs font-bold text-gray-400 mb-2">Preview</p>
+        <div className="grid sm:grid-cols-2 gap-4"><Field label="Bar height (px)" value={form.design_settings.announcementBar.height} type="number" onChange={v=>updateDesign('announcementBar',{height:Number(v)||0})}/><Field label="Text size (px)" value={form.design_settings.announcementBar.fontSize} type="number" onChange={v=>updateDesign('announcementBar',{fontSize:Number(v)||0})}/><Field label="Text weight" value={form.design_settings.announcementBar.fontWeight} type="number" onChange={v=>updateDesign('announcementBar',{fontWeight:Number(v)||400})}/><Field label="Horizontal spacing" value={form.design_settings.announcementBar.horizontalPadding} type="number" onChange={v=>updateDesign('announcementBar',{horizontalPadding:Number(v)||0})}/></div>
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4"><p className="text-xs font-bold text-gray-400 mb-2">Preview</p>
           <div className="bg-black text-white rounded-lg overflow-hidden">
             <div className="py-2 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">
               {form.announcement_whatsapp_enabled && <span className="px-4">WhatsApp: {form.whatsapp_number} — Send Your Order Details Directly</span>}
@@ -313,6 +317,20 @@ export function DevPanel() {
         ))}
       </div>
     );
+
+    if (activeSection === 'slider') {
+      const d=form.design_settings.promoSlider, rv=form.design_settings.recentlyViewed;
+      const slides=[...d.slides].sort((a,b)=>a.order-b.order);
+      const saveSlides=(next:PromoSlide[])=>updateDesign('promoSlider',{slides:next.map((s,i)=>({...s,order:i}))});
+      const addSlide=()=>saveSlides([...slides,{id:`slide-${Date.now()}`,enabled:true,order:slides.length,product_id:null,image_url:'',title:'New Promotional Slide',price:0,old_price:null,badge:'New',description:'',features:['Fast Delivery','Cash on Delivery','7 Days Return']}]);
+      const updateSlide=(id:string,patch:Partial<PromoSlide>)=>saveSlides(slides.map(s=>s.id===id?{...s,...patch}:s));
+      const removeSlide=(id:string)=>saveSlides(slides.filter(s=>s.id!==id));
+      return <div className={cardCls}><SectionTitle title="Promotional Slider" text="Private controls for design and advanced content. Store admins get only basic slide fields." action={<button onClick={addSlide} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-bold"><Plus size={14}/> Add Slide</button>}/>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={d.enabled} onChange={e=>updateDesign('promoSlider',{enabled:e.target.checked})} className="accent-purple-600"/> Enable</label><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={d.auto_play} onChange={e=>updateDesign('promoSlider',{auto_play:e.target.checked})} className="accent-purple-600"/> Auto slide</label><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={d.show_arrows} onChange={e=>updateDesign('promoSlider',{show_arrows:e.target.checked})} className="accent-purple-600"/> Arrows</label><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={d.show_dots} onChange={e=>updateDesign('promoSlider',{show_dots:e.target.checked})} className="accent-purple-600"/> Dots</label><Field label="Interval (ms)" value={d.auto_play_ms} type="number" onChange={v=>updateDesign('promoSlider',{auto_play_ms:Number(v)||5000})}/><Field label="Radius (px)" value={d.radius} type="number" onChange={v=>updateDesign('promoSlider',{radius:Number(v)||0})}/><ColorField label="Background" value={d.background} onChange={v=>updateDesign('promoSlider',{background:v})}/><ColorField label="Accent" value={d.accent} onChange={v=>updateDesign('promoSlider',{accent:v})}/><Field label="Heading" value={d.heading} onChange={v=>updateDesign('promoSlider',{heading:v})}/><Field label="Subheading" value={d.subheading} onChange={v=>updateDesign('promoSlider',{subheading:v})}/></div>
+        <div className="border-t border-gray-800 pt-5 space-y-4">{slides.map((s,i)=><div key={s.id} className="rounded-2xl border border-gray-800 bg-gray-900 p-4 space-y-4"><div className="flex justify-between"><p className="font-bold text-white">Slide {i+1}</p><div className="flex gap-1"><button type="button" disabled={!i} onClick={()=>{const n=[...slides];[n[i-1],n[i]]=[n[i],n[i-1]];saveSlides(n)}} className="px-2 py-1 bg-gray-800 rounded disabled:opacity-30">↑</button><button type="button" disabled={i===slides.length-1} onClick={()=>{const n=[...slides];[n[i],n[i+1]]=[n[i+1],n[i]];saveSlides(n)}} className="px-2 py-1 bg-gray-800 rounded disabled:opacity-30">↓</button><button type="button" onClick={()=>updateSlide(s.id,{enabled:!s.enabled})} className={`px-2 py-1 rounded text-xs ${s.enabled?'bg-green-600 text-white':'bg-gray-700'}`}>{s.enabled?'Enabled':'Disabled'}</button><button type="button" onClick={()=>removeSlide(s.id)} className="p-1.5 bg-red-950 text-red-300 rounded"><Trash2 size={14}/></button></div></div><div className="grid sm:grid-cols-2 gap-4"><Field label="Title" value={s.title} onChange={v=>updateSlide(s.id,{title:v})}/><Field label="Price" value={s.price} type="number" onChange={v=>updateSlide(s.id,{price:Number(v)||0})}/><Field label="Old price" value={s.old_price??''} type="number" onChange={v=>updateSlide(s.id,{old_price:v===''?null:Number(v)})}/><Field label="Badge" value={s.badge} onChange={v=>updateSlide(s.id,{badge:v})}/></div><TextArea label="Description" value={s.description} onChange={v=>updateSlide(s.id,{description:v})}/><div className="grid sm:grid-cols-2 gap-4"><TextArea label="Feature 1" value={s.features[0]||''} onChange={v=>updateSlide(s.id,{features:[v,s.features[1]||'',s.features[2]||'']})}/><TextArea label="Feature 2" value={s.features[1]||''} onChange={v=>updateSlide(s.id,{features:[s.features[0]||'',v,s.features[2]||'']})}/><TextArea label="Feature 3" value={s.features[2]||''} onChange={v=>updateSlide(s.id,{features:[s.features[0]||'',s.features[1]||'',v]})}/><Field label="Image URL" value={s.image_url} onChange={v=>updateSlide(s.id,{image_url:v})}/></div></div>)}</div>
+        <div className="border-t border-gray-800 pt-5"><h4 className="text-sm font-bold text-white mb-3">Recently Viewed — private controls</h4><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={rv.enabled} onChange={e=>updateDesign('recentlyViewed',{enabled:e.target.checked})} className="accent-purple-600"/> Enable</label><Field label="Heading" value={rv.heading} onChange={v=>updateDesign('recentlyViewed',{heading:v})}/><Field label="Max products" value={rv.max_items} type="number" onChange={v=>updateDesign('recentlyViewed',{max_items:Math.max(2,Number(v)||8)})}/><Field label="Auto-scroll (ms)" value={rv.auto_play_ms} type="number" onChange={v=>updateDesign('recentlyViewed',{auto_play_ms:Number(v)||4000})}/></div></div>
+      </div>;
+    }
 
     if (activeSection === 'buttons') {
       const b = form.design_settings.buttons, a = form.design_settings.animations;
