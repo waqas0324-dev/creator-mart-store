@@ -23,6 +23,19 @@ export function ProductDetail() {
     ? Array.from(new Set([product.image_url, ...(Array.isArray(product.images) ? product.images : [])].filter(Boolean)))
     : [];
 
+  const { addItem } = useCart();
+  const { toggleItem, isInWishlist } = useWishlist();
+  const { products: related } = useProducts({ categorySlug: product?.categories?.slug });
+  const { reviews, loading: reviewsLoading, submitReview } = useReviews(product?.id || '');
+  const [quantity, setQuantity] = useState(1);
+  const [activeImage, setActiveImage] = useState(0);
+  const [activeTab, setActiveTab] = useState<'description' | 'info' | 'reviews'>('description');
+  const [added, setAdded] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ customer_name: '', phone: '', rating: 5, comment: '' });
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [hoveredStar, setHoveredStar] = useState(0);
+
   useSEO({
     title: product ? `${product.name} - Buy Online in Pakistan | ${BRAND_NAME}` : `Loading... | ${BRAND_NAME}`,
     description: product
