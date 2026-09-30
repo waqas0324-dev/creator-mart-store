@@ -112,7 +112,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="mt-auto flex gap-1.5 sm:gap-2">
           <button
             onClick={() => { addItem(product); showToast('Your product has been added to cart', 'cart'); }}
-            className={design.animations.enabled ? "flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 btn-interactive" : "flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3"}
+            className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 btn-interactive"
             data-design-animation={design.animations.style}
             data-design-button="true"
             style={{
