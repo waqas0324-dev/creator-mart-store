@@ -58,6 +58,14 @@ export function Checkout() {
     if (!form.address.trim()) e.address = 'Required';
     if (!form.city) e.city = 'Required';
     setErrors(e);
+    const firstError = Object.keys(e)[0];
+    if (firstError) {
+      requestAnimationFrame(() => {
+        const field = document.querySelector<HTMLElement>(`[data-checkout-field="${firstError}"]`);
+        field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement) field.focus();
+      });
+    }
     return Object.keys(e).length === 0;
   };
 
@@ -230,34 +238,34 @@ export function Checkout() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
-                    <input type="text" placeholder="Enter your full name" value={form.fullName} onChange={e => update('fullName', e.target.value)} className={inputCls('fullName')} />
+                    <input data-checkout-field="fullName" type="text" placeholder="Enter your full name" value={form.fullName} onChange={e => update('fullName', e.target.value)} className={inputCls('fullName')} />
                     {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
-                    <input type="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => updatePhone(e.target.value)} className={inputCls('phone')} />
+                    <input data-checkout-field="phone" type="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => updatePhone(e.target.value)} className={inputCls('phone')} />
                     {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                   </div>
                   <div>
                     <div className="mb-1">
                       <label className="block text-xs font-semibold text-gray-700">WhatsApp Number <span className="text-red-500">*</span></label>
                     </div>
-                    <input type="tel" placeholder="03xx xxx xxxx" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} className={inputCls('whatsapp')} />
+                    <input data-checkout-field="whatsapp" type="tel" placeholder="03xx xxx xxxx" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} className={inputCls('whatsapp')} />
                     {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
-                    <input type="email" placeholder="Enter your email (optional)" value={form.email} onChange={e => update('email', e.target.value)} className={inputCls('email')} />
+                    <input data-checkout-field="email" type="email" placeholder="Enter your email (optional)" value={form.email} onChange={e => update('email', e.target.value)} className={inputCls('email')} />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
-                    <input type="text" placeholder="House no., Street, Area" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} />
+                    <input data-checkout-field="address" type="text" placeholder="House no., Street, Area" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} />
                     {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Select City <span className="text-red-500">*</span></label>
-                      <select value={form.city} onChange={e => update('city', e.target.value)} className={inputCls('city')}>
+                      <select data-checkout-field="city" value={form.city} onChange={e => update('city', e.target.value)} className={inputCls('city')}>
                         <option value="">Select your city</option>
                         {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
@@ -265,7 +273,7 @@ export function Checkout() {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Select Area</label>
-                      <input type="text" placeholder="Area / Sector" value={form.area} onChange={e => update('area', e.target.value)} className={inputCls('area')} />
+                      <input data-checkout-field="area" type="text" placeholder="Area / Sector" value={form.area} onChange={e => update('area', e.target.value)} className={inputCls('area')} />
                     </div>
                   </div>
                 </div>
