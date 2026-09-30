@@ -50,6 +50,7 @@ const AdminLoadingScreen = () => (
 function Router() {
   const { nav, navigate } = useNavigation();
   const [authChecked, setAuthChecked] = useState(false);
+  const [adminAuthorized, setAdminAuthorized] = useState(false);
   const [devAuthChecked, setDevAuthChecked] = useState(false);
   const [devAuthorized, setDevAuthorized] = useState(false);
 
@@ -67,11 +68,13 @@ function Router() {
   useEffect(() => {
     if (!ADMIN_PAGES.includes(nav.page) || nav.page === 'admin-login') {
       setAuthChecked(true);
+      if (nav.page === 'admin-login') setAdminAuthorized(false);
       return;
     }
+    setAuthChecked(false);
     syncAdminSession()
-      .then(() => setAuthChecked(true))
-      .catch(() => setAuthChecked(true));
+      .then(ok => { setAdminAuthorized(ok); setAuthChecked(true); })
+      .catch(() => { setAdminAuthorized(false); setAuthChecked(true); });
   }, [nav.page]);
 
   useEffect(() => {
@@ -108,6 +111,8 @@ function Router() {
           <AdminLogin />
         ) : !authChecked ? (
           <AdminLoadingScreen />
+        ) : !adminAuthorized ? (
+          <AdminLogin />
         ) : (
           <>
             {nav.page === 'admin' && <AdminDashboard />}
