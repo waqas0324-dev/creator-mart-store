@@ -98,6 +98,11 @@ export function Shop() {
 
   useEffect(() => { fetchProducts(); }, [selectedCategory, searchQuery, maxPrice, sortBy]);
 
+  useEffect(() => {
+    supabase.from('products').select('id', { count: 'exact', head: true })
+      .then(({ count }) => setTotalProductCount(count || 0));
+  }, []);
+
   const activeCategoryName = categories.find(c => c.slug === selectedCategory)?.name;
   useSEO({
     title: activeCategoryName
