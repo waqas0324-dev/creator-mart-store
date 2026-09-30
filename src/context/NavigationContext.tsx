@@ -71,21 +71,16 @@ function buildUrl(page: Page, params?: Partial<Omit<NavState, 'page'>>): string 
 }
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
-  const [nav, setNav] = useState<NavState>(() => {
-    const initial = parseLocation();
-    const path = window.location.pathname;
-    const isCustomerRoute = !path.startsWith('/admin') && !path.startsWith('/ws-studio') && !path.startsWith('/dev/studio');
-    const isCustomerRefresh = isCustomerRoute && path !== '/';
-    if (isCustomerRefresh) {
-      window.history.replaceState(null, '', '/');
-      return { page: 'home' };
-    }
-    return initial;
-  });
+  const [nav, setNav] = useState<NavState>(() => parseLocation());
+
   useEffect(() => {
-    if (nav.page === 'home') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    }
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    const resetHomeScroll = () => {
+      if (nav.page === 'home') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    };
+    requestAnimationFrame(() => requestAnimationFrame(resetHomeScroll));
+    return () => { window.history.scrollRestoration = previous; };
   }, [nav.page]);
 
   useEffect(() => {
