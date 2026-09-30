@@ -66,9 +66,19 @@ function Router() {
   }, [navigate]);
 
   useEffect(() => {
+    const onAdminAuthenticated = () => setAdminAuthorized(true);
+    window.addEventListener('cm-admin-authenticated', onAdminAuthenticated);
+    return () => window.removeEventListener('cm-admin-authenticated', onAdminAuthenticated);
+  }, []);
+
+  useEffect(() => {
     if (!ADMIN_PAGES.includes(nav.page) || nav.page === 'admin-login') {
       setAuthChecked(true);
       if (nav.page === 'admin-login') setAdminAuthorized(false);
+      return;
+    }
+    if (adminAuthorized) {
+      setAuthChecked(true);
       return;
     }
     setAuthChecked(false);
@@ -78,7 +88,17 @@ function Router() {
   }, [nav.page]);
 
   useEffect(() => {
+    const onDevAuthenticated = () => setDevAuthorized(true);
+    window.addEventListener('cm-dev-authenticated', onDevAuthenticated);
+    return () => window.removeEventListener('cm-dev-authenticated', onDevAuthenticated);
+  }, []);
+
+  useEffect(() => {
     if (!DEV_PAGES.includes(nav.page) || nav.page === 'dev-login') {
+      setDevAuthChecked(true);
+      return;
+    }
+    if (devAuthorized) {
       setDevAuthChecked(true);
       return;
     }
