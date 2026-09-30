@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Upload, Loader2, CheckCircle, ShieldCheck, LogOut, ExternalLink,
-  Image, Menu, X, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2, Megaphone, BadgeCheck
+  Image, Eye, Trash2, ChevronUp, ChevronDown, Plus, Menu, X, Layout, Sparkles, CreditCard, PanelBottom, MapPin, Share2, Megaphone, BadgeCheck
 } from 'lucide-react';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useNavigation } from '../../context/NavigationContext';
@@ -20,7 +20,7 @@ const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] =
   { value: 'xl', label: 'Extra Large' },
 ];
 
-type Section = 'logo' | 'header' | 'hero' | 'announcement' | 'trust' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
+type Section = 'logo' | 'header' | 'hero' | 'announcement' | 'trust' | 'slider' | 'recentlyViewed' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
 
 const SECTIONS: { id: Section; label: string; icon: typeof Image; description: string }[] = [
   { id: 'logo', label: 'Logo', icon: Image, description: 'Logo image and sizing' },
@@ -28,6 +28,8 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
   { id: 'hero', label: 'Hero', icon: Layout, description: 'Hero banner, border and presentation' },
   { id: 'announcement', label: 'Announcement Bar', icon: Megaphone, description: 'Top scrolling strip and messages' },
   { id: 'trust', label: 'Trust Badges', icon: BadgeCheck, description: 'Four badges below the hero' },
+  { id: 'slider', label: 'Promotional Slider', icon: Sparkles, description: 'Editable product promotion slides' },
+  { id: 'recentlyViewed', label: 'Recently Viewed', icon: Eye, description: 'Recently viewed products' },
   { id: 'buttons', label: 'Buttons & Animations', icon: Sparkles, description: 'Button colors, radius and interactions' },
   { id: 'checkout', label: 'Checkout / Payment', icon: CreditCard, description: 'COD, advance payment and payment details' },
   { id: 'footer', label: 'Footer', icon: PanelBottom, description: 'All footer content and links' },
@@ -314,6 +316,20 @@ export function DevPanel() {
       </div>
     );
 
+    if (activeSection === 'slider') {
+      const d=form.design_settings.promoSlider; const slides=[...(d.slides||[])].sort((a,b)=>a.order-b.order);
+      const addSlide=()=>updateDesign('promoSlider',{slides:[...slides,{id:crypto.randomUUID(),enabled:true,order:slides.length,product_id:null,image_url:'',title:'New Promotion',price:0,old_price:null,badge:'FEATURED',description:'',features:['Quality build','Creator friendly','Nationwide delivery']}]});
+      const patch=(id:string,p:Partial<PromoSlide>)=>updateDesign('promoSlider',{slides:slides.map(s=>s.id===id?{...s,...p}:s)});
+      const remove=(id:string)=>updateDesign('promoSlider',{slides:slides.filter(s=>s.id!==id).map((s,i)=>({...s,order:i}))});
+      const move=(id:string,dir:number)=>{const i=slides.findIndex(s=>s.id===id),j=i+dir;if(i<0||j<0||j>=slides.length)return;const a=[...slides];[a[i],a[j]]=[a[j],a[i]];updateDesign('promoSlider',{slides:a.map((s,k)=>({...s,order:k}))});};
+      return <div className={cardCls}><SectionTitle title="Promotional Product Slider" text="Add, edit, reorder, enable/disable and control every slide. Changes auto-save." action={<button onClick={addSlide} className="px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-bold flex items-center gap-1"><Plus size={14}/> Add Slide</button>}/>
+        <div className="grid sm:grid-cols-2 gap-4"><label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Enable slider</span><input type="checkbox" checked={d.enabled} onChange={e=>updateDesign('promoSlider',{enabled:e.target.checked})} className="w-5 h-5 accent-purple-600"/></label><Field label="Auto-play interval (ms)" value={d.auto_play_ms} type="number" onChange={v=>updateDesign('promoSlider',{auto_play_ms:Math.max(2500,Number(v)||4500)})}/><Field label="Heading" value={d.heading} onChange={v=>updateDesign('promoSlider',{heading:v})}/><Field label="Subheading" value={d.subheading} onChange={v=>updateDesign('promoSlider',{subheading:v})}/></div>
+        <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={d.auto_play} onChange={e=>updateDesign('promoSlider',{auto_play:e.target.checked})}/> Auto-play</label>
+        {slides.length===0&&<div className="rounded-xl border border-dashed border-gray-700 p-5 text-sm text-gray-400">No manual slides yet. The storefront automatically uses current products until you add custom slides.</div>}
+        {slides.map((s,i)=><div key={s.id} className="rounded-2xl border border-gray-800 bg-gray-900 p-4 space-y-3"><div className="flex items-center justify-between"><span className="text-xs font-black text-purple-400">SLIDE {i+1}</span><div className="flex gap-1"><button onClick={()=>move(s.id,-1)} disabled={i===0} className="p-2 rounded bg-gray-800 disabled:opacity-30"><ChevronUp size={14}/></button><button onClick={()=>move(s.id,1)} disabled={i===slides.length-1} className="p-2 rounded bg-gray-800 disabled:opacity-30"><ChevronDown size={14}/></button><button onClick={()=>remove(s.id)} className="p-2 rounded bg-gray-800 text-red-400"><Trash2 size={14}/></button></div></div><label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={s.enabled} onChange={e=>patch(s.id,{enabled:e.target.checked})}/> Enabled</label><div className="grid sm:grid-cols-2 gap-3"><Field label="Title" value={s.title} onChange={v=>patch(s.id,{title:v})}/><Field label="Badge" value={s.badge} onChange={v=>patch(s.id,{badge:v})}/><Field label="Price" value={s.price} type="number" onChange={v=>patch(s.id,{price:Number(v)||0})}/><Field label="Old price" value={s.old_price||0} type="number" onChange={v=>patch(s.id,{old_price:Number(v)||null})}/></div><Field label="Image URL" value={s.image_url} onChange={v=>patch(s.id,{image_url:v})}/><TextArea label="Short description" value={s.description} onChange={v=>patch(s.id,{description:v})}/><div className="grid sm:grid-cols-3 gap-3">{[0,1,2].map(i=><Field key={i} label={'Feature '+(i+1)} value={s.features?.[i]||''} onChange={v=>{const f=[...(s.features||[])];f[i]=v;patch(s.id,{features:f.slice(0,3)})}}/>)}</div><Field label="Product ID (Shop Now target)" value={s.product_id||''} onChange={v=>patch(s.id,{product_id:v||null})}/></div>)}
+      </div>;
+    }
+    if (activeSection === 'recentlyViewed') { const d=form.design_settings.recentlyViewed; return <div className={cardCls}><SectionTitle title="Recently Viewed" text="Automatic product history section near the bottom of the homepage."/><label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Enable section</span><input type="checkbox" checked={d.enabled} onChange={e=>updateDesign('recentlyViewed',{enabled:e.target.checked})} className="w-5 h-5 accent-purple-600"/></label><div className="grid sm:grid-cols-2 gap-4"><Field label="Heading" value={d.heading} onChange={v=>updateDesign('recentlyViewed',{heading:v})}/><Field label="Maximum products" value={d.max_items} type="number" onChange={v=>updateDesign('recentlyViewed',{max_items:Math.min(12,Math.max(2,Number(v)||8))})}/><Field label="Auto-scroll interval (ms)" value={d.auto_play_ms} type="number" onChange={v=>updateDesign('recentlyViewed',{auto_play_ms:Math.max(3000,Number(v)||3500)})}/></div><label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={d.auto_play} onChange={e=>updateDesign('recentlyViewed',{auto_play:e.target.checked})}/> Auto-scroll</label></div>; }
     if (activeSection === 'buttons') {
       const b = form.design_settings.buttons, a = form.design_settings.animations;
       return <div className={cardCls}>
