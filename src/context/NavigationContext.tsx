@@ -37,7 +37,8 @@ function parseLocation(): NavState {
   if (productMatch) {
     return { page: 'product', productSlug: decodeURIComponent(productMatch[1]), categorySlug: url.searchParams.get('category') || undefined, searchQuery: url.searchParams.get('search') || undefined };
   }
-  const exactPage = PATH_TO_PAGE.get(url.pathname);
+  const normalizedPath = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
+  const exactPage = PATH_TO_PAGE.get(normalizedPath);
   if (exactPage) {
     const state: NavState = { page: exactPage };
     const categorySlug = url.searchParams.get('category');
