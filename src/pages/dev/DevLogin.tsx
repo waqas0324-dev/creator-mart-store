@@ -102,6 +102,7 @@ export function DevLogin() {
         return;
       }
       localStorage.setItem('cm_dev_email_hint', email.trim().toLowerCase());
+      window.dispatchEvent(new Event('cm-dev-authenticated'));
       setLoading(false);
       navigate('dev-panel');
     } catch {
