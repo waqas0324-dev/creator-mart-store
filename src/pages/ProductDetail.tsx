@@ -16,6 +16,7 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
   const { product, loading } = useProduct(nav.productSlug || '');
+  useEffect(() => { if (!product?.id) return; try { const key='abr_recently_viewed'; const ids=JSON.parse(localStorage.getItem(key)||'[]') as string[]; const next=[product.id,...ids.filter(id=>id!==product.id)].slice(0,12); localStorage.setItem(key,JSON.stringify(next)); window.dispatchEvent(new Event('abr-recently-viewed-updated')); } catch {} }, [product?.id]);
   const { settings: waSettings } = useSiteSettings();
   const WHATSAPP_LINK = `https://wa.me/${toWhatsAppNumber(waSettings.whatsapp_number)}`;
 
