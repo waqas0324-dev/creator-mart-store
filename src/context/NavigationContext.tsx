@@ -72,6 +72,17 @@ function buildUrl(page: Page, params?: Partial<Omit<NavState, 'page'>>): string 
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [nav, setNav] = useState<NavState>(() => parseLocation());
+
+  useEffect(() => {
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    const resetHomeScroll = () => {
+      if (nav.page === 'home') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    };
+    requestAnimationFrame(() => requestAnimationFrame(resetHomeScroll));
+    return () => { window.history.scrollRestoration = previous; };
+  }, [nav.page]);
+
   useEffect(() => {
     const onPopState = () => setNav(parseLocation());
     window.addEventListener('popstate', onPopState);
