@@ -157,50 +157,6 @@ export function AdminProductForm() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Basic Information</h3>
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Product Name <span className="text-red-500">*</span></label>
-              <input type="text" value={form.name} onChange={e => { update('name', e.target.value); if (!isEdit) update('slug', generateSlug(e.target.value)); }} className={inputCls('name')} placeholder="e.g. Boya BY-M1 Collar Microphone" />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Slug (URL)</label>
-                <input type="text" value={form.slug} onChange={e => update('slug', e.target.value)} className={inputCls('slug')} placeholder="auto-generated" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
-                <select value={form.category_id} onChange={e => update('category_id', e.target.value)} className={inputCls('category_id')}>
-                  <option value="">Select Category</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
-              <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={4} className={`${inputCls('description')} resize-none`} placeholder="Product description..." />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
-            <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Pricing & Inventory</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Price (Rs.) — auto-calculated, or type to override', field: 'price', placeholder: '1490', required: true },
-                { label: 'Original Price (Rs.)', field: 'original_price', placeholder: '1990' },
-                { label: 'Discount %', field: 'discount_percent', placeholder: '25' },
-                { label: 'Stock', field: 'stock', placeholder: '100' },
-              ].map(({ label, field, placeholder, required }) => (
-                <div key={field}>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">{label} {required && <span className="text-red-500">*</span>}</label>
-                  <input type="number" value={(form as Record<string, string | boolean>)[field] as string} onChange={e => update(field, e.target.value)} className={inputCls(field)} placeholder={placeholder} />
-                  {errors[field] && <p className="text-red-500 text-xs mt-1">{errors[field]}</p>}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
             <div>
               <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Product Images</h3>
               <p className="text-xs text-gray-400 mt-0.5">
@@ -315,6 +271,51 @@ export function AdminProductForm() {
             )}
 
             {errors.image_url && <p className="text-red-500 text-xs mt-1">{errors.image_url}</p>}
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+            <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Basic Information</h3>
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Product Name <span className="text-red-500">*</span></label>
+              <input type="text" value={form.name} onChange={e => { update('name', e.target.value); if (!isEdit) update('slug', generateSlug(e.target.value)); }} className={inputCls('name')} placeholder="e.g. Boya BY-M1 Collar Microphone" />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">URL Slug</label>
+                <input type="text" value={form.slug} onChange={e => update('slug', e.target.value)} className={inputCls('slug')} placeholder="auto-generated" />
+                <p className="text-[11px] text-gray-400 mt-1">Used to create the product page URL.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
+                <select value={form.category_id} onChange={e => update('category_id', e.target.value)} className={inputCls('category_id')}>
+                  <option value="">Select Category</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
+              <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={4} className={`${inputCls('description')} resize-none`} placeholder="Product description..." />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+            <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Pricing & Inventory</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Price (Rs.) — auto-calculated, or type to override', field: 'price', placeholder: '1490', required: true },
+                { label: 'Original Price (Rs.)', field: 'original_price', placeholder: '1990' },
+                { label: 'Discount %', field: 'discount_percent', placeholder: '25' },
+                { label: 'Stock', field: 'stock', placeholder: '100' },
+              ].map(({ label, field, placeholder, required }) => (
+                <div key={field}>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">{label} {required && <span className="text-red-500">*</span>}</label>
+                  <input type="number" value={(form as Record<string, string | boolean>)[field] as string} onChange={e => update(field, e.target.value)} className={inputCls(field)} placeholder={placeholder} />
+                  {errors[field] && <p className="text-red-500 text-xs mt-1">{errors[field]}</p>}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
