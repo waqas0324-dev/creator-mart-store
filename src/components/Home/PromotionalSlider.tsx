@@ -48,7 +48,14 @@ export function PromotionalSlider() {
   useEffect(() => {
     if (!cfg.auto_play || slides.length < 2) return;
     const id = window.setInterval(() => setIndex(i => (i + 1) % slides.length), Math.max(2500, cfg.auto_play_ms || 4500));
-    return (
+    return () => window.clearInterval(id);
+  }, [cfg.auto_play, cfg.auto_play_ms, slides.length]);
+
+  if (!cfg.enabled || !slides.length) return null;
+
+  const featureIcons = [Zap, Tag, VolumeX];
+
+  return (
     <section className="bg-white py-8 sm:py-10">
       <div className="max-w-7xl mx-auto px-3 sm:px-4">
         <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#e8e9f0] bg-[#f5f6fb] shadow-sm min-h-[410px] sm:min-h-[430px]">
