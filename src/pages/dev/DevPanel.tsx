@@ -9,6 +9,7 @@ import { useNavigation } from '../../context/NavigationContext';
 import { supabase } from '../../lib/supabase';
 import { devLogout } from '../../lib/devAuth';
 import { useToast } from '../../context/ToastContext';
+import { useProducts } from '../../hooks/useProducts';
 import { AccountSecurity } from '../../components/AccountSecurity';
 import { AccountManagement } from '../../components/AccountManagement';
 import type { DesignSettings, SiteSettings, PromoSlide } from '../../types';
@@ -68,12 +69,14 @@ export function DevPanel() {
   const { settings, loading, updateSettings } = useSiteSettings();
   const { navigate } = useNavigation();
   const { showToast } = useToast();
+  const { products: studioProducts } = useProducts();
   const [form, setForm] = useState(settings);
   const [activeSection, setActiveSection] = useState<Section>('logo');
   const [sectionMenuOpen, setSectionMenuOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
+  const [uploadingPromoSlideId, setUploadingPromoSlideId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<Partial<SiteSettings>>({});
@@ -317,16 +320,122 @@ export function DevPanel() {
     );
 
     if (activeSection === 'slider') {
-      const d=form.design_settings.promoSlider; const slides=[...(d.slides||[])].sort((a,b)=>a.order-b.order);
-      const addSlide=()=>updateDesign('promoSlider',{slides:[...slides,{id:crypto.randomUUID(),enabled:true,order:slides.length,product_id:null,image_url:'',title:'New Promotion',price:0,old_price:null,badge:'FEATURED',description:'',features:['Quality build','Creator friendly','Nationwide delivery']}]});
-      const patch=(id:string,p:Partial<PromoSlide>)=>updateDesign('promoSlider',{slides:slides.map(s=>s.id===id?{...s,...p}:s)});
-      const remove=(id:string)=>updateDesign('promoSlider',{slides:slides.filter(s=>s.id!==id).map((s,i)=>({...s,order:i}))});
-      const move=(id:string,dir:number)=>{const i=slides.findIndex(s=>s.id===id),j=i+dir;if(i<0||j<0||j>=slides.length)return;const a=[...slides];[a[i],a[j]]=[a[j],a[i]];updateDesign('promoSlider',{slides:a.map((s,k)=>({...s,order:k}))});};
-      return <div className={cardCls}><SectionTitle title="Promotional Product Slider" text="Add, edit, reorder, enable/disable and control every slide. Changes auto-save." action={<button onClick={addSlide} className="px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-bold flex items-center gap-1"><Plus size={14}/> Add Slide</button>}/>
-        <div className="grid sm:grid-cols-2 gap-4"><label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Enable slider</span><input type="checkbox" checked={d.enabled} onChange={e=>updateDesign('promoSlider',{enabled:e.target.checked})} className="w-5 h-5 accent-purple-600"/></label><Field label="Auto-play interval (ms)" value={d.auto_play_ms} type="number" onChange={v=>updateDesign('promoSlider',{auto_play_ms:Math.max(2500,Number(v)||4500)})}/><Field label="Heading" value={d.heading} onChange={v=>updateDesign('promoSlider',{heading:v})}/><Field label="Subheading" value={d.subheading} onChange={v=>updateDesign('promoSlider',{subheading:v})}/></div>
-        <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={d.auto_play} onChange={e=>updateDesign('promoSlider',{auto_play:e.target.checked})}/> Auto-play</label>
-        {slides.length===0&&<div className="rounded-xl border border-dashed border-gray-700 p-5 text-sm text-gray-400">No manual slides yet. The storefront automatically uses current products until you add custom slides.</div>}
-        {slides.map((s,i)=><div key={s.id} className="rounded-2xl border border-gray-800 bg-gray-900 p-4 space-y-3"><div className="flex items-center justify-between"><span className="text-xs font-black text-purple-400">SLIDE {i+1}</span><div className="flex gap-1"><button onClick={()=>move(s.id,-1)} disabled={i===0} className="p-2 rounded bg-gray-800 disabled:opacity-30"><ChevronUp size={14}/></button><button onClick={()=>move(s.id,1)} disabled={i===slides.length-1} className="p-2 rounded bg-gray-800 disabled:opacity-30"><ChevronDown size={14}/></button><button onClick={()=>remove(s.id)} className="p-2 rounded bg-gray-800 text-red-400"><Trash2 size={14}/></button></div></div><label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={s.enabled} onChange={e=>patch(s.id,{enabled:e.target.checked})}/> Enabled</label><div className="grid sm:grid-cols-2 gap-3"><Field label="Title" value={s.title} onChange={v=>patch(s.id,{title:v})}/><Field label="Badge" value={s.badge} onChange={v=>patch(s.id,{badge:v})}/><Field label="Price" value={s.price} type="number" onChange={v=>patch(s.id,{price:Number(v)||0})}/><Field label="Old price" value={s.old_price||0} type="number" onChange={v=>patch(s.id,{old_price:Number(v)||null})}/></div><Field label="Image URL" value={s.image_url} onChange={v=>patch(s.id,{image_url:v})}/><TextArea label="Short description" value={s.description} onChange={v=>patch(s.id,{description:v})}/><div className="grid sm:grid-cols-3 gap-3">{[0,1,2].map(i=><Field key={i} label={'Feature '+(i+1)} value={s.features?.[i]||''} onChange={v=>{const f=[...(s.features||[])];f[i]=v;patch(s.id,{features:f.slice(0,3)})}}/>)}</div><Field label="Product ID (Shop Now target)" value={s.product_id||''} onChange={v=>patch(s.id,{product_id:v||null})}/></div>)}
+      const d = form.design_settings.promoSlider;
+      const slides = [...(d.slides || [])].sort((a, b) => a.order - b.order);
+
+      const addSlide = () => updateDesign('promoSlider', {
+        slides: [...slides, {
+          id: crypto.randomUUID(), enabled: true, order: slides.length, product_id: null,
+          image_url: '', title: 'New Promotion', price: 0, old_price: null, badge: 'TOP PICK',
+          description: 'Crystal clear quality. Perfect for creators on the go.',
+          features: ['Versatile', 'Affordable', 'Creator friendly'],
+        }],
+      });
+
+      const addDemoSlides = () => {
+        const candidates = studioProducts
+          .map((p, originalIndex) => {
+            const t = (p.name + ' ' + (p.description || '') + ' ' + (p.categories?.name || '')).toLowerCase();
+            const score =
+              (/(microphone|mic|boya|wireless mic|wm-)/.test(t) ? 40 : 0) +
+              (/(tripod|stand|phone holder|mount)/.test(t) ? 30 : 0) +
+              (/(light|ring|led|rgb|fill light)/.test(t) ? 30 : 0) +
+              (/(vlog|vlogging|creator|studio|podcast)/.test(t) ? 20 : 0);
+            return { p, score, originalIndex };
+          })
+          .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
+          .filter(x => x.score > 0);
+
+        const picked = (candidates.length ? candidates : studioProducts.map((p, originalIndex) => ({ p, score: 0, originalIndex }))).slice(0, 3);
+        updateDesign('promoSlider', {
+          slides: picked.map(({ p }, i) => ({
+            id: crypto.randomUUID(), enabled: true, order: i, product_id: p.id,
+            image_url: p.image_url, title: p.name, price: p.price, old_price: p.original_price,
+            badge: i === 0 ? 'TOP PICK' : i === 1 ? 'BEST VALUE' : 'FEATURED',
+            description: p.description?.split('.').map(s => s.trim()).filter(Boolean)[0] || 'Quality creator gear for interviews, vlogging and everyday content.',
+            features: ['Versatile', 'Affordable', 'Creator friendly'],
+          })),
+        });
+      };
+
+      const patch = (id: string, p: Partial<PromoSlide>) =>
+        updateDesign('promoSlider', { slides: slides.map(s => s.id === id ? { ...s, ...p } : s) });
+
+      const selectProduct = (id: string, productId: string) => {
+        const product = studioProducts.find(p => p.id === productId);
+        patch(id, product ? {
+          product_id: product.id, image_url: product.image_url, title: product.name,
+          price: product.price, old_price: product.original_price,
+        } : { product_id: null });
+      };
+
+      const remove = (id: string) =>
+        updateDesign('promoSlider', { slides: slides.filter(s => s.id !== id).map((s, i) => ({ ...s, order: i })) });
+
+      const move = (id: string, dir: number) => {
+        const i = slides.findIndex(s => s.id === id);
+        const j = i + dir;
+        if (i < 0 || j < 0 || j >= slides.length) return;
+        const a = [...slides];
+        [a[i], a[j]] = [a[j], a[i]];
+        updateDesign('promoSlider', { slides: a.map((s, k) => ({ ...s, order: k })) });
+      };
+
+      const uploadPromoImage = async (id: string, file: File) => {
+        setUploadingPromoSlideId(id);
+        const url = await uploadTo(file, 'promo-slides');
+        if (url) {
+          patch(id, { image_url: url });
+          showToast('Slider image uploaded', 'success');
+        } else {
+          showToast('Slider image upload failed', 'error');
+        }
+        setUploadingPromoSlideId(null);
+      };
+
+      return <div className={cardCls}>
+        <SectionTitle
+          title="Promotional Product Slider"
+          text="Reference layout: title left, product image center, price + Shop Now right. Arrows stay on the slider edges and auto-play is supported."
+          action={<div className="flex gap-2">
+            <button onClick={addDemoSlides} disabled={!studioProducts.length} className="px-3 py-2 rounded-lg bg-gray-800 text-white text-xs font-bold disabled:opacity-40">Load 3 Demo Slides</button>
+            <button onClick={addSlide} className="px-3 py-2 rounded-lg bg-purple-600 text-white text-xs font-bold flex items-center gap-1"><Plus size={14}/> Add Slide</button>
+          </div>}
+        />
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Enable slider</span><input type="checkbox" checked={d.enabled} onChange={e => updateDesign('promoSlider', { enabled: e.target.checked })} className="w-5 h-5 accent-purple-600" /></label>
+          <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Auto-play</span><input type="checkbox" checked={d.auto_play} onChange={e => updateDesign('promoSlider', { auto_play: e.target.checked })} className="w-5 h-5 accent-purple-600" /></label>
+          <Field label="Auto-play interval (ms)" value={d.auto_play_ms} type="number" onChange={v => updateDesign('promoSlider', { auto_play_ms: Math.max(2500, Number(v) || 4500) })} />
+          <Field label="Heading (optional)" value={d.heading} onChange={v => updateDesign('promoSlider', { heading: v })} />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Field label="Subheading (optional)" value={d.subheading} onChange={v => updateDesign('promoSlider', { subheading: v })} />
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex items-center gap-2 text-xs text-gray-300 bg-gray-900 border border-gray-800 rounded-xl px-3"><input type="checkbox" checked={d.show_arrows} onChange={e => updateDesign('promoSlider', { show_arrows: e.target.checked })}/> Edge arrows</label>
+            <label className="flex items-center gap-2 text-xs text-gray-300 bg-gray-900 border border-gray-800 rounded-xl px-3"><input type="checkbox" checked={d.show_dots} onChange={e => updateDesign('promoSlider', { show_dots: e.target.checked })}/> Bottom dots</label>
+          </div>
+        </div>
+
+        {slides.length === 0 && <div className="rounded-xl border border-dashed border-gray-700 p-5 text-sm text-gray-400">No manual slides yet. Click <strong className="text-white">Load 3 Demo Slides</strong> to populate the editable slider from your current creator products.</div>}
+
+        {slides.map((s, i) => (
+          <div key={s.id} className="rounded-2xl border border-gray-800 bg-gray-900 p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3"><span className="text-xs font-black text-purple-400">SLIDE {i + 1}</span><div className="flex gap-1"><button onClick={() => move(s.id, -1)} disabled={i === 0} className="p-2 rounded bg-gray-800 disabled:opacity-30"><ChevronUp size={14}/></button><button onClick={() => move(s.id, 1)} disabled={i === slides.length - 1} className="p-2 rounded bg-gray-800 disabled:opacity-30"><ChevronDown size={14}/></button><button onClick={() => remove(s.id)} className="p-2 rounded bg-gray-800 text-red-400"><Trash2 size={14}/></button></div></div>
+            <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={s.enabled} onChange={e => patch(s.id, { enabled: e.target.checked })}/> Enabled</label>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div><label className={LABEL_CLASS}>Product / Shop Now target</label><select value={s.product_id || ''} onChange={e => selectProduct(s.id, e.target.value)} className={INPUT_CLASS}><option value="">No product link</option>{studioProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+              <Field label="Title" value={s.title} onChange={v => patch(s.id, { title: v })}/>
+              <Field label="Badge" value={s.badge} onChange={v => patch(s.id, { badge: v })}/>
+              <Field label="Price" value={s.price} type="number" onChange={v => patch(s.id, { price: Number(v) || 0 })}/>
+              <Field label="Old price" value={s.old_price || 0} type="number" onChange={v => patch(s.id, { old_price: Number(v) || null })}/>
+            </div>
+            <div><label className={LABEL_CLASS}>Slider image</label><div className="flex gap-2"><input value={s.image_url} onChange={e => patch(s.id, { image_url: e.target.value })} placeholder="Image URL" className={INPUT_CLASS}/><label className="shrink-0 cursor-pointer px-3 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-xs font-bold text-gray-200 hover:border-purple-500">{uploadingPromoSlideId === s.id ? 'Uploading…' : 'Upload'}<input type="file" accept="image/*" className="hidden" disabled={uploadingPromoSlideId === s.id} onChange={e => { const f = e.target.files?.[0]; if (f) uploadPromoImage(s.id, f); e.currentTarget.value = ''; }}/></label></div></div>
+            <TextArea label="Short description" value={s.description} onChange={v => patch(s.id, { description: v })}/>
+            <div className="grid sm:grid-cols-3 gap-3">{[0, 1, 2].map(i => <Field key={i} label={'Feature ' + (i + 1)} value={s.features?.[i] || ''} onChange={v => { const f = [...(s.features || [])]; f[i] = v; patch(s.id, { features: f.slice(0, 3) }); }}/>)}</div>
+          </div>
+        ))}
       </div>;
     }
     if (activeSection === 'recentlyViewed') { const d=form.design_settings.recentlyViewed; return <div className={cardCls}><SectionTitle title="Recently Viewed" text="Automatic product history section near the bottom of the homepage."/><label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Enable section</span><input type="checkbox" checked={d.enabled} onChange={e=>updateDesign('recentlyViewed',{enabled:e.target.checked})} className="w-5 h-5 accent-purple-600"/></label><div className="grid sm:grid-cols-2 gap-4"><Field label="Heading" value={d.heading} onChange={v=>updateDesign('recentlyViewed',{heading:v})}/><Field label="Maximum products" value={d.max_items} type="number" onChange={v=>updateDesign('recentlyViewed',{max_items:Math.min(12,Math.max(2,Number(v)||8))})}/><Field label="Auto-scroll interval (ms)" value={d.auto_play_ms} type="number" onChange={v=>updateDesign('recentlyViewed',{auto_play_ms:Math.max(3000,Number(v)||3500)})}/></div><label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={d.auto_play} onChange={e=>updateDesign('recentlyViewed',{auto_play:e.target.checked})}/> Auto-scroll</label></div>; }
