@@ -13,6 +13,7 @@ import { ProductCard } from '../components/Product/ProductCard';
 import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { getPlainProductDescription, parseProductDescription } from '../lib/productDescription';
 
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
@@ -20,6 +21,9 @@ export function ProductDetail() {
   useEffect(() => { if (!product?.id) return; try { const key='abr_recently_viewed'; const ids=JSON.parse(localStorage.getItem(key)||'[]') as string[]; const next=[product.id,...ids.filter(id=>id!==product.id)].slice(0,12); localStorage.setItem(key,JSON.stringify(next)); window.dispatchEvent(new Event('abr-recently-viewed-updated')); } catch {} }, [product?.id]);
   const { settings: waSettings } = useSiteSettings();
   const WHATSAPP_LINK = `https://wa.me/${toWhatsAppNumber(waSettings.whatsapp_number)}`;
+
+  const descriptionDoc = parseProductDescription(product?.description || '');
+  const plainDescription = getPlainProductDescription(product?.description || '');
 
   const images = product
     ? Array.from(new Set([product.image_url, ...(Array.isArray(product.images) ? product.images : [])].filter(Boolean)))
@@ -42,7 +46,7 @@ export function ProductDetail() {
   useSEO({
     title: product ? `${product.name} - Buy Online in Pakistan | ${BRAND_NAME}` : `Loading... | ${BRAND_NAME}`,
     description: product
-      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${(product.description || '').slice(0, 100)}`
+      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${plainDescription.slice(0, 100)}`
       : `Buy premium content-creator gear online in Pakistan. Cash on Delivery available.`,
     image: product?.image_url || undefined,
     canonical: product ? window.location.origin + '/product/' + encodeURIComponent(product.slug) : undefined,
@@ -266,8 +270,36 @@ export function ProductDetail() {
               ))}
             </div>
             {activeTab === 'description' && (
-              <div className="text-sm text-gray-700 leading-relaxed max-w-3xl">
-                <p className="mb-4">{product.description}</p>
+              <div className="text-sm text-gray-700 leading-relaxed max-w-4xl" style={{ backgroundColor: descriptionDoc?.style.sectionBg || '#ffffff' }}>
+                {descriptionDoc ? (
+                  <div className="space-y-6">
+                    {descriptionDoc.blocks.map((block, index) => (
+                      <section key={index}>
+                        {(block.title || block.type !== 'intro') && (
+                          <h3 className="px-4 py-2.5 font-black text-base border-l-4 rounded-r-lg" style={{ backgroundColor: descriptionDoc.style.headingBg, color: descriptionDoc.style.headingText, borderLeftColor: descriptionDoc.style.accent }}>
+                            {block.title}
+                          </h3>
+                        )}
+                        {block.text && <p className="mt-3 whitespace-pre-line">{block.text}</p>}
+                        {block.items && block.items.filter(Boolean).length > 0 && (
+                          <ul className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
+                            {block.items.filter(Boolean).map((item,i)=><li key={i} className="flex items-start gap-2"><span className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: descriptionDoc.style.accent }}/><span>{item}</span></li>)}
+                          </ul>
+                        )}
+                        {block.rows && block.rows.filter(r=>r.label||r.value).length > 0 && (
+                          <div className="mt-3 overflow-hidden rounded-lg border" style={{ borderColor: descriptionDoc.style.tableBorder }}>
+                            {block.rows.filter(r=>r.label||r.value).map((row,i)=><div key={i} className="grid grid-cols-[1fr_1.5fr] border-b last:border-b-0" style={{ borderColor: descriptionDoc.style.tableBorder }}>
+                              <div className="px-3 py-2.5 font-bold" style={{ backgroundColor: descriptionDoc.style.headingBg, color: descriptionDoc.style.headingText }}>{row.label}</div>
+                              <div className="px-3 py-2.5 text-gray-700">{row.value}</div>
+                            </div>)}
+                          </div>
+                        )}
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mb-4 whitespace-pre-line">{product.description}</p>
+                )}
               </div>
             )}
             {activeTab === 'info' && (
