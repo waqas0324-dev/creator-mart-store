@@ -73,6 +73,15 @@ function buildUrl(page: Page, params?: Partial<Omit<NavState, 'page'>>): string 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [nav, setNav] = useState<NavState>(() => parseLocation());
   useEffect(() => {
+    const entry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const adminOrDev = ['admin','admin-login','admin-products','admin-categories','admin-orders','admin-product-form','admin-account','dev-login','dev-panel'].includes(nav.page);
+    if (entry?.type === 'reload' && !adminOrDev) {
+      window.history.replaceState(null, '', '/');
+      setNav({ page: 'home' });
+      requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })));
+    }
+  }, []);
+  useEffect(() => {
     const onPopState = () => setNav(parseLocation());
     window.addEventListener('popstate', onPopState);
     window.addEventListener('hashchange', onPopState);
