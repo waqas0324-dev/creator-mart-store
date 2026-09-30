@@ -68,15 +68,6 @@ export function ProductDetail() {
 
 
   useEffect(() => {
-    if (!product) return;
-    try {
-      const key='abr_recently_viewed'; const raw=localStorage.getItem(key); const ids:string[]=raw?JSON.parse(raw):[];
-      localStorage.setItem(key, JSON.stringify([product.id,...ids.filter(id=>id!==product.id)].slice(0,20)));
-      window.dispatchEvent(new Event('abr-recently-viewed-updated'));
-    } catch {}
-  }, [product?.id]);
-
-  useEffect(() => {
     if (images.length <= 1) return;
     const timer = setInterval(() => {
       setActiveImage(prev => (prev + 1) % images.length);

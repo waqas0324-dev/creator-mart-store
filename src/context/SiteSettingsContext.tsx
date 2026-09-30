@@ -71,9 +71,6 @@ const DEFAULTS: SiteSettings = {
     hero: { borderWidth: 0, borderColor: '#e5e7eb', radius: 0, shadow: 'none' },
     buttons: { radius: 8, fontWeight: 700, hoverScale: 1.02, transitionMs: 240, bgColor: '#f97316', hoverBgColor: '#ea580c', hoverTextColor: '#ffffff', textColor: '#ffffff', hoverShadow: 'soft' },
     animations: { enabled: true, style: 'lift-scale', hoverLift: 2, clickScale: 0.98 },
-    announcementBar: { height: 38, fontSize: 12, fontWeight: 800, horizontalPadding: 24 },
-    promoSlider: { enabled: true, heading: 'Featured Deals', subheading: 'Creator gear selected for your next setup', auto_play: true, auto_play_ms: 5000, show_arrows: true, show_dots: true, background: '#fff7ed', accent: '#f97316', text_color: '#111827', radius: 24, slides: [] },
-    recentlyViewed: { enabled: true, heading: 'Recently Viewed Products', max_items: 8, auto_play: true, auto_play_ms: 4000 },
   },
 };
 
@@ -110,9 +107,6 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
               hero: { ...DEFAULTS.design_settings.hero, ...(design.hero || {}) },
               buttons: { ...DEFAULTS.design_settings.buttons, ...(design.buttons || {}) },
               animations: { ...DEFAULTS.design_settings.animations, ...(design.animations || {}) },
-              announcementBar: { ...DEFAULTS.design_settings.announcementBar, ...(design.announcementBar || {}) },
-              promoSlider: { ...DEFAULTS.design_settings.promoSlider, ...(design.promoSlider || {}), slides: Array.isArray(design.promoSlider?.slides) ? design.promoSlider!.slides : DEFAULTS.design_settings.promoSlider.slides },
-              recentlyViewed: { ...DEFAULTS.design_settings.recentlyViewed, ...(design.recentlyViewed || {}) },
             },
           } as SiteSettings);
         }
