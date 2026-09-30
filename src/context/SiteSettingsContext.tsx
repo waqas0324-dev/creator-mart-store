@@ -153,12 +153,10 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
     const channel = supabase
       .channel('site-settings-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.1' }, payload => {
-        if (!isDevEditor && payload.new) setSettings(payload.new as SiteSettings);
+        if (!isDevEditor && payload.new) fetchSettings();
       })
       .on('broadcast', { event: 'settings-updated' }, ({ payload }) => {
-        if (!isDevEditor && payload && typeof payload === 'object') {
-          setSettings(prev => ({ ...prev, ...(payload as Partial<SiteSettings>) }));
-        }
+        if (!isDevEditor && payload && typeof payload === 'object') fetchSettings();
       });
 
     channelRef.current = channel;
