@@ -24,6 +24,7 @@ export function Shop() {
   const [maxPrice, setMaxPrice] = useState(10000);
   const [sortBy, setSortBy] = useState('default');
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [totalProductCount, setTotalProductCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [topRated, setTopRated] = useState<Product[]>([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -37,11 +38,11 @@ export function Shop() {
       .trim();
 
   const aliases: Record<string, string[]> = {
-    air: ['airpods', 'airpod', 'earbuds', 'earbud'],
-    airpod: ['airpods', 'airpod', 'earbuds', 'earbud'],
-    airpods: ['airpods', 'airpod', 'earbuds', 'earbud'],
-    earbud: ['earbuds', 'airpods', 'airpod'],
-    earbuds: ['earbuds', 'airpods', 'airpod'],
+    air: ['airpods', 'airpod', 'airbods', 'earbuds', 'earbud'],
+    airpod: ['airpods', 'airpod', 'airbods', 'earbuds', 'earbud'],
+    airpods: ['airpods', 'airpod', 'airbods', 'earbuds', 'earbud'],
+    earbud: ['earbuds', 'airpods', 'airpod', 'airbods'],
+    earbuds: ['earbuds', 'airpods', 'airpod', 'airbods'],
     trip: ['tripod', 'tripods'],
     tripod: ['tripod', 'tripods'],
     studio: ['studio', 'light', 'lights', 'ring', 'led'],
@@ -131,7 +132,7 @@ export function Shop() {
               className={`w-full text-left flex items-center justify-between py-1.5 px-2 rounded text-sm transition-colors ${selectedCategory === '' ? 'bg-orange-50 text-orange-600 font-semibold' : 'text-gray-700 hover:text-orange-500'}`}
             >
               <span>All Products</span>
-              <span className="text-xs text-gray-400">({allProducts.length})</span>
+              <span className="text-xs text-gray-400">({totalProductCount})</span>
             </button>
           </li>
           {categories.map(cat => (

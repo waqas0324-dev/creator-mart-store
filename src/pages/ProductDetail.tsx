@@ -5,6 +5,7 @@ import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useToast } from '../context/ToastContext';
 
 import { StarRating } from '../components/UI/StarRating';
 import { Badge } from '../components/UI/Badge';
@@ -25,6 +26,7 @@ export function ProductDetail() {
     : [];
 
   const { addItem } = useCart();
+  const { showToast } = useToast();
   const { toggleItem, isInWishlist } = useWishlist();
   const { products: related } = useProducts({ categorySlug: product?.categories?.slug });
   const { reviews, loading: reviewsLoading, submitReview } = useReviews(product?.id || '');
@@ -104,6 +106,7 @@ export function ProductDetail() {
 
   const handleAddToCart = () => {
     addItem(product, quantity);
+    showToast('Your product has been added to cart', 'cart');
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

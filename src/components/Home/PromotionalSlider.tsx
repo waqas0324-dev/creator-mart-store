@@ -76,7 +76,8 @@ export function PromotionalSlider() {
           >
             {slides.map((slideItem) => {
               const itemProduct = products.find(p => p.id === slideItem.product_id);
-              const itemImage = resolveProductImage(slideItem.image_url || itemProduct?.image_url);
+              const primaryImage = slideItem.image_url || itemProduct?.image_url || '';
+              const itemImage = resolveProductImage(primaryImage);
               const itemGo = () => itemProduct ? navigate('product', { productSlug: itemProduct.slug }) : navigate('shop');
 
               return (
@@ -101,7 +102,19 @@ export function PromotionalSlider() {
 
                     <div className="order-2 flex items-center justify-center min-w-0">
                       <div className="w-full h-[210px] sm:h-[270px] md:h-[330px] flex items-center justify-center">
-                        <img src={itemImage} alt={slideItem.title} onError={e => onImageError(e, slideItem.title)} className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_16px_22px_rgba(15,23,42,0.12)]"/>
+                        <img
+                          src={itemImage}
+                          alt={slideItem.title}
+                          onError={e => {
+                            const fallback = itemProduct?.image_url ? resolveProductImage(itemProduct.image_url) : '';
+                            if (fallback && e.currentTarget.src !== fallback) {
+                              e.currentTarget.src = fallback;
+                              return;
+                            }
+                            onImageError(e, slideItem.title);
+                          }}
+                          className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-[0_16px_22px_rgba(15,23,42,0.12)]"
+                        />
                       </div>
                     </div>
 
