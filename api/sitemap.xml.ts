@@ -16,13 +16,14 @@ export default async function handler(_req: unknown, res: {
 
   const staticUrls = [
     { loc: '/', priority: '1.0' },
-    { loc: '/#shop', priority: '0.9' },
-    { loc: '/#new-arrivals', priority: '0.7' },
-    { loc: '/#best-sellers', priority: '0.7' },
-    { loc: '/#about', priority: '0.5' },
-    { loc: '/#contact', priority: '0.5' },
-    { loc: '/#return-policy', priority: '0.3' },
-    { loc: '/#privacy-policy', priority: '0.3' },
+    { loc: '/shop', priority: '0.9' },
+    { loc: '/categories', priority: '0.8' },
+    { loc: '/new-arrivals', priority: '0.7' },
+    { loc: '/best-sellers', priority: '0.7' },
+    { loc: '/about', priority: '0.5' },
+    { loc: '/contact', priority: '0.5' },
+    { loc: '/return-policy', priority: '0.3' },
+    { loc: '/privacy-policy', priority: '0.3' },
   ];
 
   let dynamicUrls: { loc: string; priority: string }[] = [];
@@ -36,11 +37,11 @@ export default async function handler(_req: unknown, res: {
 
     dynamicUrls = [
       ...((products || []) as { slug: string }[]).map(p => ({
-        loc: `/#product&productSlug=${encodeURIComponent(p.slug)}`,
+        loc: `/product/${encodeURIComponent(p.slug)}`,
         priority: '0.8',
       })),
       ...((categories || []) as { slug: string }[]).map(c => ({
-        loc: `/#shop&categorySlug=${encodeURIComponent(c.slug)}`,
+        loc: `/shop?category=${encodeURIComponent(c.slug)}`,
         priority: '0.7',
       })),
     ];
