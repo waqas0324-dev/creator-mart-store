@@ -85,7 +85,7 @@ function Router() {
     syncAdminSession()
       .then(ok => { setAdminAuthorized(ok); setAuthChecked(true); })
       .catch(() => { setAdminAuthorized(false); setAuthChecked(true); });
-  }, [nav.page]);
+  }, [nav.page, adminAuthorized]);
 
   useEffect(() => {
     const onDevAuthenticated = () => setDevAuthorized(true);
@@ -106,7 +106,7 @@ function Router() {
     syncDevSession()
       .then(ok => { setDevAuthorized(ok); setDevAuthChecked(true); })
       .catch(() => { setDevAuthorized(false); setDevAuthChecked(true); });
-  }, [nav.page]);
+  }, [nav.page, devAuthorized]);
 
   if (DEV_PAGES.includes(nav.page)) {
     return (
