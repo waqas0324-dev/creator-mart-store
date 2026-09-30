@@ -6,6 +6,7 @@ import { useCategories } from '../../hooks/useProducts';
 import { supabase } from '../../lib/supabase';
 import { onImageError } from '../../lib/imageFallback';
 import type { Product } from '../../types';
+import { createDefaultDescription, parseProductDescription, serializeProductDescription, type ProductDescriptionDocument, type DescriptionBlock } from '../../lib/productDescription';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -20,6 +21,7 @@ export function AdminProductForm() {
     is_featured: false, is_bestseller: false, discount_percent: '',
   });
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [descriptionDoc, setDescriptionDoc] = useState<ProductDescriptionDocument>(createDefaultDescription());
   const [galleryUploading, setGalleryUploading] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
@@ -114,7 +116,7 @@ export function AdminProductForm() {
 
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: form.description.trim(), price: Number(form.price),
+      description: descriptionDoc.blocks.length ? serializeProductDescription(descriptionDoc) : form.description.trim(), price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       image_url: galleryImages[0] || '',
@@ -294,9 +296,40 @@ export function AdminProductForm() {
                 </select>
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
-              <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={4} className={`${inputCls('description')} resize-none`} placeholder="Product description..." />
+            <div className="space-y-4">
+              <div><label className="block text-xs font-semibold text-gray-700 mb-1">Product Description</label><p className="text-xs text-gray-400">Create highlighted sections and a clean specifications table for customers.</p></div>
+              <div className="border border-gray-200 rounded-xl p-4">
+                <p className="text-xs font-bold text-gray-800 mb-3">Description Styling</p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  {[
+                    ['headingBg','Heading BG'],['headingText','Heading Text'],['accent','Accent'],['tableBorder','Table Lines'],['sectionBg','Section BG'],
+                  ].map(([key,label]) => (
+                    <label key={key} className="text-[11px] font-semibold text-gray-600">{label}
+                      <div className="flex items-center gap-2 mt-1"><input type="color" value={descriptionDoc.style[key as keyof typeof descriptionDoc.style]} onChange={e=>setDescriptionDoc(prev=>({...prev,style:{...prev.style,[key]:e.target.value}}))} className="w-9 h-9 rounded border border-gray-200 p-0.5 bg-white"/><span className="text-[10px] text-gray-400">{descriptionDoc.style[key as keyof typeof descriptionDoc.style]}</span></div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="border border-gray-200 rounded-xl p-4">
+                <p className="text-xs font-bold text-gray-800 mb-2">Main Description</p>
+                <textarea value={descriptionDoc.blocks.find(b=>b.type==='intro')?.text||''} onChange={e=>setDescriptionDoc(prev=>{const blocks=[...prev.blocks];const i=blocks.findIndex(b=>b.type==='intro');const block:DescriptionBlock={type:'intro',title:blocks[i]?.title||'Description',text:e.target.value};if(i>=0)blocks[i]=block;else blocks.unshift(block);return {...prev,blocks};})} rows={4} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-y" placeholder="Write an original customer-friendly description..."/>
+              </div>
+              <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between"><p className="text-xs font-bold text-gray-800">Key Features</p><button type="button" onClick={()=>setDescriptionDoc(prev=>({...prev,blocks:[...prev.blocks,{type:'features',title:'Key Features',items:['']}]}))} className="text-xs font-bold text-orange-500">+ Add Section</button></div>
+                {descriptionDoc.blocks.map((block,bi)=>block.type==='features'?<div key={bi} className="space-y-2">
+                  <input value={block.title} onChange={e=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,i)=>i===bi?{...b,title:e.target.value}:b)}))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold"/>
+                  {(block.items||['']).map((item,i)=><div key={i} className="flex gap-2"><input value={item} onChange={e=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,idx)=>idx===bi?{...b,items:(b.items||[]).map((x,j)=>j===i?e.target.value:x)}:b)}))} className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Feature"/><button type="button" onClick={()=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,idx)=>idx===bi?{...b,items:(b.items||[]).filter((_,j)=>j!==i)}:b)}))} className="px-2 text-gray-400">×</button></div>)}
+                  <button type="button" onClick={()=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,idx)=>idx===bi?{...b,items:[...(b.items||[]),'']}:b)}))} className="text-xs text-gray-500">+ Add feature</button>
+                </div>:null)}
+              </div>
+              <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between"><p className="text-xs font-bold text-gray-800">Specifications</p><button type="button" onClick={()=>setDescriptionDoc(prev=>({...prev,blocks:[...prev.blocks,{type:'specs',title:'Specifications',rows:[{label:'',value:''}]}]}))} className="text-xs font-bold text-orange-500">+ Add Specifications</button></div>
+                {descriptionDoc.blocks.map((block,bi)=>block.type==='specs'?<div key={bi} className="space-y-2">
+                  <input value={block.title} onChange={e=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,i)=>i===bi?{...b,title:e.target.value}:b)}))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold"/>
+                  {(block.rows||[{label:'',value:''}]).map((row,i)=><div key={i} className="grid grid-cols-[1fr_1.5fr_auto] gap-2"><input value={row.label} onChange={e=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,idx)=>idx===bi?{...b,rows:(b.rows||[]).map((r,j)=>j===i?{...r,label:e.target.value}:r)}:b)}))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Specification"/><input value={row.value} onChange={e=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,idx)=>idx===bi?{...b,rows:(b.rows||[]).map((r,j)=>j===i?{...r,value:e.target.value}:r)}:b)}))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Details"/><button type="button" onClick={()=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,idx)=>idx===bi?{...b,rows:(b.rows||[]).filter((_,j)=>j!==i)}:b)}))} className="px-2 text-gray-400">×</button></div>)}
+                  <button type="button" onClick={()=>setDescriptionDoc(prev=>({...prev,blocks:prev.blocks.map((b,idx)=>idx===bi?{...b,rows:[...(b.rows||[]),{label:'',value:''}]}:b)}))} className="text-xs text-gray-500">+ Add specification row</button>
+                </div>:null)}
+              </div>
             </div>
           </div>
 
