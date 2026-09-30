@@ -6,7 +6,6 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useSEO } from '../hooks/useSEO';
 import { BRAND_NAME } from '../lib/brand';
 import { ProductCard } from '../components/Product/ProductCard';
-import { RecentlyViewed } from '../components/Home/RecentlyViewed';
 import { onImageError, resolveCategoryImage } from '../lib/imageFallback';
 
 export function Home() {
