@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin-login
+Disallow: /ws-studio
+Disallow: /ws-studio/panel
 
-Sitemap: https://abrgadgets.vercel.app/sitemap.xml
+Sitemap: https://abrgadgets.pk/sitemap.xml
