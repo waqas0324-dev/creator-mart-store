@@ -21,7 +21,7 @@ const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] =
   { value: 'xl', label: 'Extra Large' },
 ];
 
-type Section = 'logo' | 'header' | 'hero' | 'announcement' | 'trust' | 'slider' | 'recentlyViewed' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
+type Section = 'logo' | 'header' | 'hero' | 'announcement' | 'trust' | 'slider' | 'buttons' | 'checkout' | 'footer' | 'contact' | 'social' | 'security';
 
 const SECTIONS: { id: Section; label: string; icon: typeof Image; description: string }[] = [
   { id: 'logo', label: 'Logo', icon: Image, description: 'Logo image and sizing' },
@@ -30,7 +30,6 @@ const SECTIONS: { id: Section; label: string; icon: typeof Image; description: s
   { id: 'announcement', label: 'Announcement Bar', icon: Megaphone, description: 'Top scrolling strip and messages' },
   { id: 'trust', label: 'Trust Badges', icon: BadgeCheck, description: 'Four badges below the hero' },
   { id: 'slider', label: 'Promotional Slider', icon: Sparkles, description: 'Editable product promotion slides' },
-  { id: 'recentlyViewed', label: 'Recently Viewed', icon: Eye, description: 'Recently viewed products' },
   { id: 'buttons', label: 'Buttons & Animations', icon: Sparkles, description: 'Button colors, radius and interactions' },
   { id: 'checkout', label: 'Checkout / Payment', icon: CreditCard, description: 'COD, advance payment and payment details' },
   { id: 'footer', label: 'Footer', icon: PanelBottom, description: 'All footer content and links' },
@@ -459,7 +458,6 @@ export function DevPanel() {
         ))}
       </div>;
     }
-    if (activeSection === 'recentlyViewed') { const d=form.design_settings.recentlyViewed; return <div className={cardCls}><SectionTitle title="Recently Viewed" text="Automatic product history section near the bottom of the homepage."/><label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Enable section</span><input type="checkbox" checked={d.enabled} onChange={e=>updateDesign('recentlyViewed',{enabled:e.target.checked})} className="w-5 h-5 accent-purple-600"/></label><div className="grid sm:grid-cols-2 gap-4"><Field label="Heading" value={d.heading} onChange={v=>updateDesign('recentlyViewed',{heading:v})}/><Field label="Maximum products" value={d.max_items} type="number" onChange={v=>updateDesign('recentlyViewed',{max_items:Math.min(12,Math.max(2,Number(v)||8))})}/><Field label="Auto-scroll interval (ms)" value={d.auto_play_ms} type="number" onChange={v=>updateDesign('recentlyViewed',{auto_play_ms:Math.max(3000,Number(v)||3500)})}/></div><label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={d.auto_play} onChange={e=>updateDesign('recentlyViewed',{auto_play:e.target.checked})}/> Auto-scroll</label></div>; }
     if (activeSection === 'buttons') {
       const b = form.design_settings.buttons, a = form.design_settings.animations;
       return <div className={cardCls}>
