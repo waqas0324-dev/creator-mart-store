@@ -18,6 +18,8 @@ const PATH_TO_PAGE = new Map(Object.entries(PAGE_PATHS).map(([page, path]) => [p
 function parseLocation(): NavState {
   const url = new URL(window.location.href);
   const legacyHash = url.hash.replace(/^#/, '');
+  if (legacyHash === 'dev-studio' || legacyHash === 'dev/studio') return { page: 'dev-login' };
+  if (legacyHash === 'ws-studio') return { page: 'dev-login' };
   if (legacyHash) {
     const [pagePart, ...paramParts] = legacyHash.split('&');
     const legacyPage = pagePart as Page;
@@ -38,6 +40,8 @@ function parseLocation(): NavState {
     return { page: 'product', productSlug: decodeURIComponent(productMatch[1]), categorySlug: url.searchParams.get('category') || undefined, searchQuery: url.searchParams.get('search') || undefined };
   }
   const normalizedPath = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, '') : url.pathname;
+  if (normalizedPath === '/dev/studio') return { page: 'dev-login' };
+  if (normalizedPath === '/dev/studio/panel') return { page: 'dev-panel' };
   const exactPage = PATH_TO_PAGE.get(normalizedPath);
   if (exactPage) {
     const state: NavState = { page: exactPage };
