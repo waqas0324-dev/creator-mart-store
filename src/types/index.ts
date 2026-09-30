@@ -88,7 +88,11 @@ export interface PromoSlide {
 }
 export interface PromoSliderSettings {
   enabled: boolean; heading: string; subheading: string; auto_play: boolean;
-  auto_play_ms: number; show_arrows: boolean; show_dots: boolean; slides: PromoSlide[];
+  auto_play_ms: number; show_arrows: boolean; show_dots: boolean;
+  backgroundColor: string; textColor: string; mutedTextColor: string;
+  accentColor: string; badgeBgColor: string; badgeTextColor: string;
+  arrowBgColor: string; arrowTextColor: string; buttonBgColor: string; buttonTextColor: string;
+  slides: PromoSlide[];
 }
 export interface RecentlyViewedSettings {
   enabled: boolean; heading: string; max_items: number; auto_play: boolean; auto_play_ms: number;
@@ -100,6 +104,8 @@ export interface DesignSettings {
   animations: { enabled: boolean; style: 'none' | 'lift' | 'scale' | 'lift-scale'; hoverLift: number; clickScale: number };
   promoSlider: PromoSliderSettings;
   recentlyViewed: RecentlyViewedSettings;
+  announcementBar: { height: number; backgroundColor: string; textColor: string; accentColor: string; fontSize: number; fontWeight: number; paddingX: number };
+
 }
 
 export interface SiteSettings {
