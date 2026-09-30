@@ -71,7 +71,13 @@ function buildUrl(page: Page, params?: Partial<Omit<NavState, 'page'>>): string 
 }
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
-  const [nav, setNav] = useState<NavState>(() => parseLocation());
+  const [nav, setNav] = useState<NavState>(() => {
+    const initial = parseLocation();
+    const isCustomerPage = !['admin','admin-login','admin-products','admin-categories','admin-orders','admin-product-form','admin-account','dev-login','dev-panel'].includes(initial.page);
+    const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const isReload = navigationEntry?.type === 'reload';
+    return isReload && isCustomerPage ? { page: 'home' } : initial;
+  });
   useEffect(() => {
     const onPopState = () => setNav(parseLocation());
     window.addEventListener('popstate', onPopState);
