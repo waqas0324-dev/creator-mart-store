@@ -207,20 +207,27 @@
   will-change: transform, box-shadow, background-color, color;
 }
 .btn-interactive:hover {
-  box-shadow: var(--site-btn-hover-shadow, none);
+  box-shadow: var(--site-btn-hover-shadow, none) !important;
 }
 .btn-interactive[data-design-button="true"]:hover {
-  background-color: var(--site-btn-hover-bg, inherit);
-  color: var(--site-btn-hover-text, inherit);
+  background-color: var(--site-btn-hover-bg, inherit) !important;
+  color: var(--site-btn-hover-text, inherit) !important;
 }
+
+/* Apply the selected motion directly to the button as well as the document.
+   This avoids the animation being lost when a button carries its own
+   data-design-animation attribute (for example product-card actions). */
+.btn-interactive[data-design-animation="lift"]:hover,
 html[data-design-animation="lift"] .btn-interactive:hover {
-  transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px));
+  transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px)) !important;
 }
+.btn-interactive[data-design-animation="scale"]:hover,
 html[data-design-animation="scale"] .btn-interactive:hover {
-  transform: scale(var(--site-btn-hover-scale, 1.02));
+  transform: scale(var(--site-btn-hover-scale, 1.02)) !important;
 }
+.btn-interactive[data-design-animation="lift-scale"]:hover,
 html[data-design-animation="lift-scale"] .btn-interactive:hover {
-  transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px)) scale(var(--site-btn-hover-scale, 1.02));
+  transform: translateY(calc(var(--site-btn-hover-lift, 2) * -1px)) scale(var(--site-btn-hover-scale, 1.02)) !important;
 }
 html[data-design-animation="none"] .btn-interactive:hover,
 html[data-design-animation="none"] .btn-interactive:active {
