@@ -287,6 +287,14 @@ export function DevPanel() {
           <input type="checkbox" checked={form.announcement_whatsapp_enabled} onChange={e => update('announcement_whatsapp_enabled', e.target.checked)} className="w-5 h-5 accent-purple-600" />
         </label>
         <TextArea label="Scrolling messages — separate each message with |" value={form.announcement_messages} onChange={v => update('announcement_messages', v)} rows={4} />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <Field label="Height (px)" value={form.design_settings.announcementBar.height} type="number" onChange={v => updateDesign('announcementBar', { height: Math.max(28, Math.min(70, Number(v) || 38)) })} />
+          <Field label="Font size (px)" value={form.design_settings.announcementBar.fontSize} type="number" onChange={v => updateDesign('announcementBar', { fontSize: Math.max(9, Math.min(20, Number(v) || 12)) })} />
+          <Field label="Horizontal padding (px)" value={form.design_settings.announcementBar.paddingX} type="number" onChange={v => updateDesign('announcementBar', { paddingX: Math.max(4, Math.min(80, Number(v) || 24)) })} />
+          <ColorField label="Background color" value={form.design_settings.announcementBar.backgroundColor} onChange={v => updateDesign('announcementBar', { backgroundColor: v })} />
+          <ColorField label="Text color" value={form.design_settings.announcementBar.textColor} onChange={v => updateDesign('announcementBar', { textColor: v })} />
+          <ColorField label="Accent dot color" value={form.design_settings.announcementBar.accentColor} onChange={v => updateDesign('announcementBar', { accentColor: v })} />
+        </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
           <p className="text-xs font-bold text-gray-400 mb-2">Preview</p>
           <div className="bg-black text-white rounded-lg overflow-hidden">
@@ -408,6 +416,19 @@ export function DevPanel() {
           <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Auto-play</span><input type="checkbox" checked={d.auto_play} onChange={e => updateDesign('promoSlider', { auto_play: e.target.checked })} className="w-5 h-5 accent-purple-600" /></label>
           <Field label="Auto-play interval (ms)" value={d.auto_play_ms} type="number" onChange={v => updateDesign('promoSlider', { auto_play_ms: Math.max(2500, Number(v) || 4500) })} />
           <Field label="Heading (optional)" value={d.heading} onChange={v => updateDesign('promoSlider', { heading: v })} />
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <ColorField label="Slider background" value={d.backgroundColor} onChange={v => updateDesign('promoSlider', { backgroundColor: v })} />
+          <ColorField label="Main text color" value={d.textColor} onChange={v => updateDesign('promoSlider', { textColor: v })} />
+          <ColorField label="Muted text color" value={d.mutedTextColor} onChange={v => updateDesign('promoSlider', { mutedTextColor: v })} />
+          <ColorField label="Accent / dots" value={d.accentColor} onChange={v => updateDesign('promoSlider', { accentColor: v })} />
+          <ColorField label="Badge background" value={d.badgeBgColor} onChange={v => updateDesign('promoSlider', { badgeBgColor: v })} />
+          <ColorField label="Badge text" value={d.badgeTextColor} onChange={v => updateDesign('promoSlider', { badgeTextColor: v })} />
+          <ColorField label="Arrow background" value={d.arrowBgColor} onChange={v => updateDesign('promoSlider', { arrowBgColor: v })} />
+          <ColorField label="Arrow text" value={d.arrowTextColor} onChange={v => updateDesign('promoSlider', { arrowTextColor: v })} />
+          <ColorField label="Shop Now background" value={d.buttonBgColor} onChange={v => updateDesign('promoSlider', { buttonBgColor: v })} />
+          <ColorField label="Shop Now text" value={d.buttonTextColor} onChange={v => updateDesign('promoSlider', { buttonTextColor: v })} />
         </div>
 
         <div className="grid sm:grid-cols-2 gap-3">
