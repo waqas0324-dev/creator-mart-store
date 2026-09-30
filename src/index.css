@@ -200,6 +200,25 @@
 
 
 /* Professional customer action buttons — also driven by Developer Studio. */
+@keyframes site-btn-idle-breathe {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.018);
+  }
+}
+
+.btn-interactive[data-design-button="true"] {
+  animation: site-btn-idle-breathe 2.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.btn-interactive[data-design-button="true"]:hover,
+.btn-interactive[data-design-button="true"]:active {
+  animation-play-state: paused;
+}
+
 .btn-interactive {
   transition-property: transform, box-shadow, background-color, color, border-color;
   transition-duration: var(--site-btn-transition, 240ms);
