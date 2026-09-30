@@ -11,7 +11,7 @@ import { devLogout } from '../../lib/devAuth';
 import { useToast } from '../../context/ToastContext';
 import { AccountSecurity } from '../../components/AccountSecurity';
 import { AccountManagement } from '../../components/AccountManagement';
-import type { DesignSettings, SiteSettings } from '../../types';
+import type { DesignSettings, SiteSettings, PromoSlide } from '../../types';
 
 const LOGO_SIZE_OPTIONS: { value: SiteSettings['logo_size']; label: string }[] = [
   { value: 'sm', label: 'Small' },
