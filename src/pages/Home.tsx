@@ -105,14 +105,14 @@ export function Home() {
               {[...Array(6)].map((_, i) => <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-24" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
               {featuredCategories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => navigate('shop', { categorySlug: cat.slug })}
-                  className="group bg-slate-50 rounded-2xl p-3 sm:p-4 border border-slate-200 hover:border-orange-300 hover:shadow-md hover:bg-white transition-all duration-300 flex flex-col items-center gap-2.5 overflow-hidden min-w-0"
+                  className="group bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-200 hover:border-orange-200 hover:shadow-sm hover:bg-white transition-all duration-300 flex flex-col items-center gap-2 overflow-hidden min-w-0 min-h-[142px] sm:min-h-[154px]"
                 >
-                  <div className="relative w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden border-2 border-slate-200 bg-white shadow-inner group-hover:border-orange-300 transition-colors flex-shrink-0">
+                  <div className="relative w-[92px] h-[92px] sm:w-[108px] sm:h-[108px] md:w-[118px] md:h-[118px] rounded-full overflow-hidden border border-slate-200 bg-white shadow-inner group-hover:border-orange-300 transition-colors flex-shrink-0">
                     <img
                       src={resolveCategoryImage(cat.image_url)}
                       alt={cat.name}

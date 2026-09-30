@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Heart } from 'lucide-react';
 import type { Product } from '../../types';
 import { StarRating } from '../UI/StarRating';
 import { Badge } from '../UI/Badge';
@@ -11,6 +11,7 @@ import { onImageError, resolveProductImage } from '../../lib/imageFallback';
 import { BRAND_NAME, toWhatsAppNumber } from '../../lib/brand';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useToast } from '../../context/ToastContext';
+import { useWishlist } from '../../context/WishlistContext';
 
 interface ProductCardProps {
   product: Product;
@@ -21,7 +22,9 @@ export function ProductCard({ product }: ProductCardProps) {
   const { navigate } = useNavigation();
   const { settings } = useSiteSettings();
   const { showToast } = useToast();
+  const { toggleItem, isInWishlist } = useWishlist();
   const design = settings.design_settings;
+  const wished = isInWishlist(product.id);
   const whatsappLink = `https://wa.me/${toWhatsAppNumber(settings.whatsapp_number)}`;
 
   // Keep the first product image as the only initial network request.
@@ -67,9 +70,9 @@ export function ProductCard({ product }: ProductCardProps) {
   );
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg hover:border-orange-200 transition-all duration-300 group flex flex-col h-full">
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 group flex flex-col h-full transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] hover:border-gray-300">
       <div
-        className="relative overflow-hidden cursor-pointer bg-gray-50 aspect-square"
+        className="relative overflow-hidden cursor-pointer bg-gray-50 aspect-square transition-colors duration-300 group-hover:bg-gray-100"
         onClick={() => navigate('product', { productSlug: product.slug })}
       >
         <img
@@ -79,8 +82,16 @@ export function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
           decoding="async"
           onError={(e) => onImageError(e, product.name)}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 group-hover:scale-105"
+          className="absolute inset-0 w-full h-full object-contain p-2 transition-transform duration-500 ease-out group-hover:scale-[1.07]"
         />
+        <button
+          type="button"
+          aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}
+          onClick={(e) => { e.stopPropagation(); toggleItem(product); }}
+          className={`absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-white/95 border border-gray-200 shadow-sm flex items-center justify-center transition-all duration-200 ${wished ? 'text-orange-500' : 'text-gray-500 opacity-0 group-hover:opacity-100 hover:text-orange-500'}`}
+        >
+          <Heart size={17} fill={wished ? 'currentColor' : 'none'} />
+        </button>
         {product.discount_percent && (
           <Badge variant="orange" className="absolute top-2 left-2 z-10">
             -{product.discount_percent}%
