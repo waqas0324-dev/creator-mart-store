@@ -23,6 +23,7 @@ export function AdminLogin() {
         setError(err);
         return;
       }
+      window.dispatchEvent(new Event('cm-admin-authenticated'));
       navigate('admin');
     } catch {
       setError('Unable to sign in right now. Please try again.');
