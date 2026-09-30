@@ -6,6 +6,8 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useSEO } from '../hooks/useSEO';
 import { BRAND_NAME } from '../lib/brand';
 import { ProductCard } from '../components/Product/ProductCard';
+import { PromotionalSlider } from '../components/Home/PromotionalSlider';
+import { RecentlyViewed } from '../components/Home/RecentlyViewed';
 import { onImageError, resolveCategoryImage } from '../lib/imageFallback';
 
 export function Home() {
@@ -155,7 +157,10 @@ export function Home() {
         </div>
       </section>
 
-      {/* Best Sellers */}
+      <PromotionalSlider />
+      <section className="bg-orange-500 py-7"><div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-white"><div><p className="text-xs font-black uppercase tracking-widest text-orange-100">ABR Gadgets</p><h2 className="text-xl sm:text-2xl font-black">Gear up your creativity</h2><p className="text-sm text-orange-50 mt-1">Creator gear, gadgets and accessories delivered across Pakistan.</p></div><button onClick={()=>navigate('shop')} className="bg-white text-orange-600 font-black px-6 py-3 rounded-xl hover:bg-orange-50 shadow-lg">Shop All Products</button></div></section>
+
+      {/* Best Sellers */
       <section className="bg-white py-10">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between mb-6">
@@ -178,6 +183,8 @@ export function Home() {
           )}
         </div>
       </section>
+
+      <RecentlyViewed />
     </div>
   );
 }
