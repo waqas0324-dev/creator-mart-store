@@ -52,11 +52,11 @@ export function Checkout() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.fullName.trim()) e.fullName = 'Required';
-    if (!form.phone.trim()) e.phone = 'Required';
-    if (!form.whatsapp.trim()) e.whatsapp = 'Required';
-    if (!form.address.trim()) e.address = 'Required';
-    if (!form.city) e.city = 'Required';
+    if (!form.fullName.trim()) e.fullName = 'Please enter your full name.';
+    if (!form.phone.trim()) e.phone = 'Please enter your phone number.';
+    if (!form.whatsapp.trim()) e.whatsapp = 'Please enter your WhatsApp number.';
+    if (!form.address.trim()) e.address = 'Please enter your delivery address.';
+    if (!form.city) e.city = 'Please select your city.';
     setErrors(e);
     const firstError = Object.keys(e)[0];
     if (firstError) {
