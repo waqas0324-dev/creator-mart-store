@@ -1,13 +1,68 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, ArrowLeft, Loader2, Upload, Star, Link as LinkIcon, Plus } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, Upload, Star, Link as LinkIcon, Plus, Bold, AlignCenter, Highlighter, List, Heading1, Heading2 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
 import { supabase } from '../../lib/supabase';
 import { onImageError } from '../../lib/imageFallback';
-import type { Product } from '../../types';
+import type { Product, ProductSpecification } from '../../types';\nimport { sanitizeRichHtml } from '../../lib/richText';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current && document.activeElement !== ref.current && ref.current.innerHTML !== value) {
+      ref.current.innerHTML = value || '';
+    }
+  }, [value]);
+
+  const command = (name: string, arg?: string) => {
+    ref.current?.focus();
+    document.execCommand(name, false, arg);
+    onChange(sanitizeRichHtml(ref.current?.innerHTML || ''));
+  };
+
+  const button = (label: string, onClick: () => void, Icon?: React.ComponentType<{ size?: number }>) => (
+    <button type="button" onMouseDown={e => e.preventDefault()} onClick={onClick} className="h-8 px-2 rounded-md border border-gray-200 bg-white hover:bg-orange-50 hover:border-orange-300 text-xs font-semibold text-gray-700 flex items-center gap-1">
+      {Icon ? <Icon size={14} /> : label}
+      {Icon && <span className="hidden sm:inline">{label}</span>}
+    </button>
+  );
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-gray-50 border-b border-gray-200">
+        {button('Bold', () => command('bold'), Bold)}
+        {button('H1', () => command('formatBlock', 'H1'), Heading1)}
+        {button('H2', () => command('formatBlock', 'H2'), Heading2)}
+        {button('Center', () => command('justifyCenter'), AlignCenter)}
+        {button('Bullets', () => command('insertUnorderedList'), List)}
+        {button('Highlight', () => command('hiliteColor', '#fff2a8'), Highlighter)}
+        <label className="h-8 px-2 rounded-md border border-gray-200 bg-white hover:border-orange-300 text-xs font-semibold text-gray-700 flex items-center gap-1 cursor-pointer">
+          Text
+          <input type="color" className="w-5 h-5 border-0 p-0 bg-transparent cursor-pointer" defaultValue="#111827" onChange={e => command('foreColor', e.target.value)} />
+        </label>
+        <select defaultValue="3" onChange={e => command('fontSize', e.target.value)} className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-700">
+          <option value="2">Small</option>
+          <option value="3">Normal</option>
+          <option value="4">Large</option>
+          <option value="5">XL</option>
+          <option value="6">XXL</option>
+        </select>
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={() => onChange(sanitizeRichHtml(ref.current?.innerHTML || ''))}
+        className="min-h-[220px] max-h-[420px] overflow-y-auto p-4 text-sm text-gray-700 leading-7 outline-none prose prose-sm max-w-none"
+        data-placeholder="Write product details, key points, benefits and usage..."
+      />
+    </div>
+  );
+}
 
 export function AdminProductForm() {
   const { nav, navigate } = useNavigation();
@@ -15,11 +70,11 @@ export function AdminProductForm() {
   const isEdit = !!nav.adminProductId;
 
   const [form, setForm] = useState({
-    name: '', slug: '', description: '', price: '', original_price: '', category_id: '',
+    name: '', slug: '', description: '', description_html: '', seo_keywords: '', price: '', original_price: '', category_id: '',
     image_url: '', rating: '4.0', review_count: '0', stock: '100',
     is_featured: false, is_bestseller: false, discount_percent: '',
   });
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);\n  const [specifications, setSpecifications] = useState<ProductSpecification[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
@@ -34,7 +89,7 @@ export function AdminProductForm() {
       if (data) {
         const p = data as Product;
         setForm({
-          name: p.name, slug: p.slug, description: p.description || '',
+          name: p.name, slug: p.slug, description: p.description || '', description_html: p.description_html || '', seo_keywords: p.seo_keywords || '',
           price: String(p.price), original_price: String(p.original_price || ''),
           category_id: p.category_id || '', image_url: p.image_url,
           rating: String(p.rating), review_count: String(p.review_count),
@@ -43,7 +98,7 @@ export function AdminProductForm() {
         });
         const savedImages = Array.isArray(p.images) ? p.images : [];
         const unifiedImages = Array.from(new Set([p.image_url, ...savedImages].filter(Boolean)));
-        setGalleryImages(unifiedImages);
+        setGalleryImages(unifiedImages);\n        setSpecifications(Array.isArray(p.specifications) ? p.specifications.filter((s: ProductSpecification) => s && (s.key || s.value)) : []);
       }
       setFetchLoading(false);
     });
@@ -114,7 +169,7 @@ export function AdminProductForm() {
 
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: form.description.trim(), price: Number(form.price),
+      description: form.description.trim(),\n      description_html: form.description_html ? sanitizeRichHtml(form.description_html) : null,\n      specifications: specifications.filter(s => s.key.trim() || s.value.trim()),\n      seo_keywords: form.seo_keywords.trim() || null,\n      price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       image_url: galleryImages[0] || '',
@@ -295,8 +350,37 @@ export function AdminProductForm() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
-              <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={4} className={`${inputCls('description')} resize-none`} placeholder="Product description..." />
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Product Description</label>
+              <RichTextEditor value={form.description_html} onChange={html => update('description_html', html)} />
+              <p className="text-[11px] text-gray-400 mt-1">Use headings, bold, color, highlight, alignment, font size and bullet points. This formatting appears on the customer product page.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">SEO Keywords</label>
+              <input type="text" value={form.seo_keywords} onChange={e => update('seo_keywords', e.target.value)} className={inputCls('seo_keywords')} placeholder="wireless microphone, lavalier mic, boya mic, creator microphone" />
+              <p className="text-[11px] text-gray-400 mt-1">Comma-separated search terms. These are also included in the website product search.</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Specifications</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Add key/value rows. They render automatically as a clean table on the product page.</p>
+              </div>
+              <button type="button" onClick={() => setSpecifications(prev => [...prev, { key: '', value: '' }])} className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-lg">
+                <Plus size={14}/> Add Row
+              </button>
+            </div>
+            <div className="space-y-2">
+              {specifications.length === 0 ? (
+                <div className="border border-dashed border-gray-200 rounded-lg p-5 text-center text-xs text-gray-400">No specifications yet.</div>
+              ) : specifications.map((spec, i) => (
+                <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                  <input value={spec.key} onChange={e => setSpecifications(prev => prev.map((s, idx) => idx === i ? { ...s, key: e.target.value } : s))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Specification name e.g. Battery" />
+                  <input value={spec.value} onChange={e => setSpecifications(prev => prev.map((s, idx) => idx === i ? { ...s, value: e.target.value } : s))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Value e.g. 6 hours" />
+                  <button type="button" onClick={() => setSpecifications(prev => prev.filter((_, idx) => idx !== i))} className="w-9 rounded-lg border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200">×</button>
+                </div>
+              ))}
             </div>
           </div>
 
