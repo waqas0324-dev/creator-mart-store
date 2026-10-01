@@ -137,6 +137,16 @@ export function AdminProductForm() {
     else { setSuccess(isEdit ? 'Product updated!' : 'Product added!'); setTimeout(() => navigate('admin-products'), 1500); }
   };
 
+  const applyDescriptionColor = (color: string) => {
+    const editor = descriptionRef.current;
+    if (!editor) return;
+    editor.focus();
+    document.execCommand('selectAll', false);
+    document.execCommand('foreColor', false, color);
+    window.getSelection()?.removeAllRanges();
+    update('description', sanitizeRichHtml(editor.innerHTML));
+  };
+
   const inputCls = (field: string) => `w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors[field] ? 'border-red-400' : 'border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-100'}`;
 
   if (fetchLoading) {
@@ -313,7 +323,6 @@ export function AdminProductForm() {
                     {label:'Right', icon:<AlignRight size={15}/>, cmd:'justifyRight'},
                     {label:'Bullets', icon:<List size={15}/>, cmd:'insertUnorderedList'},
                     {label:'Numbered', icon:<ListOrdered size={15}/>, cmd:'insertOrderedList'},
-                    {label:'Text color', icon:<Palette size={15}/>, cmd:'foreColor', value:'#f97316'},
                     {label:'Highlight', icon:<Highlighter size={15}/>, cmd:'hiliteColor', value:'#fff1e6'},
                   ].map(tool => (
                     <button key={tool.label} type="button" title={tool.label} onMouseDown={e=>e.preventDefault()} onClick={()=>{
@@ -324,6 +333,16 @@ export function AdminProductForm() {
                       {tool.icon}
                     </button>
                   ))}
+                  <label title="Description color" className="relative w-8 h-8 rounded-lg hover:bg-white text-gray-600 flex items-center justify-center cursor-pointer transition-colors">
+                    <Palette size={15} />
+                    <input
+                      type="color"
+                      defaultValue="#f97316"
+                      onChange={e => applyDescriptionColor(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      aria-label="Description color"
+                    />
+                  </label>
                 </div>
                 <div ref={descriptionRef} contentEditable suppressContentEditableWarning onInput={e=>update('description', sanitizeRichHtml(e.currentTarget.innerHTML))} className="min-h-48 p-4 text-sm text-gray-700 outline-none leading-7 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-3 [&_h3]:text-lg [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6" />
               </div>
