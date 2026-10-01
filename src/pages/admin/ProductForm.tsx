@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react';
 import { Save, ArrowLeft, Loader2, Upload, Star, Link as LinkIcon, Plus } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
@@ -48,7 +48,7 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (html: s
     onChange(sanitizeRichHtml(ref.current?.innerHTML || ''));
   };
 
-  const button = (label: string, onClick: () => void, icon?: React.ReactNode) => (
+  const button = (label: string, onClick: () => void, icon?: ReactNode) => (
     <button type="button" onMouseDown={e => e.preventDefault()} onClick={onClick} className="h-8 px-2 rounded-md border border-gray-200 bg-white hover:bg-orange-50 hover:border-orange-300 text-xs font-semibold text-gray-700 flex items-center gap-1">
       {icon}
       <span className={icon ? 'hidden sm:inline' : ''}>{label}</span>
@@ -193,7 +193,7 @@ export function AdminProductForm() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
