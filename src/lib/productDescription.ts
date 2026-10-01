@@ -37,3 +37,5 @@ export function extractProductSpecifications(html: string): ProductSpecification
 
   return specs;
 }
+
+// Automatic specification parser build fix.
