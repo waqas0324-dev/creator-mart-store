@@ -78,37 +78,12 @@ export function useProducts(filters?: {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchProducts() {
-      setLoading(true);
-      setError(null);
-
-      let query = supabase
-        .from('products')
-        .select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,created_at,categories(id, name, slug)')
-        .order('created_at', { ascending: false });
-
-      if (filters?.featured) query = query.eq('is_featured', true);
-      if (filters?.bestseller) query = query.eq('is_bestseller', true);
-      if (filters?.minPrice !== undefined) query = query.gte('price', filters.minPrice);
-      if (filters?.maxPrice !== undefined) query = query.lte('price', filters.maxPrice);
-      if (filters?.search) query = query.ilike('name', `%${filters.search}%`);
-
-      if (filters?.categorySlug) {
-        const { data: cat } = await supabase
-          .from('categories')
-          .select('id')
-          .eq('slug', filters.categorySlug)
-          .single();
-        if (cat) query = query.eq('category_id', cat.id);
-      }
-
-      const { data, error } = await query;
-      if (error) setError(error.message);
-      else setProducts((data as Product[]) || []);
-      setLoading(false);
-    }
-
-    fetchProducts();
+    setLoading(true);
+    setError(null);
+    loadProducts(filters)
+      .then(data => setProducts(data))
+      .catch(error => setError(error instanceof Error ? error.message : 'Unable to load products.'))
+      .finally(() => setLoading(false));
   }, [
     filters?.categorySlug,
     filters?.minPrice,
