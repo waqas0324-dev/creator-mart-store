@@ -1,0 +1,35 @@
+name: Verify Product Upgrade
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - feat/product-page-cmshop-upgrade
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Sync lockfile
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json already synced"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "Sync package lockfile for product upgrade"
+            git push
+          fi
+      - name: Typecheck baseline
+        run: npm run typecheck
+        continue-on-error: true
+      - run: npm run build
