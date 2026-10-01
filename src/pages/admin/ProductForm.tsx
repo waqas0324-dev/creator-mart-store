@@ -47,7 +47,7 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (html: s
     onChange(sanitizeRichHtml(ref.current?.innerHTML || ''));
   };
 
-  const button = (label: string, onClick: () => void, Icon?: React.ComponentType<{ size?: number }>) => (
+  const button = (label: string, onClick: () => void, icon?: React.ReactNode) => (
     <button type="button" onMouseDown={e => e.preventDefault()} onClick={onClick} className="h-8 px-2 rounded-md border border-gray-200 bg-white hover:bg-orange-50 hover:border-orange-300 text-xs font-semibold text-gray-700 flex items-center gap-1">
       {Icon ? <Icon size={14} /> : label}
       {Icon && <span className="hidden sm:inline">{label}</span>}
@@ -57,12 +57,12 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (html: s
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
       <div className="flex flex-wrap items-center gap-1.5 p-2 bg-gray-50 border-b border-gray-200">
-        {button('Bold', () => command('bold'), Bold)}\n        {button('Underline', () => command('underline'), Underline)}
-        {button('H1', () => command('formatBlock', 'H1'), Heading1)}
-        {button('H2', () => command('formatBlock', 'H2'), Heading2)}
-        {button('Center', () => command('justifyCenter'), AlignCenter)}
-        {button('Bullets', () => command('insertUnorderedList'), List)}
-        {button('Highlight', () => command('hiliteColor', '#fff2a8'), Highlighter)}
+        {button('Bold', () => command('bold'), <Bold size={14} />)}\n        {button('Underline', () => command('underline'), <Underline size={14} />)}
+        {button('H1', () => command('formatBlock', 'H1'), <Heading1 size={14} />)}
+        {button('H2', () => command('formatBlock', 'H2'), <Heading2 size={14} />)}
+        {button('Center', () => command('justifyCenter'), <AlignCenter size={14} />)}
+        {button('Bullets', () => command('insertUnorderedList'), <List size={14} />)}
+        {button('Highlight', () => command('hiliteColor', '#fff2a8'), <Highlighter size={14} />)}
         <label className="h-8 px-2 rounded-md border border-gray-200 bg-white hover:border-orange-300 text-xs font-semibold text-gray-700 flex items-center gap-1 cursor-pointer">
           Text
           <input type="color" className="w-5 h-5 border-0 p-0 bg-transparent cursor-pointer" defaultValue="#111827" onChange={e => command('foreColor', e.target.value)} />
