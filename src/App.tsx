@@ -10,20 +10,6 @@ import { Navbar } from './components/Layout/Navbar';
 import { Footer } from './components/Layout/Footer';
 import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { syncAdminSession } from './lib/adminAuth';
 import { syncDevSession } from './lib/devAuth';
 
