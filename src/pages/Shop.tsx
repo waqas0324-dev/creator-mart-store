@@ -68,6 +68,7 @@ export function Shop() {
       product.name,
       product.slug,
       product.description,
+      product.seo_keywords,
       product.categories?.name,
     ].filter(Boolean).join(' '));
 
