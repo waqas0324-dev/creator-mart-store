@@ -44,7 +44,7 @@ async function loadProducts(filters?: {
   })();
 
   productRequests.set(key, request);
-  request.finally(() => productRequests.delete(key));
+  request.then(() => productRequests.delete(key), () => productRequests.delete(key));
   return request;
 }
 
