@@ -14,6 +14,7 @@ import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { sanitizeRichHtml } from '../lib/richText';
+import { extractProductSpecifications } from '../lib/productDescription';
 
 const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -106,6 +107,11 @@ export function ProductDetail() {
       </div>
     );
   }
+
+  const automaticSpecifications = extractProductSpecifications(product.description || '');
+  const specifications = automaticSpecifications.length > 0
+    ? automaticSpecifications
+    : (Array.isArray(product.specifications) ? product.specifications : []);
 
   const handleAddToCart = () => {
     addItem(product, quantity);
@@ -264,13 +270,13 @@ export function ProductDetail() {
             {activeTab === 'description' && (
               <div className="text-sm text-gray-700 leading-relaxed max-w-4xl">
                 <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:text-gray-900 [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(product.description || '') }} />
-                {Array.isArray(product.specifications) && product.specifications.length > 0 && (
+                {specifications.length > 0 && (
                   <div className="mt-8">
                     <h3 className="text-lg font-black text-gray-900 mb-3">Specifications</h3>
                     <div className="overflow-x-auto border border-gray-200 rounded-xl">
                       <table className="w-full text-sm">
                         <tbody>
-                          {product.specifications.map((row, i) => (
+                          {specifications.map((row, i) => (
                             <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                               <td className="w-1/3 px-4 py-3 font-bold text-gray-900 border-r border-gray-200">{row.key}</td>
                               <td className="px-4 py-3 text-gray-600">{row.value}</td>
