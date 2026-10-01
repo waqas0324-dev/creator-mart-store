@@ -5,6 +5,7 @@ import { useCategories } from '../hooks/useProducts';
 import { ProductCard } from '../components/Product/ProductCard';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types';
+import { getProductTags } from '../lib/productFields';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useSEO } from '../hooks/useSEO';
 import { BRAND_NAME } from '../lib/brand';
@@ -21,6 +22,7 @@ export function Shop() {
   const { categories } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState(nav.categorySlug || '');
   const [searchQuery, setSearchQuery] = useState(nav.searchQuery || '');
+  const [selectedTag, setSelectedTag] = useState(nav.tag || '');
   const [maxPrice, setMaxPrice] = useState(10000);
   const [sortBy, setSortBy] = useState('default');
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -69,6 +71,7 @@ export function Shop() {
       product.slug,
       product.description,
       product.seo_keywords,
+      ...getProductTags(product),
       ...(Array.isArray(product.specifications) ? product.specifications.flatMap(spec => [spec.key, spec.value]) : []),
       product.categories?.name,
     ].filter(Boolean).join(' '));
@@ -97,7 +100,10 @@ export function Shop() {
     }
 
     const { data } = await query;
-    let sorted = ((data as Product[]) || []).filter(product => matchesSearch(product, searchQuery));
+    const activeTag = selectedTag.trim().toLowerCase();
+    let sorted = ((data as Product[]) || [])
+      .filter(product => matchesSearch(product, searchQuery))
+      .filter(product => !activeTag || getProductTags(product).some(t => t.toLowerCase() === activeTag));
     switch (sortBy) {
       case 'price_asc': sorted = [...sorted].sort((a, b) => a.price - b.price); break;
       case 'price_desc': sorted = [...sorted].sort((a, b) => b.price - a.price); break;
@@ -107,7 +113,7 @@ export function Shop() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, [selectedCategory, searchQuery, maxPrice, sortBy]);
+  useEffect(() => { fetchProducts(); }, [selectedCategory, searchQuery, selectedTag, maxPrice, sortBy]);
 
   const activeCategoryName = categories.find(c => c.slug === selectedCategory)?.name;
   useSEO({
@@ -124,7 +130,8 @@ export function Shop() {
   useEffect(() => {
     if (nav.categorySlug !== undefined) setSelectedCategory(nav.categorySlug || '');
     if (nav.searchQuery !== undefined) setSearchQuery(nav.searchQuery || '');
-  }, [nav.categorySlug, nav.searchQuery]);
+    if (nav.tag !== undefined) setSelectedTag(nav.tag || '');
+  }, [nav.categorySlug, nav.searchQuery, nav.tag]);
 
   useEffect(() => {
     supabase.from('products').select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,created_at').order('rating', { ascending: false }).limit(5)
@@ -220,6 +227,18 @@ export function Shop() {
                   className="ml-auto text-xs text-orange-500 hover:text-orange-600 font-semibold"
                 >
                   Clear Search
+                </button>
+              </div>
+            )}
+            {selectedTag && (
+              <div className="flex items-center gap-2 mb-4 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+                <span className="text-sm text-gray-700">Browsing tag:</span>
+                <span className="text-sm font-bold text-orange-600">#{selectedTag}</span>
+                <button
+                  onClick={() => { setSelectedTag(''); navigate('shop'); }}
+                  className="ml-auto text-xs text-orange-500 hover:text-orange-600 font-semibold"
+                >
+                  Clear Tag
                 </button>
               </div>
             )}

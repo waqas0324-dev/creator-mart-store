@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
@@ -15,6 +15,7 @@ import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { sanitizeRichHtml } from '../lib/richText';
 import { extractProductSpecifications } from '../lib/productDescription';
+import { getMiniDescription, getProductTags } from '../lib/productFields';
 
 const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -119,6 +120,22 @@ export function ProductDetail() {
   const specifications = automaticSpecifications.length > 0
     ? automaticSpecifications
     : (Array.isArray(product.specifications) ? product.specifications : []);
+  const miniDescription = getMiniDescription(product);
+  const productTags = getProductTags(product);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.name, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      showToast('Product link copied', 'cart');
+    } catch {
+      /* user dismissed the share sheet */
+    }
+  };
 
   const handleAddToCart = () => {
     addItem(product, quantity);
@@ -150,8 +167,8 @@ export function ProductDetail() {
           <div className="grid md:grid-cols-2 gap-8">
             {/* Images */}
             <div>
-              <div className="relative bg-gray-50 rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
-                <img src={resolveProductImage(images[activeImage])} alt={product.name} loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="max-h-72 object-contain" />
+              <div className="relative bg-white rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
+                <img src={resolveProductImage(images[activeImage])} alt={product.name} loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="absolute inset-0 w-full h-full object-contain p-1 sm:p-2" />
                 {images.length > 1 && (
                   <>
                     <button
@@ -200,6 +217,9 @@ export function ProductDetail() {
               <p className={`text-sm font-semibold mb-1 ${product.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
                 {product.stock > 0 ? '● In Stock' : '● Out of Stock'}
               </p>
+              {miniDescription && (
+                <p className="text-sm text-gray-600 leading-6 mb-4">{miniDescription}</p>
+              )}
               {product.stock > 0 && product.stock <= 10 && (
                 <p className="text-sm font-bold text-orange-600 mb-4 animate-pulse">
                   Only {product.stock} left — order soon!
@@ -207,6 +227,19 @@ export function ProductDetail() {
               )}
               {(product.stock === 0 || product.stock > 10) && <div className="mb-4" />}
               <div className="mb-5 text-sm text-gray-600 leading-6 line-clamp-5" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(product.description || '')) }} />
+              {productTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {productTags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => navigate('shop', { tag })}
+                      className="text-xs font-semibold bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-orange-600 px-3 py-1.5 rounded-full transition-colors"
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Quantity + Cart */}
               <div className="flex items-center gap-3 mb-4">
@@ -240,13 +273,22 @@ export function ProductDetail() {
                 <MessageCircle size={18} />
                 Order on WhatsApp
               </a>
-              <button
-                onClick={() => toggleItem(product)}
-                className={`flex items-center gap-2 text-sm transition-colors mb-5 ${isInWishlist(product.id) ? 'text-orange-500 font-semibold' : 'text-gray-600 hover:text-orange-500'}`}
-              >
-                <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
-                {isInWishlist(product.id) ? 'Added to Wishlist' : 'Add to Wishlist'}
-              </button>
+              <div className="flex items-center gap-4 mb-5">
+                <button
+                  onClick={() => toggleItem(product)}
+                  className={`flex items-center gap-2 text-sm transition-colors ${isInWishlist(product.id) ? 'text-orange-500 font-semibold' : 'text-gray-600 hover:text-orange-500'}`}
+                >
+                  <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                  {isInWishlist(product.id) ? 'Added to Wishlist' : 'Add to Wishlist'}
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 transition-colors"
+                >
+                  <Share2 size={16} />
+                  Share
+                </button>
+              </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-gray-100">
                 {[

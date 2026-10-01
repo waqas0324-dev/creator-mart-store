@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, ArrowLeft, Loader2, Upload, Link as LinkIcon, Plus, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading2, Heading3, Palette, Highlighter } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, Upload, Link as LinkIcon, Plus, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading2, Heading3, Palette, Highlighter } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
@@ -8,6 +8,7 @@ import { onImageError } from '../../lib/imageFallback';
 import type { Product } from '../../types';
 import { sanitizeRichHtml } from '../../lib/richText';
 import { extractProductSpecifications } from '../../lib/productDescription';
+import { isMissingColumnError } from '../../lib/productFields';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -17,10 +18,11 @@ export function AdminProductForm() {
   const isEdit = !!nav.adminProductId;
 
   const [form, setForm] = useState({
-    name: '', slug: '', description: '', seo_keywords: '', price: '', original_price: '', category_id: '',
+    name: '', slug: '', description: '', mini_description: '', seo_keywords: '', price: '', original_price: '', category_id: '',
     image_url: '', rating: '4.0', review_count: '0', stock: '100',
     is_featured: false, is_bestseller: false, discount_percent: '',
   });
+  const [tagsInput, setTagsInput] = useState('');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const [galleryUploading, setGalleryUploading] = useState(false);
@@ -37,13 +39,14 @@ export function AdminProductForm() {
       if (data) {
         const p = data as Product;
         setForm({
-          name: p.name, slug: p.slug, description: p.description || '', seo_keywords: p.seo_keywords || '',
+          name: p.name, slug: p.slug, description: p.description || '', mini_description: (p.mini_description || '').slice(0, 220), seo_keywords: p.seo_keywords || '',
           price: String(p.price), original_price: String(p.original_price || ''),
           category_id: p.category_id || '', image_url: p.image_url,
           rating: String(p.rating), review_count: String(p.review_count),
           stock: String(p.stock), is_featured: p.is_featured, is_bestseller: p.is_bestseller,
           discount_percent: String(p.discount_percent || ''),
         });
+        setTagsInput(Array.isArray(p.tags) ? (p.tags as unknown[]).map(t => String(t)).join(', ') : '');
         const savedImages = Array.isArray(p.images) ? p.images : [];
         const unifiedImages = Array.from(new Set([p.image_url, ...savedImages].filter(Boolean)));
         setGalleryImages(unifiedImages);
@@ -116,9 +119,11 @@ export function AdminProductForm() {
     if (!validate()) return;
     setLoading(true);
 
+    const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean).slice(0, 20);
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: sanitizeRichHtml(form.description), seo_keywords: form.seo_keywords.trim(), specifications: extractProductSpecifications(form.description), price: Number(form.price),
+      description: sanitizeRichHtml(form.description), mini_description: form.mini_description.trim().slice(0, 220) || null,
+      tags, seo_keywords: form.seo_keywords.trim(), specifications: extractProductSpecifications(form.description), price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       image_url: galleryImages[0] || '',
@@ -128,9 +133,16 @@ export function AdminProductForm() {
       discount_percent: form.discount_percent ? Number(form.discount_percent) : null,
     };
 
-    const { error } = isEdit
-      ? await supabase.from('products').update(payload).eq('id', nav.adminProductId!)
-      : await supabase.from('products').insert(payload);
+    const savePayload = async (body: Record<string, unknown>) => isEdit
+      ? supabase.from('products').update(body).eq('id', nav.adminProductId!)
+      : supabase.from('products').insert(body);
+
+    let { error } = await savePayload(payload);
+    if (error && isMissingColumnError(error)) {
+      // Older database without the migration: save everything except the new fields.
+      const { mini_description: _md, tags: _tg, ...legacyPayload } = payload;
+      ({ error } = await savePayload(legacyPayload));
+    }
 
     setLoading(false);
     if (error) { setErrors({ general: error.message }); }
@@ -144,6 +156,25 @@ export function AdminProductForm() {
     document.execCommand('selectAll', false);
     document.execCommand('foreColor', false, color);
     window.getSelection()?.removeAllRanges();
+    update('description', sanitizeRichHtml(editor.innerHTML));
+  };
+
+  const applyFontSize = (px: number) => {
+    const editor = descriptionRef.current;
+    if (!editor) return;
+    editor.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.fontSize = `${px}px`;
+    try {
+      range.surroundContents(span);
+    } catch {
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+    }
+    sel.removeAllRanges();
     update('description', sanitizeRichHtml(editor.innerHTML));
   };
 
@@ -318,6 +349,7 @@ export function AdminProductForm() {
                     {label:'Bold', icon:<Bold size={15}/>, cmd:'bold'},
                     {label:'Italic', icon:<Italic size={15}/>, cmd:'italic'},
                     {label:'Underline', icon:<Underline size={15}/>, cmd:'underline'},
+                    {label:'Strikethrough', icon:<Strikethrough size={15}/>, cmd:'strikeThrough'},
                     {label:'Left', icon:<AlignLeft size={15}/>, cmd:'justifyLeft'},
                     {label:'Center', icon:<AlignCenter size={15}/>, cmd:'justifyCenter'},
                     {label:'Right', icon:<AlignRight size={15}/>, cmd:'justifyRight'},
@@ -343,10 +375,46 @@ export function AdminProductForm() {
                       aria-label="Description color"
                     />
                   </label>
+                  <select
+                    title="Font size"
+                    defaultValue=""
+                    onMouseDown={e => e.preventDefault()}
+                    onChange={e => { if (e.target.value) { applyFontSize(Number(e.target.value)); e.target.value = ''; } }}
+                    className="h-8 rounded-lg hover:bg-white text-gray-600 text-xs font-semibold px-1 outline-none cursor-pointer transition-colors"
+                    aria-label="Font size"
+                  >
+                    <option value="" disabled>Aa</option>
+                    {[12, 14, 16, 18, 20, 24, 28, 32].map(px => (
+                      <option key={px} value={px}>{px}px</option>
+                    ))}
+                  </select>
                 </div>
                 <div ref={descriptionRef} contentEditable suppressContentEditableWarning onInput={e=>update('description', sanitizeRichHtml(e.currentTarget.innerHTML))} className="min-h-48 p-4 text-sm text-gray-700 outline-none leading-7 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-3 [&_h3]:text-lg [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6" />
               </div>
-              <p className="text-[11px] text-gray-400 mt-1">Word-style editing: headings, bold, underline, alignment, bullets, text color and highlighting.</p>
+              <p className="text-[11px] text-gray-400 mt-1">Word-style editing: headings, bold, italic, underline, strikethrough, font size, alignment, bullets, text color and highlighting.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">Mini Description <span className="text-gray-400 font-normal">(max 220 characters)</span></label>
+              <textarea
+                value={form.mini_description}
+                onChange={e => update('mini_description', e.target.value.slice(0, 220))}
+                maxLength={220}
+                rows={2}
+                className={inputCls('mini_description') + ' resize-none'}
+                placeholder="Short one-line summary shown beside the product image. Leave empty to auto-generate from the description."
+              />
+              <p className="text-[11px] text-gray-400 mt-1">{form.mini_description.length}/220 characters</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">Product Tags</label>
+              <input
+                type="text"
+                value={tagsInput}
+                onChange={e => setTagsInput(e.target.value)}
+                className={inputCls('tags')}
+                placeholder="Wireless, Bluetooth, Earbuds, Audio"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">Comma-separated. Tags appear on the product page and customers can click them to browse similar products.</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-2">SEO Keywords</label>
