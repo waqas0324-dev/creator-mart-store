@@ -274,7 +274,7 @@ export function Checkout() {
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
                     <input ref={el => { fieldRefs.current.fullName = el; }} id="checkout-full-name" type="text" autoComplete="name" placeholder="Enter your full name" value={form.fullName} onChange={e => update('fullName', e.target.value)} className={inputCls('fullName')} aria-invalid={!!errors.fullName} aria-describedby={errors.fullName ? 'error-fullName' : undefined} />
-                    {errors.fullName && <p id="error-fullName" className="text-red-500 text-xs mt-1" role="alert">{errors.fullName}</p>
+                    {errors.fullName && <p id="error-fullName" className="text-red-500 text-xs mt-1" role="alert">{errors.fullName}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
