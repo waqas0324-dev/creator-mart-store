@@ -73,9 +73,9 @@ function buildUrl(page: Page, params?: Partial<Omit<NavState, 'page'>>): string 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [nav, setNav] = useState<NavState>(() => {
     const initial = parseLocation();
-    const customerPage = !['admin','admin-login','admin-products','admin-categories','admin-orders','admin-product-form','admin-account','dev-login','dev-panel'].includes(initial.page);
-    const entry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-    return entry?.type === 'reload' && customerPage ? { page: 'home' } : initial;
+    // Preserve the exact route on browser refresh. Home is still reset to the top
+    // by the scroll-restoration effect below; other customer pages stay in place.
+    return initial;
   });
 
   useEffect(() => {
