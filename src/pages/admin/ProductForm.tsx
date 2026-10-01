@@ -10,6 +10,28 @@ import type { Product, ProductSpecification } from '../../types';\nimport { sani
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+function extractSpecifications(html: string): ProductSpecification[] {
+  if (!html || typeof DOMParser === 'undefined') return [];
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const rows: ProductSpecification[] = [];
+  doc.querySelectorAll('tr').forEach(tr => {
+    const cells = [...tr.querySelectorAll('th,td')].map(cell => (cell.textContent || '').trim()).filter(Boolean);
+    if (cells.length >= 2) rows.push({ key: cells[0], value: cells.slice(1).join(' — ') });
+  });
+  doc.querySelectorAll('li,p').forEach(node => {
+    const text = (node.textContent || '').replace(/\\s+/g, ' ').trim();
+    const match = text.match(/^([^:–—-]{2,50})\\s*[:–—-]\\s*(.+)$/);
+    if (match) rows.push({ key: match[1].trim(), value: match[2].trim() });
+  });
+  const seen = new Set<string>();
+  return rows.filter(row => {
+    const key = row.key.toLowerCase();
+    if (!row.key || !row.value || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 40);
+}
+
 function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -372,9 +394,17 @@ export function AdminProductForm() {
                 <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Specifications</h3>
                 <p className="text-xs text-gray-400 mt-0.5">Add key/value rows. They render automatically as a clean table on the product page.</p>
               </div>
-              <button type="button" onClick={() => setSpecifications(prev => [...prev, { key: '', value: '' }])} className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-lg">
-                <Plus size={14}/> Add Row
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => {
+                  const detected = extractSpecifications(form.description_html);
+                  if (detected.length) setSpecifications(detected);
+                }} className="border border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-700 text-xs font-bold px-3 py-2 rounded-lg">
+                  Auto Detect
+                </button>
+                <button type="button" onClick={() => setSpecifications(prev => [...prev, { key: '', value: '' }])} className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 py-2 rounded-lg">
+                  <Plus size={14}/> Add Row
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               {specifications.length === 0 ? (
