@@ -108,7 +108,7 @@ export function DevPanel() {
       dirtyRef.current = false;
       setSaveStatus('saved');
       showToast('Changes saved successfully', 'success');
-    }, 1000);
+    }, 350);
   };
 
   const update = <K extends keyof SiteSettings>(field: K, value: SiteSettings[K]) => {
