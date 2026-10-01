@@ -17,6 +17,7 @@ import { sanitizeRichHtml } from '../lib/richText';
 import { extractProductSpecifications } from '../lib/productDescription';
 
 const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+const firstWords = (value: string, count = 25) => stripHtml(value).split(/\s+/).filter(Boolean).slice(0, count).join(' ');
 
 const cleanDescriptionHtml = (value: string) => {
   if (!value) return '';
@@ -245,7 +246,7 @@ export function ProductDetail() {
                 </p>
               )}
               {(product.stock === 0 || product.stock > 10) && <div className="mb-4" />}
-              <div className="mb-5 text-sm text-gray-600 leading-6" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(product.mini_description || stripHtml(product.description || '').slice(0, 180)) }} />
+              <div className="mb-5 text-sm text-gray-600 leading-6" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(product.mini_description || firstWords(product.description || '', 25)) }} />
 
               {/* Quantity + Cart */}
               <div className="flex items-center gap-3 mb-4">
