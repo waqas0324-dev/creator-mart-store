@@ -2,6 +2,69 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Product, Category } from '../types';
 
+const productRequests = new Map<string, Promise<Product[]>>();
+let categoriesRequest: Promise<Category[]> | null = null;
+
+async function loadProducts(filters?: {
+  categorySlug?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  search?: string;
+  featured?: boolean;
+  bestseller?: boolean;
+}): Promise<Product[]> {
+  const key = JSON.stringify(filters || {});
+  const existing = productRequests.get(key);
+  if (existing) return existing;
+
+  const request = (async () => {
+    let query = supabase
+      .from('products')
+      .select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,created_at,categories(id, name, slug)')
+      .order('created_at', { ascending: false });
+
+    if (filters?.featured) query = query.eq('is_featured', true);
+    if (filters?.bestseller) query = query.eq('is_bestseller', true);
+    if (filters?.minPrice !== undefined) query = query.gte('price', filters.minPrice);
+    if (filters?.maxPrice !== undefined) query = query.lte('price', filters.maxPrice);
+    if (filters?.search) query = query.ilike('name', '%' + filters.search + '%');
+
+    if (filters?.categorySlug) {
+      const { data: cat } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', filters.categorySlug)
+        .single();
+      if (cat) query = query.eq('category_id', cat.id);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return (data as Product[]) || [];
+  })();
+
+  productRequests.set(key, request);
+  request.finally(() => productRequests.delete(key));
+  return request;
+}
+
+async function loadCategories(): Promise<Category[]> {
+  if (categoriesRequest) return categoriesRequest;
+  categoriesRequest = supabase
+    .from('categories')
+    .select('id,name,slug,image_url,products(id)')
+    .order('name')
+    .then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return (data || []).map((cat: Category & { products?: { id: string }[] }) => ({
+        ...cat,
+        product_count: Array.isArray(cat.products) ? cat.products.length : 0,
+      })) as Category[];
+    })
+    .finally(() => { categoriesRequest = null; });
+  return categoriesRequest;
+}
+
 export function useProducts(filters?: {
   categorySlug?: string;
   minPrice?: number;
@@ -85,19 +148,10 @@ export function useCategories() {
 
   const fetchCategories = () => {
     setLoading(true);
-    return supabase
-      .from('categories')
-      .select('id,name,slug,image_url,products(id)')
-      .order('name')
-      .then(({ data }) => {
-        const mapped = (data || []).map((cat: Category & { products?: { id: string }[] }) => ({
-          ...cat,
-          product_count: Array.isArray(cat.products) ? cat.products.length : 0,
-        }));
-        setCategories(mapped as Category[]);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    return loadCategories()
+      .then(data => setCategories(data))
+      .catch(() => setCategories([]))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchCategories(); }, []);
