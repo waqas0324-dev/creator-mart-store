@@ -53,8 +53,8 @@ export function Checkout() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    const phoneDigits = form.phone.replace(/\\D/g, '');
-    const whatsappDigits = form.whatsapp.replace(/\\D/g, '');
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    const whatsappDigits = form.whatsapp.replace(/\D/g, '');
 
     if (!form.fullName.trim()) e.fullName = 'Please enter your full name.';
     else if (form.fullName.trim().length < 2) e.fullName = 'Please enter a valid full name.';
@@ -62,7 +62,7 @@ export function Checkout() {
     else if (phoneDigits.length < 10 || phoneDigits.length > 15) e.phone = 'Please enter a valid phone number.';
     if (!form.whatsapp.trim()) e.whatsapp = 'Please enter your WhatsApp number.';
     else if (whatsappDigits.length < 10 || whatsappDigits.length > 15) e.whatsapp = 'Please enter a valid WhatsApp number.';
-    if (form.email.trim() && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.email.trim())) e.email = 'Please enter a valid email address.';
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = 'Please enter a valid email address.';
     if (!form.address.trim()) e.address = 'Please enter your complete delivery address.';
     else if (form.address.trim().length < 8) e.address = 'Please enter a more complete delivery address.';
     if (!form.city) e.city = 'Please select your city.';
