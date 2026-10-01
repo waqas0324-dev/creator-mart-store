@@ -316,7 +316,7 @@ export function ProductDetail() {
                 <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(product.description || '')) }} />
                 {specifications.length > 0 && (
                   <div className="mt-8">
-                    <h3 className="text-lg font-black text-orange-500 mb-3">Specifications</h3>
+                    <h3 className="text-lg font-black text-orange-500 mb-3">Specification</h3>
                     <div className="overflow-x-auto border border-gray-200 rounded-xl">
                       <table className="w-full text-sm">
                         <tbody>
