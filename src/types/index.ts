@@ -12,6 +12,8 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
+  mini_description: string | null;
+  tags: string[];
   seo_keywords: string;
   specifications: Array<{ key: string; value: string }>;
   price: number;
