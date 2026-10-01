@@ -279,14 +279,14 @@ export function Checkout() {
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
                     <input ref={el => { fieldRefs.current.phone = el; }} id="checkout-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => updatePhone(e.target.value)} className={inputCls('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'error-phone' : undefined} />
-                    {errors.phone && <p id="error-phone" className="text-red-500 text-xs mt-1" role="alert">{errors.phone}</p>
+                    {errors.phone && <p id="error-phone" className="text-red-500 text-xs mt-1" role="alert">{errors.phone}</p>}
                   </div>
                   <div>
                     <div className="mb-1">
                       <label className="block text-xs font-semibold text-gray-700">WhatsApp Number <span className="text-red-500">*</span></label>
                     </div>
                     <input ref={el => { fieldRefs.current.whatsapp = el; }} id="checkout-whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="03xx xxx xxxx" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} className={inputCls('whatsapp')} aria-invalid={!!errors.whatsapp} aria-describedby={errors.whatsapp ? 'error-whatsapp' : undefined} />
-                    {errors.whatsapp && <p id="error-whatsapp" className="text-red-500 text-xs mt-1" role="alert">{errors.whatsapp}</p>
+                    {errors.whatsapp && <p id="error-whatsapp" className="text-red-500 text-xs mt-1" role="alert">{errors.whatsapp}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
@@ -296,7 +296,7 @@ export function Checkout() {
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
                     <input ref={el => { fieldRefs.current.address = el; }} id="checkout-address" type="text" autoComplete="street-address" placeholder="House no., Street, Area" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} aria-invalid={!!errors.address} aria-describedby={errors.address ? 'error-address' : undefined} />
-                    {errors.address && <p id="error-address" className="text-red-500 text-xs mt-1" role="alert">{errors.address}</p>
+                    {errors.address && <p id="error-address" className="text-red-500 text-xs mt-1" role="alert">{errors.address}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -305,7 +305,7 @@ export function Checkout() {
                         <option value="">Select your city</option>
                         {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      {errors.city && <p id="error-city" className="text-red-500 text-xs mt-1" role="alert">{errors.city}</p>
+                      {errors.city && <p id="error-city" className="text-red-500 text-xs mt-1" role="alert">{errors.city}</p>}
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Select Area</label>
