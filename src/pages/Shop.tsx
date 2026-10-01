@@ -20,6 +20,7 @@ export function Shop() {
   const { nav, navigate } = useNavigation();
   const { categories } = useCategories();
   const [selectedCategory, setSelectedCategory] = useState(nav.categorySlug || '');
+  const [selectedTag, setSelectedTag] = useState(nav.tag || '');
   const [searchQuery, setSearchQuery] = useState(nav.searchQuery || '');
   const [maxPrice, setMaxPrice] = useState(10000);
   const [sortBy, setSortBy] = useState('default');
@@ -69,6 +70,7 @@ export function Shop() {
       product.slug,
       product.description,
       product.seo_keywords,
+      ...(Array.isArray(product.visible_tags) ? product.visible_tags : []),
       ...(Array.isArray(product.specifications) ? product.specifications.flatMap(spec => [spec.key, spec.value]) : []),
       product.categories?.name,
     ].filter(Boolean).join(' '));
@@ -90,6 +92,8 @@ export function Shop() {
       .select('*, categories(id, name, slug)')
       .lte('price', maxPrice);
 
+    if (selectedTag) query = query.contains('visible_tags', [selectedTag]);
+
     if (activeCategory) {
       const { data: cat } = await supabase
         .from('categories').select('id').eq('slug', activeCategory).maybeSingle();
@@ -107,7 +111,7 @@ export function Shop() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, [selectedCategory, searchQuery, maxPrice, sortBy]);
+  useEffect(() => { fetchProducts(); }, [selectedCategory, selectedTag, searchQuery, maxPrice, sortBy]);
 
   const activeCategoryName = categories.find(c => c.slug === selectedCategory)?.name;
   useSEO({
@@ -123,6 +127,7 @@ export function Shop() {
 
   useEffect(() => {
     if (nav.categorySlug !== undefined) setSelectedCategory(nav.categorySlug || '');
+    if (nav.tag !== undefined) setSelectedTag(nav.tag || '');
     if (nav.searchQuery !== undefined) setSearchQuery(nav.searchQuery || '');
   }, [nav.categorySlug, nav.searchQuery]);
 
@@ -139,7 +144,7 @@ export function Shop() {
         <ul className="space-y-1">
           <li>
             <button
-              onClick={() => setSelectedCategory('')}
+              onClick={() => { setSelectedCategory(''); setSelectedTag(''); navigate('shop'); }}
               className={`w-full text-left flex items-center justify-between py-1.5 px-2 rounded text-sm transition-colors ${selectedCategory === '' ? 'bg-orange-50 text-orange-600 font-semibold' : 'text-gray-700 hover:text-orange-500'}`}
             >
               <span>All Products</span>
@@ -149,7 +154,7 @@ export function Shop() {
           {categories.map(cat => (
             <li key={cat.id}>
               <button
-                onClick={() => setSelectedCategory(cat.slug)}
+                onClick={() => { setSelectedCategory(cat.slug); setSelectedTag(''); navigate('shop', { categorySlug: cat.slug }); }}
                 className={`w-full text-left flex items-center justify-between py-1.5 px-2 rounded text-sm transition-colors ${selectedCategory === cat.slug ? 'bg-orange-50 text-orange-600 font-semibold' : 'text-gray-700 hover:text-orange-500'}`}
               >
                 <span>{cat.name}</span>
@@ -203,6 +208,13 @@ export function Shop() {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         <h1 className="text-2xl font-black text-gray-900 mb-5">SHOP</h1>
+        {(selectedTag || selectedCategory) && (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {selectedCategory && <span className="rounded-full bg-orange-50 text-orange-700 px-3 py-1 text-xs font-semibold">Category: {activeCategoryName}</span>}
+            {selectedTag && <span className="rounded-full bg-gray-900 text-white px-3 py-1 text-xs font-semibold">Tag: {selectedTag}</span>}
+            <button onClick={() => { setSelectedCategory(''); setSelectedTag(''); navigate('shop'); }} className="text-xs font-semibold text-orange-600 hover:text-orange-700">Clear</button>
+          </div>
+        )}
         <div className="flex gap-6">
           {/* Sidebar - Desktop */}
           <aside className="w-56 flex-shrink-0 hidden md:block">
