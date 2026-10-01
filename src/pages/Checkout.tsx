@@ -296,7 +296,7 @@ export function Checkout() {
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
                     <input ref={el => { fieldRefs.current.address = el; }} id="checkout-address" type="text" autoComplete="street-address" placeholder="House no., Street, Area" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} aria-invalid={!!errors.address} aria-describedby={errors.address ? 'error-address' : undefined} />
-                    {errors.address && <p id="error-address" className="text-red-500 text-xs mt-1" role="alert">{errors.address}</p>
+                    {errors.address && <p id="error-address" className="text-red-500 text-xs mt-1" role="alert">{errors.address}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -305,7 +305,7 @@ export function Checkout() {
                         <option value="">Select your city</option>
                         {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      {errors.city && <p id="error-city" className="text-red-500 text-xs mt-1" role="alert">{errors.city}</p>
+                      {errors.city && <p id="error-city" className="text-red-500 text-xs mt-1" role="alert">{errors.city}</p>}
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Select Area</label>
