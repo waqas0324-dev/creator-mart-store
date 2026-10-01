@@ -43,6 +43,17 @@ export function Checkout() {
 
   const updatePhone = (value: string) => setForm(prev => ({ ...prev, phone: value }));
 
+  const withTimeout = async <T,>(promise: PromiseLike<T>, message: string): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(message)), 15000);
+    });
+    try {
+      return await Promise.race([Promise.resolve(promise), timeout]);
+    } finally {
+      clearTimeout(timeoutId!);
+    }
+  };
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -90,9 +101,11 @@ export function Checkout() {
     setLoading(true);
     setSubmitError('');
 
-    const orderId = crypto.randomUUID();
+    try {
+      const orderId = crypto.randomUUID();
 
-    const { data: order, error } = await supabase.from('orders').insert({
+      const { data: order, error } = await withTimeout(
+        supabase.from('orders').insert({
       id: orderId,
       customer_name: form.fullName,
       customer_phone: form.phone,
@@ -109,16 +122,19 @@ export function Checkout() {
       status: 'new',
       payment_proof_path: null,
       payment_proof_status: 'not_required',
-      payment_proof_uploaded_at: null,
-    }).select().single();
+        payment_proof_uploaded_at: null,
+      }).select().single(),
+        'Order submission timed out. Please check your internet connection and try again.'
+      );
 
-    if (error || !order) {
-      setLoading(false);
-      setSubmitError('The order could not be created. Please try again.');
-      return;
-    }
+      if (error || !order) {
+        setLoading(false);
+        setSubmitError(error?.message || 'The order could not be created. Please try again.');
+        return;
+      }
 
-    const { error: itemsError } = await supabase.from('order_items').insert(
+      const { error: itemsError } = await withTimeout(
+        supabase.from('order_items').insert(
       items.map(item => ({
         order_id: order.id,
         product_id: item.product.id,
@@ -127,18 +143,23 @@ export function Checkout() {
         price: item.product.price,
         quantity: item.quantity,
         subtotal: item.product.price * item.quantity,
-      }))
-    );
+        }))),
+        'Order items could not be saved because the request timed out. Please try again or contact support.'
+      );
 
-    if (itemsError) {
+      if (itemsError) {
+        setLoading(false);
+        setSubmitError(itemsError.message || 'The order was created, but its items could not be saved. Please contact support before submitting again.');
+        return;
+      }
+
+      clearCart();
       setLoading(false);
-      setSubmitError('The order was created, but its items could not be saved. Please contact support before submitting again.');
-      return;
+      navigate('order-success', { orderId: order.id });
+    } catch (submitException) {
+      setLoading(false);
+      setSubmitError(submitException instanceof Error ? submitException.message : 'Something went wrong while placing your order. Please try again.');
     }
-
-    clearCart();
-    setLoading(false);
-    navigate('order-success', { orderId: order.id });
   };
 
   if (items.length === 0) {
