@@ -172,6 +172,24 @@ export function ProductDetail() {
             {/* Images */}
             <div>
               <div className="relative bg-gray-50 rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
+                <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleItem(product)}
+                    className={`inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold shadow-md border border-gray-200 transition-colors ${isInWishlist(product.id) ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'}`}
+                  >
+                    <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                    <span>{isInWishlist(product.id) ? 'Wishlisted' : 'Wishlist'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold text-gray-700 shadow-md border border-gray-200 hover:text-orange-500 transition-colors"
+                  >
+                    <Share2 size={16} />
+                    <span>Share</span>
+                  </button>
+                </div>
                 <img src={resolveProductImage(images[activeImage])} alt={product.name} loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full max-w-full max-h-full object-contain" />
                 {images.length > 1 && (
                   <>
@@ -261,19 +279,6 @@ export function ProductDetail() {
                 <MessageCircle size={18} />
                 Order on WhatsApp
               </a>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5">
-                <button
-                  onClick={() => toggleItem(product)}
-                  className={`flex items-center gap-2 text-sm transition-colors ${isInWishlist(product.id) ? 'text-orange-500 font-semibold' : 'text-gray-600 hover:text-orange-500'}`}
-                >
-                  <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
-                  {isInWishlist(product.id) ? 'Added to Wishlist' : 'Add to Wishlist'}
-                </button>
-                <button type="button" onClick={handleShare} className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-orange-500 transition-colors">
-                  <Share2 size={16} />
-                  Share Product
-                </button>
-              </div>
               <div className="mb-6 space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="font-bold text-gray-800">Categories:</span>
