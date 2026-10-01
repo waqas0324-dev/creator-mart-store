@@ -8,6 +8,7 @@ import { onImageError } from '../../lib/imageFallback';
 import type { Product, ProductSpecification } from '../../types';\nimport { sanitizeRichHtml } from '../../lib/richText';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -93,7 +94,7 @@ export function AdminProductForm() {
       if (data) {
         const p = data as Product;
         setForm({
-          name: p.name, slug: p.slug, description: p.description || '', description_html: p.description_html || '', seo_keywords: p.seo_keywords || '',
+          name: p.name, slug: p.slug, description: p.description || '', description_html: p.description_html || (p.description ? `<p>${escapeHtml(p.description)}</p>` : ''), seo_keywords: p.seo_keywords || '',
           price: String(p.price), original_price: String(p.original_price || ''),
           category_id: p.category_id || '', image_url: p.image_url,
           rating: String(p.rating), review_count: String(p.review_count),
