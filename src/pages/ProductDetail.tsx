@@ -15,6 +15,8 @@ import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { sanitizeRichHtml } from '../lib/richText';
 
+const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
   const { product, loading } = useProduct(nav.productSlug || '');
@@ -43,7 +45,7 @@ export function ProductDetail() {
   useSEO({
     title: product ? `${product.name} - Buy Online in Pakistan | ${BRAND_NAME}` : `Loading... | ${BRAND_NAME}`,
     description: product
-      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${(product.description || '').slice(0, 100)}`
+      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${stripHtml(product.description || '').slice(0, 100)}`
       : `Buy premium content-creator gear online in Pakistan. Cash on Delivery available.`,
     image: product?.image_url || undefined,
     canonical: product ? window.location.origin + '/product/' + encodeURIComponent(product.slug) : undefined,
@@ -53,7 +55,7 @@ export function ProductDetail() {
           '@type': 'Product',
           name: product.name,
           image: images.length > 0 ? images : undefined,
-          description: product.description || undefined,
+          description: product.description ? stripHtml(product.description) : undefined,
           sku: product.id,
           brand: { '@type': 'Brand', name: BRAND_NAME },
           offers: {
