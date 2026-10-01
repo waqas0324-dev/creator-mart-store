@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
@@ -120,6 +120,27 @@ export function ProductDetail() {
     ? automaticSpecifications
     : (Array.isArray(product.specifications) ? product.specifications : []);
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    const shareData = { title: product.name, text: `Check out ${product.name} at ${BRAND_NAME}`, url };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+        showToast('Product link copied — you can share it anywhere.', 'success');
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('Product link copied — you can share it anywhere.', 'success');
+      } catch {
+        showToast('Unable to open sharing on this device.', 'error');
+      }
+    }
+  };
+
   const handleAddToCart = () => {
     addItem(product, quantity);
     showToast('Your product has been added to cart', 'cart');
@@ -151,7 +172,7 @@ export function ProductDetail() {
             {/* Images */}
             <div>
               <div className="relative bg-gray-50 rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
-                <img src={resolveProductImage(images[activeImage])} alt={product.name} loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="max-h-72 object-contain" />
+                <img src={resolveProductImage(images[activeImage])} alt={product.name} loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full max-w-full max-h-full object-contain" />
                 {images.length > 1 && (
                   <>
                     <button
@@ -206,7 +227,7 @@ export function ProductDetail() {
                 </p>
               )}
               {(product.stock === 0 || product.stock > 10) && <div className="mb-4" />}
-              <div className="mb-5 text-sm text-gray-600 leading-6 line-clamp-5" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(product.description || '')) }} />
+              <div className="mb-5 text-sm text-gray-600 leading-6" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(product.mini_description || stripHtml(product.description || '').slice(0, 180)) }} />
 
               {/* Quantity + Cart */}
               <div className="flex items-center gap-3 mb-4">
@@ -240,13 +261,40 @@ export function ProductDetail() {
                 <MessageCircle size={18} />
                 Order on WhatsApp
               </a>
-              <button
-                onClick={() => toggleItem(product)}
-                className={`flex items-center gap-2 text-sm transition-colors mb-5 ${isInWishlist(product.id) ? 'text-orange-500 font-semibold' : 'text-gray-600 hover:text-orange-500'}`}
-              >
-                <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
-                {isInWishlist(product.id) ? 'Added to Wishlist' : 'Add to Wishlist'}
-              </button>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5">
+                <button
+                  onClick={() => toggleItem(product)}
+                  className={`flex items-center gap-2 text-sm transition-colors ${isInWishlist(product.id) ? 'text-orange-500 font-semibold' : 'text-gray-600 hover:text-orange-500'}`}
+                >
+                  <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                  {isInWishlist(product.id) ? 'Added to Wishlist' : 'Add to Wishlist'}
+                </button>
+                <button type="button" onClick={handleShare} className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-orange-500 transition-colors">
+                  <Share2 size={16} />
+                  Share Product
+                </button>
+              </div>
+              <div className="mb-6 space-y-3">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="font-bold text-gray-800">Categories:</span>
+                  <button onClick={() => navigate('shop')} className="rounded-full bg-orange-50 px-2.5 py-1 text-orange-700 hover:bg-orange-100 transition-colors">All Products</button>
+                  {product.categories && (
+                    <button onClick={() => navigate('shop', { categorySlug: product.categories!.slug })} className="rounded-full bg-orange-50 px-2.5 py-1 text-orange-700 hover:bg-orange-100 transition-colors">
+                      {product.categories.name}
+                    </button>
+                  )}
+                </div>
+                {Array.isArray(product.visible_tags) && product.visible_tags.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-bold text-gray-800">Tags:</span>
+                    {product.visible_tags.map(tag => (
+                      <button key={tag} onClick={() => navigate('shop', { tag })} className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700 hover:bg-gray-900 hover:text-white transition-colors">
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-gray-100">
                 {[
@@ -275,7 +323,7 @@ export function ProductDetail() {
               ))}
             </div>
             {activeTab === 'description' && (
-              <div className="text-sm text-gray-700 leading-relaxed max-w-4xl">
+              <div className="text-sm leading-relaxed max-w-4xl">
                 <h2 className="text-2xl font-black text-orange-500 mb-4">Product Description</h2>
                 <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(product.description || '')) }} />
                 {specifications.length > 0 && (
