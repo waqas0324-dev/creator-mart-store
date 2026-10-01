@@ -29,7 +29,7 @@ function parseLocation(): NavState {
         const [key, ...rest] = part.split('=');
         const value = decodeURIComponent(rest.join('='));
         if (['productSlug', 'categorySlug', 'tag', 'orderId', 'adminProductId', 'searchQuery'].includes(key) && value) {
-          (state as Record<string, string>)[key] = value;
+          (state as unknown as Record<string, string>)[key] = value;
         }
       }
       return state;
