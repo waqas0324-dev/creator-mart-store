@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Heart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import { ShoppingCart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
 import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
 import { useToast } from '../context/ToastContext';
 
 import { StarRating } from '../components/UI/StarRating';
@@ -46,7 +45,6 @@ export function ProductDetail() {
 
   const { addItem } = useCart();
   const { showToast } = useToast();
-  const { toggleItem, isInWishlist } = useWishlist();
   const { products: related } = useProducts({ categorySlug: product?.categories?.slug });
   const { reviews, loading: reviewsLoading, submitReview } = useReviews(product?.id || '');
   const [quantity, setQuantity] = useState(1);
@@ -288,16 +286,6 @@ export function ProductDetail() {
                 <MessageCircle size={18} />
                 Order on WhatsApp
               </a>
-              <div className="flex items-center gap-4 mb-5">
-                <button
-                  onClick={() => toggleItem(product)}
-                  className={`flex items-center gap-2 text-sm transition-colors ${isInWishlist(product.id) ? 'text-orange-500 font-semibold' : 'text-gray-600 hover:text-orange-500'}`}
-                >
-                  <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
-                  {isInWishlist(product.id) ? 'Added to Wishlist' : 'Add to Wishlist'}
-                </button>
-              </div>
-
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-gray-100">
                 {[
                   { Icon: Truck, title: 'FAST DELIVERY', sub: 'All Over Pakistan' },
