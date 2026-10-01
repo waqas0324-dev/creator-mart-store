@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, ArrowLeft, Loader2, Upload, Star, Link as LinkIcon, Plus } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, Upload, Link as LinkIcon, Plus, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading2, Heading3, Palette, Highlighter, Table2 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
 import { supabase } from '../../lib/supabase';
 import { onImageError } from '../../lib/imageFallback';
 import type { Product } from '../../types';
+import { sanitizeRichHtml } from '../../lib/richText';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -15,11 +16,13 @@ export function AdminProductForm() {
   const isEdit = !!nav.adminProductId;
 
   const [form, setForm] = useState({
-    name: '', slug: '', description: '', price: '', original_price: '', category_id: '',
+    name: '', slug: '', description: '', seo_keywords: '', price: '', original_price: '', category_id: '',
     image_url: '', rating: '4.0', review_count: '0', stock: '100',
     is_featured: false, is_bestseller: false, discount_percent: '',
   });
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [specifications, setSpecifications] = useState<Array<{ key: string; value: string }>>([]);
+  const descriptionRef = useRef<HTMLDivElement>(null);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
@@ -34,7 +37,7 @@ export function AdminProductForm() {
       if (data) {
         const p = data as Product;
         setForm({
-          name: p.name, slug: p.slug, description: p.description || '',
+          name: p.name, slug: p.slug, description: p.description || '', seo_keywords: p.seo_keywords || '',
           price: String(p.price), original_price: String(p.original_price || ''),
           category_id: p.category_id || '', image_url: p.image_url,
           rating: String(p.rating), review_count: String(p.review_count),
@@ -44,6 +47,8 @@ export function AdminProductForm() {
         const savedImages = Array.isArray(p.images) ? p.images : [];
         const unifiedImages = Array.from(new Set([p.image_url, ...savedImages].filter(Boolean)));
         setGalleryImages(unifiedImages);
+        setSpecifications(Array.isArray(p.specifications) ? p.specifications : []);
+        requestAnimationFrame(() => { if (descriptionRef.current) descriptionRef.current.innerHTML = sanitizeRichHtml(p.description || ''); });
       }
       setFetchLoading(false);
     });
@@ -114,7 +119,7 @@ export function AdminProductForm() {
 
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: form.description.trim(), price: Number(form.price),
+      description: sanitizeRichHtml(form.description), seo_keywords: form.seo_keywords.trim(), specifications: specifications.filter(row => row.key.trim() || row.value.trim()), price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       image_url: galleryImages[0] || '',
@@ -295,8 +300,58 @@ export function AdminProductForm() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
-              <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={4} className={`${inputCls('description')} resize-none`} placeholder="Product description..." />
+              <label className="block text-xs font-semibold text-gray-700 mb-2">Product Description</label>
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
+                  {[
+                    {label:'Title', icon:<Heading2 size={15}/>, cmd:'formatBlock', value:'H2'},
+                    {label:'Heading', icon:<Heading3 size={15}/>, cmd:'formatBlock', value:'H3'},
+                    {label:'Bold', icon:<Bold size={15}/>, cmd:'bold'},
+                    {label:'Italic', icon:<Italic size={15}/>, cmd:'italic'},
+                    {label:'Underline', icon:<Underline size={15}/>, cmd:'underline'},
+                    {label:'Left', icon:<AlignLeft size={15}/>, cmd:'justifyLeft'},
+                    {label:'Center', icon:<AlignCenter size={15}/>, cmd:'justifyCenter'},
+                    {label:'Right', icon:<AlignRight size={15}/>, cmd:'justifyRight'},
+                    {label:'Bullets', icon:<List size={15}/>, cmd:'insertUnorderedList'},
+                    {label:'Numbered', icon:<ListOrdered size={15}/>, cmd:'insertOrderedList'},
+                    {label:'Text color', icon:<Palette size={15}/>, cmd:'foreColor', value:'#f97316'},
+                    {label:'Highlight', icon:<Highlighter size={15}/>, cmd:'hiliteColor', value:'#fff1e6'},
+                  ].map(tool => (
+                    <button key={tool.label} type="button" title={tool.label} onMouseDown={e=>e.preventDefault()} onClick={()=>{
+                      descriptionRef.current?.focus();
+                      document.execCommand(tool.cmd, false, tool.value);
+                      update('description', sanitizeRichHtml(descriptionRef.current?.innerHTML || ''));
+                    }} className="w-8 h-8 rounded-lg hover:bg-white hover:text-orange-500 text-gray-600 flex items-center justify-center transition-colors">
+                      {tool.icon}
+                    </button>
+                  ))}
+                </div>
+                <div ref={descriptionRef} contentEditable suppressContentEditableWarning onInput={e=>update('description', sanitizeRichHtml(e.currentTarget.innerHTML))} className="min-h-48 p-4 text-sm text-gray-700 outline-none leading-7 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-3 [&_h3]:text-lg [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6" />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">Word-style editing: headings, bold, underline, alignment, bullets, text color and highlighting.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">SEO Keywords</label>
+              <input type="text" value={form.seo_keywords} onChange={e=>update('seo_keywords',e.target.value)} className={\${inputCls('seo_keywords')}} placeholder="wireless microphone, boya mic, vlogging mic, mobile microphone" />
+              <p className="text-[11px] text-gray-400 mt-1">Comma-separated. These keywords are also searchable on the storefront.</p>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700">Specifications</label>
+                  <p className="text-[11px] text-gray-400">Each row is automatically displayed as a clean specification table on the product page.</p>
+                </div>
+                <button type="button" onClick={()=>setSpecifications(prev=>[...prev,{key:'',value:''}])} className="flex items-center gap-1 bg-gray-900 text-white rounded-lg px-3 py-2 text-xs font-bold"><Table2 size={14}/> Add Row</button>
+              </div>
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                {specifications.length===0 ? <div className="p-4 text-sm text-gray-400">No specifications added yet.</div> : specifications.map((row,i)=>(
+                  <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2 p-2 border-b border-gray-100 last:border-0">
+                    <input value={row.key} onChange={e=>setSpecifications(prev=>prev.map((x,j)=>j===i?{...x,key:e.target.value}:x))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Specification" />
+                    <input value={row.value} onChange={e=>setSpecifications(prev=>prev.map((x,j)=>j===i?{...x,value:e.target.value}:x))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Value" />
+                    <button type="button" onClick={()=>setSpecifications(prev=>prev.filter((_,j)=>j!==i))} className="px-3 text-gray-400 hover:text-red-500">×</button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
