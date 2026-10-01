@@ -116,6 +116,13 @@ export function Shop() {
   }, [nav.categorySlug, nav.searchQuery]);
 
   useEffect(() => {
+    supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count }) => setTotalProductCount(count || 0));
+  }, []);
+
+  useEffect(() => {
     supabase.from('products').select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,created_at').order('rating', { ascending: false }).limit(5)
       .then(({ data }) => setTopRated((data as Product[]) || []));
   }, []);
