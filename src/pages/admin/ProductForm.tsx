@@ -420,6 +420,7 @@ export function AdminProductForm() {
             </div>
           </div>
           </div>
+          </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
             <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Pricing & Inventory</h3>
