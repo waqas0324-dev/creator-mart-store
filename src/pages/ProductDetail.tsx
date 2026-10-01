@@ -12,7 +12,7 @@ import { Badge } from '../components/UI/Badge';
 import { ProductCard } from '../components/Product/ProductCard';
 import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
-import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useSiteSettings } from '../context/SiteSettingsContext';\nimport { sanitizeRichHtml } from '../lib/richText';
 
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
@@ -266,25 +266,44 @@ export function ProductDetail() {
               ))}
             </div>
             {activeTab === 'description' && (
-              <div className="text-sm text-gray-700 leading-relaxed max-w-3xl">
-                <p className="mb-4">{product.description}</p>
+              <div className="max-w-4xl">
+                <div className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(product.description_html || `<p>${product.description || ''}</p>`) }} />
+                {Array.isArray(product.specifications) && product.specifications.length > 0 && (
+                  <div className="mt-7">
+                    <h3 className="text-base font-black text-gray-900 mb-3">Specifications</h3>
+                    <div className="overflow-x-auto rounded-xl border border-gray-200">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {product.specifications.filter(s => s && (s.key || s.value)).map((spec, i) => (
+                            <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                              <th className="text-left py-3 px-4 font-bold text-gray-900 w-1/3 border-r border-gray-200">{spec.key}</th>
+                              <td className="py-3 px-4 text-gray-600">{spec.value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {activeTab === 'info' && (
-              <table className="text-sm">
-                <tbody>
-                  {[
-                    ['Category', product.categories?.name || 'General'],
-                    ['Stock', `${product.stock} units`],
-                    ['Rating', product.review_count > 0 ? `${product.rating}/5 (${product.review_count} reviews)` : 'No reviews yet'],
-                  ].map(([key, val]) => (
-                    <tr key={key} className="border-b border-gray-100">
-                      <td className="py-2 pr-8 font-semibold text-gray-900 w-40">{key}</td>
-                      <td className="py-2 text-gray-600">{val}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="max-w-4xl overflow-x-auto">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {[
+                      ['Category', product.categories?.name || 'General'],
+                      ['Stock', `${product.stock} units`],
+                      ['Rating', product.review_count > 0 ? `${product.rating}/5 (${product.review_count} reviews)` : 'No reviews yet'],
+                    ].map(([key, val]) => (
+                      <tr key={key} className="border-b border-gray-100">
+                        <td className="py-3 pr-8 font-semibold text-gray-900 w-40">{key}</td>
+                        <td className="py-3 text-gray-600">{val}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
             {activeTab === 'reviews' && (
               <div>
