@@ -13,6 +13,7 @@ import { ProductCard } from '../components/Product/ProductCard';
 import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { sanitizeRichHtml } from '../lib/richText';
 
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
@@ -190,14 +191,7 @@ export function ProductDetail() {
                 </p>
               )}
               {(product.stock === 0 || product.stock > 10) && <div className="mb-4" />}
-              <ul className="space-y-1 mb-5">
-                {product.description?.split('.').filter(s => s.trim().length > 10).slice(0, 4).map((point, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-2 flex-shrink-0" />
-                    {point.trim()}
-                  </li>
-                ))}
-              </ul>
+              <div className="mb-5 text-sm text-gray-600 leading-6 line-clamp-5" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(product.description || '') }} />
 
               {/* Quantity + Cart */}
               <div className="flex items-center gap-3 mb-4">
@@ -266,8 +260,25 @@ export function ProductDetail() {
               ))}
             </div>
             {activeTab === 'description' && (
-              <div className="text-sm text-gray-700 leading-relaxed max-w-3xl">
-                <p className="mb-4">{product.description}</p>
+              <div className="text-sm text-gray-700 leading-relaxed max-w-4xl">
+                <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:text-gray-900 [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(product.description || '') }} />
+                {Array.isArray(product.specifications) && product.specifications.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-black text-gray-900 mb-3">Specifications</h3>
+                    <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {product.specifications.map((row, i) => (
+                            <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                              <td className="w-1/3 px-4 py-3 font-bold text-gray-900 border-r border-gray-200">{row.key}</td>
+                              <td className="px-4 py-3 text-gray-600">{row.value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {activeTab === 'info' && (
