@@ -5,7 +5,8 @@ import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
 import { supabase } from '../../lib/supabase';
 import { onImageError } from '../../lib/imageFallback';
-import type { Product, ProductSpecification } from '../../types';\nimport { sanitizeRichHtml } from '../../lib/richText';
+import type { Product, ProductSpecification } from '../../types';
+import { sanitizeRichHtml } from '../../lib/richText';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -19,8 +20,8 @@ function extractSpecifications(html: string): ProductSpecification[] {
     if (cells.length >= 2) rows.push({ key: cells[0], value: cells.slice(1).join(' — ') });
   });
   doc.querySelectorAll('li,p').forEach(node => {
-    const text = (node.textContent || '').replace(/\\s+/g, ' ').trim();
-    const match = text.match(/^([^:–—-]{2,50})\\s*[:–—-]\\s*(.+)$/);
+    const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+    const match = text.match(/^([^:–—-]{2,50})\s*[:–—-]\s*(.+)$/);
     if (match) rows.push({ key: match[1].trim(), value: match[2].trim() });
   });
   const seen = new Set<string>();
@@ -57,7 +58,8 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (html: s
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
       <div className="flex flex-wrap items-center gap-1.5 p-2 bg-gray-50 border-b border-gray-200">
-        {button('Bold', () => command('bold'))}\n        {button('Underline', () => command('underline'))}
+        {button('Bold', () => command('bold'))}
+        {button('Underline', () => command('underline'))}
         {button('H1', () => command('formatBlock', 'H1'))}
         {button('H2', () => command('formatBlock', 'H2'))}
         {button('Center', () => command('justifyCenter'))}
@@ -101,7 +103,8 @@ export function AdminProductForm() {
     image_url: '', rating: '4.0', review_count: '0', stock: '100',
     is_featured: false, is_bestseller: false, discount_percent: '',
   });
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);\n  const [specifications, setSpecifications] = useState<ProductSpecification[]>([]);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [specifications, setSpecifications] = useState<ProductSpecification[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
@@ -125,7 +128,8 @@ export function AdminProductForm() {
         });
         const savedImages = Array.isArray(p.images) ? p.images : [];
         const unifiedImages = Array.from(new Set([p.image_url, ...savedImages].filter(Boolean)));
-        setGalleryImages(unifiedImages);\n        setSpecifications(Array.isArray(p.specifications) ? p.specifications.filter((s: ProductSpecification) => s && (s.key || s.value)) : []);
+        setGalleryImages(unifiedImages);
+        setSpecifications(Array.isArray(p.specifications) ? p.specifications.filter((s: ProductSpecification) => s && (s.key || s.value)) : []);
       }
       setFetchLoading(false);
     });
@@ -196,7 +200,11 @@ export function AdminProductForm() {
 
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: form.description.trim(),\n      description_html: form.description_html ? sanitizeRichHtml(form.description_html) : null,\n      specifications: specifications.filter(s => s.key.trim() || s.value.trim()),\n      seo_keywords: form.seo_keywords.trim() || null,\n      price: Number(form.price),
+      description: form.description.trim(),
+      description_html: form.description_html ? sanitizeRichHtml(form.description_html) : null,
+      specifications: specifications.filter(s => s.key.trim() || s.value.trim()),
+      seo_keywords: form.seo_keywords.trim() || null,
+      price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       image_url: galleryImages[0] || '',
