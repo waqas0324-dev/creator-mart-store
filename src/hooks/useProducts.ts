@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { productsSupportNewColumns } from '../lib/productFields';
 import type { Product, Category } from '../types';
 
 const productRequests = new Map<string, Promise<Product[]>>();
@@ -18,9 +19,14 @@ async function loadProducts(filters?: {
   if (existing) return existing;
 
   const request = (async () => {
+    const baseColumns = 'id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,created_at';
+    const hasNewColumns = await productsSupportNewColumns();
+    const columns = hasNewColumns
+      ? `${baseColumns},mini_description,tags,categories(id, name, slug)`
+      : `${baseColumns},categories(id, name, slug)`;
     let query = supabase
       .from('products')
-      .select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,created_at,categories(id, name, slug)')
+      .select(columns)
       .order('created_at', { ascending: false });
 
     if (filters?.featured) query = query.eq('is_featured', true);
@@ -40,7 +46,7 @@ async function loadProducts(filters?: {
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return (data as Product[]) || [];
+    return ((data as unknown) as Product[]) || [];
   })();
 
   productRequests.set(key, request);
