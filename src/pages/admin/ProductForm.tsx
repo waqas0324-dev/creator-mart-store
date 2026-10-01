@@ -50,8 +50,8 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (html: s
 
   const button = (label: string, onClick: () => void, icon?: React.ReactNode) => (
     <button type="button" onMouseDown={e => e.preventDefault()} onClick={onClick} className="h-8 px-2 rounded-md border border-gray-200 bg-white hover:bg-orange-50 hover:border-orange-300 text-xs font-semibold text-gray-700 flex items-center gap-1">
-      {Icon ? <Icon size={14} /> : label}
-      {Icon && <span className="hidden sm:inline">{label}</span>}
+      {icon}
+      <span className={icon ? 'hidden sm:inline' : ''}>{label}</span>
     </button>
   );
 
