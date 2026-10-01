@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, ArrowLeft, Loader2, Upload, Link as LinkIcon, Plus, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading2, Heading3, Palette, Highlighter, Table2 } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, Upload, Link as LinkIcon, Plus, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Heading2, Heading3, Palette, Highlighter } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
 import { useCategories } from '../../hooks/useProducts';
@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { onImageError } from '../../lib/imageFallback';
 import type { Product } from '../../types';
 import { sanitizeRichHtml } from '../../lib/richText';
+import { extractProductSpecifications } from '../../lib/productDescription';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -21,7 +22,6 @@ export function AdminProductForm() {
     is_featured: false, is_bestseller: false, discount_percent: '',
   });
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
-  const [specifications, setSpecifications] = useState<Array<{ key: string; value: string }>>([]);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +47,6 @@ export function AdminProductForm() {
         const savedImages = Array.isArray(p.images) ? p.images : [];
         const unifiedImages = Array.from(new Set([p.image_url, ...savedImages].filter(Boolean)));
         setGalleryImages(unifiedImages);
-        setSpecifications(Array.isArray(p.specifications) ? p.specifications : []);
         requestAnimationFrame(() => { if (descriptionRef.current) descriptionRef.current.innerHTML = sanitizeRichHtml(p.description || ''); });
       }
       setFetchLoading(false);
@@ -119,7 +118,7 @@ export function AdminProductForm() {
 
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: sanitizeRichHtml(form.description), seo_keywords: form.seo_keywords.trim(), specifications: specifications.filter(row => row.key.trim() || row.value.trim()), price: Number(form.price),
+      description: sanitizeRichHtml(form.description), seo_keywords: form.seo_keywords.trim(), specifications: extractProductSpecifications(form.description), price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       image_url: galleryImages[0] || '',
@@ -337,21 +336,12 @@ export function AdminProductForm() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700">Specifications</label>
-                  <p className="text-[11px] text-gray-400">Each row is automatically displayed as a clean specification table on the product page.</p>
-                </div>
-                <button type="button" onClick={()=>setSpecifications(prev=>[...prev,{key:'',value:''}])} className="flex items-center gap-1 bg-gray-900 text-white rounded-lg px-3 py-2 text-xs font-bold"><Table2 size={14}/> Add Row</button>
-              </div>
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                {specifications.length===0 ? <div className="p-4 text-sm text-gray-400">No specifications added yet.</div> : specifications.map((row,i)=>(
-                  <div key={i} className="grid grid-cols-[1fr_2fr_auto] gap-2 p-2 border-b border-gray-100 last:border-0">
-                    <input value={row.key} onChange={e=>setSpecifications(prev=>prev.map((x,j)=>j===i?{...x,key:e.target.value}:x))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Specification" />
-                    <input value={row.value} onChange={e=>setSpecifications(prev=>prev.map((x,j)=>j===i?{...x,value:e.target.value}:x))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Value" />
-                    <button type="button" onClick={()=>setSpecifications(prev=>prev.filter((_,j)=>j!==i))} className="px-3 text-gray-400 hover:text-red-500">×</button>
-                  </div>
-                ))}
-              </div>
+                <div className="rounded-xl border border-dashed border-orange-200 bg-orange-50/60 p-4">
+              <p className="text-sm font-semibold text-gray-800">Automatic Specifications</p>
+              <p className="text-xs text-gray-500 mt-1">
+                No separate specification rows are needed. Paste specification lines inside the description using <strong>Label: Value</strong> format, and they will automatically become a clean specification table on the product page.
+              </p>
+              <p className="text-[11px] text-gray-400 mt-2">Example: Brand: BOYA · Model: BY-M1 · Compatibility: Android &amp; iPhone · Special Care: Keep away from moisture.</p>
             </div>
           </div>
 
