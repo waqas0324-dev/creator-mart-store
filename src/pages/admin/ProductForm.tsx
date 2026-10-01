@@ -332,7 +332,7 @@ export function AdminProductForm() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-2">SEO Keywords</label>
-              <input type="text" value={form.seo_keywords} onChange={e=>update('seo_keywords',e.target.value)} className={\${inputCls('seo_keywords')}} placeholder="wireless microphone, boya mic, vlogging mic, mobile microphone" />
+              <input type="text" value={form.seo_keywords} onChange={e=>update('seo_keywords',e.target.value)} className={inputCls('seo_keywords')} placeholder="wireless microphone, boya mic, vlogging mic, mobile microphone" />
               <p className="text-[11px] text-gray-400 mt-1">Comma-separated. These keywords are also searchable on the storefront.</p>
             </div>
             <div>
