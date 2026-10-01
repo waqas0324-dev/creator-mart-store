@@ -354,13 +354,13 @@ export function AdminProductForm() {
               <p className="text-[11px] text-gray-400 mt-1">Comma-separated. These keywords are also searchable on the storefront.</p>
             </div>
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="rounded-xl border border-dashed border-orange-200 bg-orange-50/60 p-4">
-              <p className="text-sm font-semibold text-gray-800">Automatic Specifications</p>
-              <p className="text-xs text-gray-500 mt-1">
-                No separate specification rows are needed. Paste specification lines inside the description using <strong>Label: Value</strong> format, and they will automatically become a clean specification table on the product page.
-              </p>
-              <p className="text-[11px] text-gray-400 mt-2">Example: Brand: BOYA · Model: BY-M1 · Compatibility: Android &amp; iPhone · Special Care: Keep away from moisture.</p>
+              <div className="rounded-xl border border-dashed border-orange-200 bg-orange-50/60 p-4">
+                <p className="text-sm font-semibold text-gray-800">Automatic Specifications</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  No separate specification rows are needed. Paste specification lines inside the description using <strong>Label: Value</strong> format, and they will automatically become a clean specification table on the product page.
+                </p>
+                <p className="text-[11px] text-gray-400 mt-2">Example: Brand: BOYA · Model: BY-M1 · Compatibility: Android &amp; iPhone · Special Care: Keep away from moisture.</p>
+              </div>
             </div>
           </div>
 
