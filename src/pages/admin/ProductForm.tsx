@@ -17,7 +17,7 @@ export function AdminProductForm() {
   const isEdit = !!nav.adminProductId;
 
   const [form, setForm] = useState({
-    name: '', slug: '', description: '', seo_keywords: '', price: '', original_price: '', category_id: '',
+    name: '', slug: '', mini_description: '', description: '', seo_keywords: '', visible_tags: '', price: '', original_price: '', category_id: '',
     image_url: '', rating: '4.0', review_count: '0', stock: '100',
     is_featured: false, is_bestseller: false, discount_percent: '',
   });
@@ -37,7 +37,7 @@ export function AdminProductForm() {
       if (data) {
         const p = data as Product;
         setForm({
-          name: p.name, slug: p.slug, description: p.description || '', seo_keywords: p.seo_keywords || '',
+          name: p.name, slug: p.slug, mini_description: p.mini_description || '', description: p.description || '', seo_keywords: p.seo_keywords || '', visible_tags: Array.isArray(p.visible_tags) ? p.visible_tags.join(', ') : '',
           price: String(p.price), original_price: String(p.original_price || ''),
           category_id: p.category_id || '', image_url: p.image_url,
           rating: String(p.rating), review_count: String(p.review_count),
@@ -118,7 +118,7 @@ export function AdminProductForm() {
 
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: sanitizeRichHtml(form.description), seo_keywords: form.seo_keywords.trim(), specifications: extractProductSpecifications(form.description), price: Number(form.price),
+      mini_description: form.mini_description.trim(), description: sanitizeRichHtml(form.description), seo_keywords: form.seo_keywords.trim(), visible_tags: form.visible_tags.split(',').map(tag => tag.trim()).filter(Boolean).filter((tag, index, arr) => arr.indexOf(tag) === index), specifications: extractProductSpecifications(form.description), price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       image_url: galleryImages[0] || '',
@@ -137,11 +137,52 @@ export function AdminProductForm() {
     else { setSuccess(isEdit ? 'Product updated!' : 'Product added!'); setTimeout(() => navigate('admin-products'), 1500); }
   };
 
+  const applyEditorCommand = (cmd: string, value?: string) => {
+    const editor = descriptionRef.current;
+    if (!editor) return;
+    editor.focus();
+    document.execCommand(cmd, false, value);
+    update('description', sanitizeRichHtml(editor.innerHTML));
+  };
+
+  const applyDescriptionHighlight = (color: string) => {
+    const editor = descriptionRef.current;
+    if (!editor) return;
+    editor.focus();
+    const selection = window.getSelection();
+    const hasSelection = !!selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode);
+    if (!hasSelection) document.execCommand('selectAll', false);
+    document.execCommand('hiliteColor', false, color);
+    update('description', sanitizeRichHtml(editor.innerHTML));
+  };
+
+  const applyDescriptionFontSize = (size: string) => {
+    const editor = descriptionRef.current;
+    if (!editor) return;
+    editor.focus();
+    const selection = window.getSelection();
+    const hasSelection = !!selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode);
+    if (!hasSelection) document.execCommand('selectAll', false);
+    document.execCommand('fontSize', false, size);
+    update('description', sanitizeRichHtml(editor.innerHTML));
+  };
+
+  const suggestVisibleTags = () => {
+    const source = `${form.name} ${form.mini_description} ${form.seo_keywords}`.toLowerCase();
+    const stop = new Set(['the','and','with','for','from','this','that','your','best','new','pro','pakistan','online','buy']);
+    const words = source.match(/[a-z0-9][a-z0-9+.-]{2,}/g) || [];
+    const base = words.filter(word => !stop.has(word) && !/^\\d+$/.test(word));
+    const tags = Array.from(new Set(base)).slice(0, 10);
+    update('visible_tags', tags.join(', '));
+  };
+
   const applyDescriptionColor = (color: string) => {
     const editor = descriptionRef.current;
     if (!editor) return;
     editor.focus();
-    document.execCommand('selectAll', false);
+    const selection = window.getSelection();
+    const hasSelection = !!selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode);
+    if (!hasSelection) document.execCommand('selectAll', false);
     document.execCommand('foreColor', false, color);
     window.getSelection()?.removeAllRanges();
     update('description', sanitizeRichHtml(editor.innerHTML));
@@ -309,9 +350,15 @@ export function AdminProductForm() {
               </div>
             </div>
             <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">Mini Description</label>
+              <textarea value={form.mini_description} onChange={e=>update('mini_description', e.target.value)} rows={3} maxLength={220} className={`${inputCls('mini_description')} resize-none leading-6`} placeholder="Write a short 20–25 word product summary shown beside the product image." />
+              <p className="text-[11px] text-gray-400 mt-1">This is separate from the full description and will stay fully visible on the product page.</p>
+            </div>
+
+            <div>
               <label className="block text-xs font-semibold text-gray-700 mb-2">Product Description</label>
               <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
+                <div className="flex flex-wrap items-center gap-1.5 p-2 border-b border-gray-200 bg-gray-50">
                   {[
                     {label:'Title', icon:<Heading2 size={15}/>, cmd:'formatBlock', value:'H2'},
                     {label:'Heading', icon:<Heading3 size={15}/>, cmd:'formatBlock', value:'H3'},
@@ -323,25 +370,26 @@ export function AdminProductForm() {
                     {label:'Right', icon:<AlignRight size={15}/>, cmd:'justifyRight'},
                     {label:'Bullets', icon:<List size={15}/>, cmd:'insertUnorderedList'},
                     {label:'Numbered', icon:<ListOrdered size={15}/>, cmd:'insertOrderedList'},
-                    {label:'Highlight', icon:<Highlighter size={15}/>, cmd:'hiliteColor', value:'#fff1e6'},
                   ].map(tool => (
-                    <button key={tool.label} type="button" title={tool.label} onMouseDown={e=>e.preventDefault()} onClick={()=>{
-                      descriptionRef.current?.focus();
-                      document.execCommand(tool.cmd, false, tool.value);
-                      update('description', sanitizeRichHtml(descriptionRef.current?.innerHTML || ''));
-                    }} className="w-8 h-8 rounded-lg hover:bg-white hover:text-orange-500 text-gray-600 flex items-center justify-center transition-colors">
+                    <button key={tool.label} type="button" title={tool.label} onMouseDown={e=>e.preventDefault()} onClick={()=>applyEditorCommand(tool.cmd, tool.value)} className="w-8 h-8 rounded-lg hover:bg-white hover:text-orange-500 text-gray-600 flex items-center justify-center transition-colors">
                       {tool.icon}
                     </button>
                   ))}
-                  <label title="Description color" className="relative w-8 h-8 rounded-lg hover:bg-white text-gray-600 flex items-center justify-center cursor-pointer transition-colors">
+                  <select title="Font size" defaultValue="3" onChange={e=>applyDescriptionFontSize(e.target.value)} className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-700">
+                    <option value="2">Small</option>
+                    <option value="3">Normal</option>
+                    <option value="4">Large</option>
+                    <option value="5">XL</option>
+                    <option value="6">2XL</option>
+                    <option value="7">3XL</option>
+                  </select>
+                  <label title="Text color" className="relative w-8 h-8 rounded-lg hover:bg-white text-gray-600 flex items-center justify-center cursor-pointer transition-colors">
                     <Palette size={15} />
-                    <input
-                      type="color"
-                      defaultValue="#f97316"
-                      onChange={e => applyDescriptionColor(e.target.value)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      aria-label="Description color"
-                    />
+                    <input type="color" defaultValue="#f97316" onChange={e => applyDescriptionColor(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="Text color" />
+                  </label>
+                  <label title="Highlight color" className="relative w-8 h-8 rounded-lg hover:bg-white text-gray-600 flex items-center justify-center cursor-pointer transition-colors">
+                    <Highlighter size={15} />
+                    <input type="color" defaultValue="#fff1e6" onChange={e => applyDescriptionHighlight(e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="Highlight color" />
                   </label>
                 </div>
                 <div ref={descriptionRef} contentEditable suppressContentEditableWarning onInput={e=>update('description', sanitizeRichHtml(e.currentTarget.innerHTML))} className="min-h-48 p-4 text-sm text-gray-700 outline-none leading-7 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-3 [&_h3]:text-lg [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6" />
@@ -352,6 +400,14 @@ export function AdminProductForm() {
               <label className="block text-xs font-semibold text-gray-700 mb-2">SEO Keywords</label>
               <input type="text" value={form.seo_keywords} onChange={e=>update('seo_keywords',e.target.value)} className={inputCls('seo_keywords')} placeholder="wireless microphone, boya mic, vlogging mic, mobile microphone" />
               <p className="text-[11px] text-gray-400 mt-1">Comma-separated. These keywords are also searchable on the storefront.</p>
+            </div>
+            <div>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <label className="block text-xs font-semibold text-gray-700">Visible Product Tags</label>
+                <button type="button" onClick={suggestVisibleTags} className="text-[11px] font-bold text-orange-600 hover:text-orange-700">Suggest tags</button>
+              </div>
+              <input type="text" value={form.visible_tags} onChange={e=>update('visible_tags',e.target.value)} className={inputCls('visible_tags')} placeholder="video light, led light, photography light, studio light" />
+              <p className="text-[11px] text-gray-400 mt-1">Comma-separated tags shown on the product page. Customers can click a tag to see matching products.</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
