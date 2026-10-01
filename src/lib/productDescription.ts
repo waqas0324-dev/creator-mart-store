@@ -1,4 +1,4 @@
-// Product description is the single source of truth for specification rows.\nexport type ProductSpecification = { key: string; value: string };
+// Product description is the single source of truth for specification rows. Live storefront rendering uses the same parser.\nexport type ProductSpecification = { key: string; value: string };
 
 const BLOCK_ENDINGS = /<\/(?:p|li|h2|h3|h4|div|blockquote)>/gi;
 const BREAKS = /<br\s*\/?>/gi;
