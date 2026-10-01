@@ -274,19 +274,19 @@ export function Checkout() {
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
                     <input ref={el => { fieldRefs.current.fullName = el; }} id="checkout-full-name" type="text" autoComplete="name" placeholder="Enter your full name" value={form.fullName} onChange={e => update('fullName', e.target.value)} className={inputCls('fullName')} aria-invalid={!!errors.fullName} aria-describedby={errors.fullName ? 'error-fullName' : undefined} />
-                    {errors.fullName && <p id="error-fullName" className="text-red-500 text-xs mt-1" role="alert">{errors.fullName}</p>
+                    {errors.fullName && <p id="error-fullName" className="text-red-500 text-xs mt-1" role="alert">{errors.fullName}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
                     <input ref={el => { fieldRefs.current.phone = el; }} id="checkout-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => updatePhone(e.target.value)} className={inputCls('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'error-phone' : undefined} />
-                    {errors.phone && <p id="error-phone" className="text-red-500 text-xs mt-1" role="alert">{errors.phone}</p>
+                    {errors.phone && <p id="error-phone" className="text-red-500 text-xs mt-1" role="alert">{errors.phone}</p>}
                   </div>
                   <div>
                     <div className="mb-1">
                       <label className="block text-xs font-semibold text-gray-700">WhatsApp Number <span className="text-red-500">*</span></label>
                     </div>
                     <input ref={el => { fieldRefs.current.whatsapp = el; }} id="checkout-whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="03xx xxx xxxx" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} className={inputCls('whatsapp')} aria-invalid={!!errors.whatsapp} aria-describedby={errors.whatsapp ? 'error-whatsapp' : undefined} />
-                    {errors.whatsapp && <p id="error-whatsapp" className="text-red-500 text-xs mt-1" role="alert">{errors.whatsapp}</p>
+                    {errors.whatsapp && <p id="error-whatsapp" className="text-red-500 text-xs mt-1" role="alert">{errors.whatsapp}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
