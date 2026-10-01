@@ -269,7 +269,7 @@ export function Checkout() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
-                    <input id="checkout-email" type="email" inputMode="email" autoComplete="email" placeholder="Enter your email (optional)" value={form.email} onChange={e => update('email', e.target.value)} className={inputCls('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'error-email' : undefined} />
+                    <input ref={el => { fieldRefs.current.email = el; }} id="checkout-email" type="email" inputMode="email" autoComplete="email" placeholder="Enter your email (optional)" value={form.email} onChange={e => update('email', e.target.value)} className={inputCls('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'error-email' : undefined} />
                     {errors.email && <p id="error-email" className="text-red-500 text-xs mt-1" role="alert">{errors.email}</p>}
                   </div>
                   <div>
