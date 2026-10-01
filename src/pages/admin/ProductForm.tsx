@@ -419,6 +419,7 @@ export function AdminProductForm() {
               <p className="text-[11px] text-gray-400 mt-2">Example: Brand: BOYA · Model: BY-M1 · Compatibility: Android &amp; iPhone · Special Care: Keep away from moisture.</p>
             </div>
           </div>
+          </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
             <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Pricing & Inventory</h3>
