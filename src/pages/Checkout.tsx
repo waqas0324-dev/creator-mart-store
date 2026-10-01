@@ -143,7 +143,7 @@ export function Checkout() {
         price: item.product.price,
         quantity: item.quantity,
         subtotal: item.product.price * item.quantity,
-        })),
+        }))),
         'Order items could not be saved because the request timed out. Please try again or contact support.'
       );
 
