@@ -82,7 +82,7 @@ export function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
           decoding="async"
           onError={(e) => onImageError(e, product.name)}
-          className="absolute inset-0 w-full h-full object-contain p-3 sm:p-4 transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+          className="absolute inset-0 w-full h-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.02]"
         />
         <button
           type="button"
@@ -105,7 +105,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
       </div>
-      <div className="p-3.5 sm:p-4 flex flex-col flex-1">
+      <div className="p-3 sm:p-4 flex flex-col flex-1 bg-gray-50 border-t border-gray-200">
         <h3
           className="text-sm font-semibold text-gray-900 hover:text-orange-500 cursor-pointer transition-colors line-clamp-2 mb-1 min-h-[2.5rem] leading-5"
           onClick={() => navigate('product', { productSlug: product.slug })}
