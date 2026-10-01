@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react';
 import { Save, ArrowLeft, Loader2, Upload, Star, Link as LinkIcon, Plus } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { useNavigation } from '../../context/NavigationContext';
@@ -6,8 +6,23 @@ import { useCategories } from '../../hooks/useProducts';
 import { supabase } from '../../lib/supabase';
 import { onImageError } from '../../lib/imageFallback';
 import type { Product } from '../../types';
+import { sanitizeRichHtml } from '../../lib/richText';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+
+function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const command = (name: string, arg?: string) => {
+    ref.current?.focus();
+    document.execCommand(name, false, arg);
+    onChange(sanitizeRichHtml(ref.current?.innerHTML || ''));
+  };
+  const button = (label: string, onClick: () => void) => (
+    <button type="button" onMouseDown={e => e.preventDefault()} onClick={onClick}>{label}</button>
+  );
+  return <div><div>{button('Bold', () => command('bold'))}{button('Underline', () => command('underline'))}{button('Center', () => command('justifyCenter'))}</div><div ref={ref} contentEditable suppressContentEditableWarning onInput={() => onChange(sanitizeRichHtml(ref.current?.innerHTML || ''))}>{value}</div></div>;
+}
 
 export function AdminProductForm() {
   const { nav, navigate } = useNavigation();
