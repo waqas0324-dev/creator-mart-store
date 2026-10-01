@@ -7,6 +7,7 @@ let categoriesRequest: Promise<Category[]> | null = null;
 
 async function loadProducts(filters?: {
   categorySlug?: string;
+  tag?: string;
   minPrice?: number;
   maxPrice?: number;
   search?: string;
@@ -20,7 +21,7 @@ async function loadProducts(filters?: {
   const request = (async () => {
     let query = supabase
       .from('products')
-      .select('id,name,slug,price,original_price,discount_percent,image_url,images,rating,review_count,category_id,created_at,categories(id, name, slug)')
+      .select('id,name,slug,price,original_price,discount_percent,image_url,images,mini_description,visible_tags,rating,review_count,category_id,created_at,categories(id, name, slug)')
       .order('created_at', { ascending: false });
 
     if (filters?.featured) query = query.eq('is_featured', true);
@@ -28,6 +29,8 @@ async function loadProducts(filters?: {
     if (filters?.minPrice !== undefined) query = query.gte('price', filters.minPrice);
     if (filters?.maxPrice !== undefined) query = query.lte('price', filters.maxPrice);
     if (filters?.search) query = query.ilike('name', '%' + filters.search + '%');
+
+    if (filters?.tag) query = query.contains('visible_tags', [filters.tag]);
 
     if (filters?.categorySlug) {
       const { data: cat } = await supabase
@@ -67,6 +70,7 @@ async function loadCategories(): Promise<Category[]> {
 
 export function useProducts(filters?: {
   categorySlug?: string;
+  tag?: string;
   minPrice?: number;
   maxPrice?: number;
   search?: string;
@@ -86,6 +90,7 @@ export function useProducts(filters?: {
       .finally(() => setLoading(false));
   }, [
     filters?.categorySlug,
+    filters?.tag,
     filters?.minPrice,
     filters?.maxPrice,
     filters?.search,
