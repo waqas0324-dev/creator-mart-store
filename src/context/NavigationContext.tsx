@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Page, PendingOrder } from '../types';
 
-interface NavState { page: Page; productSlug?: string; categorySlug?: string; orderId?: string; adminProductId?: string; pendingOrder?: PendingOrder; searchQuery?: string; }
+interface NavState { page: Page; productSlug?: string; categorySlug?: string; tag?: string; orderId?: string; adminProductId?: string; pendingOrder?: PendingOrder; searchQuery?: string; }
 interface NavigationContextValue { nav: NavState; navigate: (page: Page, params?: Partial<Omit<NavState, 'page'>>) => void; }
 const NavigationContext = createContext<NavigationContextValue | null>(null);
 
@@ -28,7 +28,7 @@ function parseLocation(): NavState {
       for (const part of paramParts) {
         const [key, ...rest] = part.split('=');
         const value = decodeURIComponent(rest.join('='));
-        if (['productSlug', 'categorySlug', 'orderId', 'adminProductId', 'searchQuery'].includes(key) && value) {
+        if (['productSlug', 'categorySlug', 'tag', 'orderId', 'adminProductId', 'searchQuery'].includes(key) && value) {
           (state as Record<string, string>)[key] = value;
         }
       }
@@ -47,10 +47,12 @@ function parseLocation(): NavState {
     const state: NavState = { page: exactPage };
     const categorySlug = url.searchParams.get('category');
     const searchQuery = url.searchParams.get('search');
+    const tag = url.searchParams.get('tag');
     const orderId = url.searchParams.get('orderId');
     const adminProductId = url.searchParams.get('productId');
     if (categorySlug) state.categorySlug = categorySlug;
     if (searchQuery) state.searchQuery = searchQuery;
+    if (tag) state.tag = tag;
     if (orderId) state.orderId = orderId;
     if (adminProductId) state.adminProductId = adminProductId;
     return state;
@@ -63,6 +65,7 @@ function buildUrl(page: Page, params?: Partial<Omit<NavState, 'page'>>): string 
   if (page === 'product' && params?.productSlug) path = '/product/' + encodeURIComponent(params.productSlug);
   const search = new URLSearchParams();
   if (params?.categorySlug) search.set('category', params.categorySlug);
+  if (params?.tag) search.set('tag', params.tag);
   if (params?.searchQuery) search.set('search', params.searchQuery);
   if (params?.orderId) search.set('orderId', params.orderId);
   if (params?.adminProductId) search.set('productId', params.adminProductId);
