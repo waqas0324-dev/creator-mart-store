@@ -70,9 +70,9 @@ export function ProductCard({ product }: ProductCardProps) {
   );
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 group flex flex-col h-full transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] hover:border-gray-300">
+    <div className="bg-white rounded-xl overflow-hidden border border-gray-200/90 group flex flex-col h-full transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(15,23,42,0.10)] hover:border-gray-300">
       <div
-        className="relative overflow-hidden cursor-pointer bg-gray-50 aspect-square transition-colors duration-300 group-hover:bg-gray-100"
+        className="relative overflow-hidden cursor-pointer bg-white aspect-square transition-colors duration-300"
         onClick={() => navigate('product', { productSlug: product.slug })}
       >
         <img
@@ -82,7 +82,7 @@ export function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
           decoding="async"
           onError={(e) => onImageError(e, product.name)}
-          className="absolute inset-0 w-full h-full object-contain p-1 sm:p-2 transition-transform duration-500 ease-out group-hover:scale-[1.045]"
+          className="absolute inset-0 w-full h-full object-contain p-3 sm:p-4 transition-transform duration-500 ease-out group-hover:scale-[1.02]"
         />
         <button
           type="button"
@@ -105,9 +105,9 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
       </div>
-      <div className="p-3 flex flex-col flex-1">
+      <div className="p-3.5 sm:p-4 flex flex-col flex-1">
         <h3
-          className="text-sm font-semibold text-gray-900 hover:text-orange-500 cursor-pointer transition-colors line-clamp-2 mb-1 min-h-[2.5rem]"
+          className="text-sm font-semibold text-gray-900 hover:text-orange-500 cursor-pointer transition-colors line-clamp-2 mb-1 min-h-[2.5rem] leading-5"
           onClick={() => navigate('product', { productSlug: product.slug })}
           style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
         >
@@ -115,7 +115,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </h3>
         {product.review_count > 0 && <StarRating rating={product.rating} count={product.review_count} />}
         <div className="flex items-center gap-2 mt-2 mb-3">
-          <span className="text-orange-500 font-bold text-base">Rs. {product.price.toLocaleString()}</span>
+          <span className="text-orange-500 font-black text-base">Rs. {product.price.toLocaleString()}</span>
           {product.original_price && (
             <span className="text-gray-400 line-through text-sm">Rs. {product.original_price.toLocaleString()}</span>
           )}
@@ -123,7 +123,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="mt-auto flex gap-1.5 sm:gap-2">
           <button
             onClick={() => { addItem(product); showToast('Your product has been added to cart', 'cart'); }}
-            className="flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1.5 sm:px-3 btn-interactive"
+            className="flex-1 min-w-0 h-10 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-1.5 sm:px-3 rounded-lg btn-interactive"
             data-design-animation={design.animations.style}
             data-design-button="true"
             style={{
@@ -141,7 +141,7 @@ export function ProductCard({ product }: ProductCardProps) {
             href={`${whatsappLink}?text=${whatsappMsg}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center justify-center w-9 flex-shrink-0 bg-[#25D366] hover:bg-[#1fbd5a] text-white rounded-lg transition-colors"
+            className="flex items-center justify-center w-10 h-10 flex-shrink-0 bg-[#25D366] hover:bg-[#1fbd5a] text-white rounded-lg transition-colors"
             aria-label="Order on WhatsApp"
           >
             <WhatsAppIcon size={16} />
