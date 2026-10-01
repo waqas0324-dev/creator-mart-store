@@ -193,8 +193,8 @@ export function ProductDetail() {
               {images.length > 1 && (
                 <div className="flex gap-2">
                   {images.map((img, i) => (
-                    <button key={i} onClick={() => setActiveImage(i)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${activeImage === i ? 'border-orange-500' : 'border-gray-200'}`}>
-                      <img src={resolveProductImage(img)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full object-cover" />
+                    <button key={i} onClick={() => setActiveImage(i)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 bg-white transition-colors ${activeImage === i ? 'border-orange-500' : 'border-gray-200'}`}>
+                      <img src={resolveProductImage(img)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full object-contain" />
                     </button>
                   ))}
                 </div>

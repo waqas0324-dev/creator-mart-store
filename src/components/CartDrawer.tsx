@@ -71,7 +71,7 @@ export function CartDrawer() {
                     alt={item.product.name}
                     referrerPolicy="no-referrer"
                     onError={(e) => onImageError(e, item.product.name)}
-                    className="w-20 h-20 object-cover rounded-lg flex-shrink-0 border border-gray-100"
+                    className="w-20 h-20 object-contain bg-white rounded-lg flex-shrink-0 border border-gray-100"
                   />
                   <div className="flex-1 min-w-0">
                     <h4

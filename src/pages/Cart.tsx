@@ -56,7 +56,7 @@ export function Cart() {
                     <button onClick={() => removeItem(item.product.id)} className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
                       <X size={16} />
                     </button>
-                    <img src={resolveProductImage(item.product.image_url)} alt={item.product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, item.product.name)} className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
+                    <img src={resolveProductImage(item.product.image_url)} alt={item.product.name} referrerPolicy="no-referrer" onError={(e) => onImageError(e, item.product.name)} className="w-16 h-16 object-contain bg-white rounded-lg flex-shrink-0" />
                     <p className="text-sm font-semibold text-gray-900 hover:text-orange-500 cursor-pointer transition-colors line-clamp-2" onClick={() => navigate('product', { productSlug: item.product.slug })} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {item.product.name}
                     </p>
