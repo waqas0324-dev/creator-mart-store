@@ -7,11 +7,16 @@ export interface Category {
   created_at: string;
 }
 
-export interface ProductSpecification { key: string; value: string; }\n\nexport interface Product {
+export interface ProductSpecification { key: string; value: string; }
+
+export interface Product {
   id: string;
   name: string;
   slug: string;
-  description: string;\n  description_html?: string | null;\n  specifications?: ProductSpecification[];\n  seo_keywords?: string | null;
+  description: string;
+  description_html?: string | null;
+  specifications?: ProductSpecification[];
+  seo_keywords?: string | null;
   price: number;
   original_price: number | null;
   category_id: string | null;
