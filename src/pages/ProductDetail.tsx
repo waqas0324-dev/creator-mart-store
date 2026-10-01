@@ -15,15 +15,22 @@ import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { sanitizeRichHtml } from '../lib/richText';
 import { extractProductSpecifications } from '../lib/productDescription';
-import { getMiniDescription, getProductTags } from '../lib/productFields';
-
-const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+import { getMiniDescription, getProductTags, htmlToText } from '../lib/productFields';
 
 const cleanDescriptionHtml = (value: string) => {
   if (!value) return '';
-  return value
-    .replace(/^\s*<(?:h2|h3|h4|p)[^>]*>\s*Product Description\s*<\/(?:h2|h3|h4|p)>\s*/i, '')
-    .trim();
+  // Drop leading whitespace / &nbsp; so the heading checks below see the real start.
+  let out = value.replace(/^(\s|&nbsp;|&#160;|\u00a0)+/i, '');
+  // Case 1: a whole leading block that is just "Product Description" -> drop the block.
+  const blockRe = /^<(h2|h3|h4|p)(\s[^>]*)?>\s*Product Description\s*<\/\1>\s*/i;
+  if (blockRe.test(out)) return out.replace(blockRe, '').trim();
+  // Case 2: "Product Description" as leading text inside the first paragraph
+  // (optionally wrapped in strong/b/span) -> drop just the words, keep the paragraph.
+  out = out.replace(
+    /^<(p|div)(\s[^>]*)?>\s*(?:<(?:strong|b|span)[^>]*>\s*)?Product Description\s*(?:<\/(?:strong|b|span)>\s*)?/i,
+    '<$1$2>'
+  );
+  return out.trim();
 };
 
 export function ProductDetail() {
@@ -54,7 +61,7 @@ export function ProductDetail() {
   useSEO({
     title: product ? `${product.name} - Buy Online in Pakistan | ${BRAND_NAME}` : `Loading... | ${BRAND_NAME}`,
     description: product
-      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${stripHtml(product.description || '').slice(0, 100)}`
+      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${htmlToText(product.description || '').slice(0, 100)}`
       : `Buy premium content-creator gear online in Pakistan. Cash on Delivery available.`,
     image: product?.image_url || undefined,
     canonical: product ? window.location.origin + '/product/' + encodeURIComponent(product.slug) : undefined,
@@ -168,7 +175,15 @@ export function ProductDetail() {
             {/* Images */}
             <div>
               <div className="relative bg-white rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
-                <img src={resolveProductImage(images[activeImage])} alt={product.name} loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="absolute inset-0 w-full h-full object-contain p-1 sm:p-2" />
+                <img src={resolveProductImage(images[activeImage])} alt={product.name} loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="absolute inset-0 w-full h-full object-cover" />
+                <button
+                  type="button"
+                  aria-label="Share product"
+                  onClick={handleShare}
+                  className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-white/90 shadow-md flex items-center justify-center text-gray-700 hover:text-orange-500 hover:bg-white transition-colors"
+                >
+                  <Share2 size={18} />
+                </button>
                 {images.length > 1 && (
                   <>
                     <button
@@ -255,7 +270,7 @@ export function ProductDetail() {
                 <button
                   onClick={handleAddToCart}
                   data-design-button="true"
-            className={`flex-1 flex items-center justify-center gap-2 font-bold py-2.5 rounded-lg transition-all btn-interactive ${added ? 'bg-green-500 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}
+            className={`flex-1 flex items-center justify-center gap-2 font-bold py-2.5 rounded-lg transition-all btn-interactive bg-orange-500 hover:bg-orange-600 text-white ${added ? 'scale-[1.03]' : ''}`}
                 >
                   {added ? <Check size={18} /> : <ShoppingCart size={18} />}
                   {added ? 'Added!' : 'Add to Cart'}
@@ -281,13 +296,6 @@ export function ProductDetail() {
                   <Heart size={16} fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
                   {isInWishlist(product.id) ? 'Added to Wishlist' : 'Add to Wishlist'}
                 </button>
-                <button
-                  onClick={handleShare}
-                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 transition-colors"
-                >
-                  <Share2 size={16} />
-                  Share
-                </button>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-gray-100">
@@ -309,9 +317,9 @@ export function ProductDetail() {
 
           {/* Tabs */}
           <div className="mt-8 border-t border-gray-100 pt-6">
-            <div className="flex gap-6 border-b border-gray-200 mb-5">
+            <div className="flex gap-2 border-b border-gray-200 mb-5 pb-4">
               {(['description', 'info', 'reviews'] as const).map(tab => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 text-sm font-semibold capitalize border-b-2 transition-colors ${activeTab === tab ? 'border-orange-500 text-orange-500' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>
+                <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 text-sm font-semibold capitalize rounded-lg transition-colors ${activeTab === tab ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                   {tab === 'info' ? 'Additional Information' : tab === 'reviews' ? `Reviews (${reviews.length})` : 'Description'}
                 </button>
               ))}

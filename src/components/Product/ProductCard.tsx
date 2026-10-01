@@ -82,7 +82,7 @@ export function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
           decoding="async"
           onError={(e) => onImageError(e, product.name)}
-          className="absolute inset-0 w-full h-full object-contain p-1 sm:p-2 transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
         />
         <button
           type="button"

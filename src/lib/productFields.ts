@@ -20,6 +20,25 @@ export function isMissingColumnError(error: { message?: string } | null | undefi
   return !!error && /column/i.test(error.message || '');
 }
 
+/** Decode common HTML entities (descriptions are stored with &nbsp; etc). */
+export function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(Number(n)));
+}
+
+/** Strip tags, decode entities and collapse whitespace into plain text. */
+export function htmlToText(html: string): string {
+  return decodeHtmlEntities(html.replace(/<[^>]*>/g, ' '))
+    .replace(/[\u00a0\s]+/g, ' ')
+    .trim();
+}
+
 /** Mini description: manual value (max 220 chars) or a safe fallback from the main description. */
 export function getMiniDescription(product: {
   mini_description?: string | null;
@@ -27,10 +46,10 @@ export function getMiniDescription(product: {
 }): string {
   const manual = (product.mini_description || '').trim();
   if (manual) return manual.slice(0, 220);
-  const text = (product.description || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const text = htmlToText(product.description || '').replace(
+    /^Product Description\s+/i,
+    ''
+  );
   return text.slice(0, 220);
 }
 
