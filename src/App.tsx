@@ -10,20 +10,6 @@ import { Navbar } from './components/Layout/Navbar';
 import { Footer } from './components/Layout/Footer';
 import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
-import { CategoriesPage } from './pages/CategoriesPage';
-import { ProductDetail } from './pages/ProductDetail';
-import { Cart } from './pages/Cart';
-import { Wishlist } from './pages/Wishlist';
-import { Checkout } from './pages/Checkout';
-import { Payment } from './pages/Payment';
-import { OrderSuccess } from './pages/OrderSuccess';
-import { TrackOrderPage } from './pages/TrackOrderPage';
-import { NewArrivals } from './pages/NewArrivals';
-import { BestSellers } from './pages/BestSellers';
-import { Contact } from './pages/Contact';
-import { About } from './pages/About';
-import { ReturnPolicy } from './pages/ReturnPolicy';
-import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { syncAdminSession } from './lib/adminAuth';
 import { syncDevSession } from './lib/devAuth';
 
@@ -36,10 +22,30 @@ const AdminProductForm = lazy(() => import('./pages/admin/ProductForm').then(m =
 const AdminOrders = lazy(() => import('./pages/admin/Orders').then(m => ({ default: m.AdminOrders })));
 const AdminCategories = lazy(() => import('./pages/admin/Categories').then(m => ({ default: m.AdminCategories })));
 const DevLogin = lazy(() => import('./pages/dev/DevLogin').then(m => ({ default: m.DevLogin })));
+const CategoriesPage = lazy(() => import('./pages/CategoriesPage').then(m => ({ default: m.CategoriesPage })));
+const ProductDetail = lazy(() => import('./pages/ProductDetail').then(m => ({ default: m.ProductDetail })));
+const Cart = lazy(() => import('./pages/Cart').then(m => ({ default: m.Cart })));
+const Wishlist = lazy(() => import('./pages/Wishlist').then(m => ({ default: m.Wishlist })));
+const Checkout = lazy(() => import('./pages/Checkout').then(m => ({ default: m.Checkout })));
+const Payment = lazy(() => import('./pages/Payment').then(m => ({ default: m.Payment })));
+const OrderSuccess = lazy(() => import('./pages/OrderSuccess').then(m => ({ default: m.OrderSuccess })));
+const TrackOrderPage = lazy(() => import('./pages/TrackOrderPage').then(m => ({ default: m.TrackOrderPage })));
+const NewArrivals = lazy(() => import('./pages/NewArrivals').then(m => ({ default: m.NewArrivals })));
+const BestSellers = lazy(() => import('./pages/BestSellers').then(m => ({ default: m.BestSellers })));
+const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
+const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
+const ReturnPolicy = lazy(() => import('./pages/ReturnPolicy').then(m => ({ default: m.ReturnPolicy })));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const DevPanel = lazy(() => import('./pages/dev/DevPanel').then(m => ({ default: m.DevPanel })));
 
 const ADMIN_PAGES = ['admin', 'admin-login', 'admin-products', 'admin-categories', 'admin-orders', 'admin-product-form'];
 const DEV_PAGES = ['dev-login', 'dev-panel'];
+
+const CustomerLoadingScreen = () => (
+  <div className="min-h-[50vh] flex items-center justify-center bg-white">
+    <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+  </div>
+);
 
 const AdminLoadingScreen = () => (
   <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -150,22 +156,24 @@ function Router() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
       <main className="flex-1">
-        {nav.page === 'home' && <Home />}
-        {nav.page === 'shop' && <Shop />}
-        {nav.page === 'categories' && <CategoriesPage />}
-        {nav.page === 'product' && <ProductDetail />}
-        {nav.page === 'cart' && <Cart />}
-        {nav.page === 'wishlist' && <Wishlist />}
-        {nav.page === 'checkout' && <Checkout />}
-        {nav.page === 'payment' && <Payment />}
-        {nav.page === 'order-success' && <OrderSuccess />}
-        {nav.page === 'track-order' && <TrackOrderPage />}
-        {nav.page === 'new-arrivals' && <NewArrivals />}
-        {nav.page === 'best-sellers' && <BestSellers />}
-        {nav.page === 'contact' && <Contact />}
-        {nav.page === 'about' && <About />}
-        {nav.page === 'return-policy' && <ReturnPolicy />}
-        {nav.page === 'privacy-policy' && <PrivacyPolicy />}
+        <Suspense fallback={<CustomerLoadingScreen />}>
+          {nav.page === 'home' && <Home />}
+          {nav.page === 'shop' && <Shop />}
+          {nav.page === 'categories' && <CategoriesPage />}
+          {nav.page === 'product' && <ProductDetail />}
+          {nav.page === 'cart' && <Cart />}
+          {nav.page === 'wishlist' && <Wishlist />}
+          {nav.page === 'checkout' && <Checkout />}
+          {nav.page === 'payment' && <Payment />}
+          {nav.page === 'order-success' && <OrderSuccess />}
+          {nav.page === 'track-order' && <TrackOrderPage />}
+          {nav.page === 'new-arrivals' && <NewArrivals />}
+          {nav.page === 'best-sellers' && <BestSellers />}
+          {nav.page === 'contact' && <Contact />}
+          {nav.page === 'about' && <About />}
+          {nav.page === 'return-policy' && <ReturnPolicy />}
+          {nav.page === 'privacy-policy' && <PrivacyPolicy />}
+        </Suspense>
       </main>
       <Footer />
       <CartDrawer />

@@ -85,6 +85,30 @@ interface SiteSettingsContextValue {
 
 const SiteSettingsContext = createContext<SiteSettingsContextValue | null>(null);
 
+const normalizeSettings = (data: Partial<SiteSettings>): SiteSettings => {
+  const incomingDesign = data.design_settings as Partial<SiteSettings['design_settings']> | undefined;
+  const design = incomingDesign || {};
+  return {
+    ...DEFAULTS,
+    ...data,
+    design_settings: {
+      ...DEFAULTS.design_settings,
+      ...design,
+      header: { ...DEFAULTS.design_settings.header, ...(design.header || {}) },
+      hero: { ...DEFAULTS.design_settings.hero, ...(design.hero || {}) },
+      buttons: { ...DEFAULTS.design_settings.buttons, ...(design.buttons || {}) },
+      animations: { ...DEFAULTS.design_settings.animations, ...(design.animations || {}) },
+      promoSlider: {
+        ...DEFAULTS.design_settings.promoSlider,
+        ...(design.promoSlider || {}),
+        slides: Array.isArray(design.promoSlider?.slides) ? design.promoSlider.slides : DEFAULTS.design_settings.promoSlider.slides,
+      },
+      recentlyViewed: { ...DEFAULTS.design_settings.recentlyViewed, ...(design.recentlyViewed || {}) },
+      announcementBar: { ...DEFAULTS.design_settings.announcementBar, ...(design.announcementBar || {}) },
+    },
+  } as SiteSettings;
+};
+
 export function SiteSettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
@@ -96,35 +120,14 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       .eq('id', 1)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) {
-          const incoming = data as Partial<SiteSettings>;
-          const incomingDesign = incoming.design_settings as Partial<SiteSettings['design_settings']> | undefined;
-          const design = incomingDesign || {};
-          setSettings({
-            ...DEFAULTS,
-            ...incoming,
-            design_settings: {
-              ...DEFAULTS.design_settings,
-              ...design,
-              header: { ...DEFAULTS.design_settings.header, ...(design.header || {}) },
-              hero: { ...DEFAULTS.design_settings.hero, ...(design.hero || {}) },
-              buttons: { ...DEFAULTS.design_settings.buttons, ...(design.buttons || {}) },
-              animations: { ...DEFAULTS.design_settings.animations, ...(design.animations || {}) },
-              promoSlider: {
-                ...DEFAULTS.design_settings.promoSlider, ...(design.promoSlider || {}),
-                slides: Array.isArray(design.promoSlider?.slides) ? design.promoSlider.slides : DEFAULTS.design_settings.promoSlider.slides,
-              },
-              recentlyViewed: { ...DEFAULTS.design_settings.recentlyViewed, ...(design.recentlyViewed || {}) },
-              announcementBar: { ...DEFAULTS.design_settings.announcementBar, ...(design.announcementBar || {}) },
-            },
-          } as SiteSettings);
-        }
+        if (data) setSettings(normalizeSettings(data as Partial<SiteSettings>));
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const browserChannelRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -153,19 +156,28 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
     fetchSettings();
 
     const isDevEditor = window.location.pathname.startsWith('/ws-studio');
+    const applyIncomingSettings = (payload: unknown) => {
+      if (!payload || typeof payload !== 'object') return;
+      setSettings(prev => normalizeSettings({ ...prev, ...(payload as Partial<SiteSettings>) }));
+    };
+
     const channel = supabase
       .channel('site-settings-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings', filter: 'id=eq.1' }, payload => {
-        if (!isDevEditor && payload.new) setSettings(payload.new as SiteSettings);
+        if (payload.new) applyIncomingSettings(payload.new);
       })
-      .on('broadcast', { event: 'settings-updated' }, ({ payload }) => {
-        if (!isDevEditor && payload && typeof payload === 'object') {
-          setSettings(prev => ({ ...prev, ...(payload as Partial<SiteSettings>) }));
-        }
-      });
+      .on('broadcast', { event: 'settings-updated' }, ({ payload }) => applyIncomingSettings(payload));
 
     channelRef.current = channel;
     channel.subscribe();
+
+    if ('BroadcastChannel' in window) {
+      const browserChannel = new BroadcastChannel('creator-mart-site-settings');
+      browserChannel.onmessage = event => {
+        if (event.data?.type === 'settings-updated') applyIncomingSettings(event.data.payload);
+      };
+      browserChannelRef.current = browserChannel;
+    }
 
     const refreshWhenVisible = () => {
       if (!window.location.pathname.startsWith('/ws-studio') && document.visibilityState === 'visible') fetchSettings();
@@ -177,10 +189,8 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
     // Realtime is the primary path. This lightweight polling fallback keeps
     // customer tabs in sync even when Supabase Realtime is delayed/disabled.
     const pollId = window.setInterval(() => {
-      if (!window.location.pathname.startsWith('/ws-studio') && document.visibilityState === 'visible') {
-        fetchSettings();
-      }
-    }, 8000);
+      if (!window.location.pathname.startsWith('/ws-studio') && document.visibilityState === 'visible') fetchSettings();
+    }, 3000);
 
     return () => {
       window.removeEventListener('focus', refreshWhenVisible);
@@ -188,6 +198,10 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       document.removeEventListener('visibilitychange', refreshWhenVisible);
       window.clearInterval(pollId);
       channelRef.current = null;
+      if (browserChannelRef.current) {
+        browserChannelRef.current.close();
+        browserChannelRef.current = null;
+      }
       supabase.removeChannel(channel);
     };
   }, [fetchSettings]);
@@ -201,13 +215,14 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
         return error.message;
       }
 
-      if (channelRef.current && !window.location.pathname.startsWith('/ws-studio')) {
+      if (channelRef.current) {
         await channelRef.current.send({
           type: 'broadcast',
           event: 'settings-updated',
           payload,
         });
       }
+      browserChannelRef.current?.postMessage({ type: 'settings-updated', payload });
       return null;
     } catch (error) {
       await fetchSettings();

@@ -69,6 +69,7 @@ export function Shop() {
       product.slug,
       product.description,
       product.seo_keywords,
+      ...(Array.isArray(product.specifications) ? product.specifications.flatMap(spec => [spec.key, spec.value]) : []),
       product.categories?.name,
     ].filter(Boolean).join(' '));
 

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { Loader2, Banknote, Wallet, Smartphone, Landmark, Sparkles, Copy, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
@@ -23,6 +23,7 @@ export function Checkout() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const fieldRefs = useRef<Record<string, HTMLInputElement | HTMLSelectElement | null>>({});
 
   const isFullAdvance = form.paymentMethod === 'full_advance';
   const isAboveThreshold = subtotal >= settings.advance_threshold;
@@ -52,18 +53,39 @@ export function Checkout() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.fullName.trim()) e.fullName = 'Required';
-    if (!form.phone.trim()) e.phone = 'Required';
-    if (!form.whatsapp.trim()) e.whatsapp = 'Required';
-    if (!form.address.trim()) e.address = 'Required';
-    if (!form.city) e.city = 'Required';
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    const whatsappDigits = form.whatsapp.replace(/\D/g, '');
+
+    if (!form.fullName.trim()) e.fullName = 'Please enter your full name.';
+    else if (form.fullName.trim().length < 2) e.fullName = 'Please enter a valid full name.';
+    if (!form.phone.trim()) e.phone = 'Please enter your phone number.';
+    else if (phoneDigits.length < 10 || phoneDigits.length > 15) e.phone = 'Please enter a valid phone number.';
+    if (!form.whatsapp.trim()) e.whatsapp = 'Please enter your WhatsApp number.';
+    else if (whatsappDigits.length < 10 || whatsappDigits.length > 15) e.whatsapp = 'Please enter a valid WhatsApp number.';
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = 'Please enter a valid email address.';
+    if (!form.address.trim()) e.address = 'Please enter your complete delivery address.';
+    else if (form.address.trim().length < 8) e.address = 'Please enter a more complete delivery address.';
+    if (!form.city) e.city = 'Please select your city.';
+
     setErrors(e);
+
+    const firstError = Object.keys(e)[0];
+    if (firstError) {
+      requestAnimationFrame(() => {
+        const field = fieldRefs.current[firstError];
+        field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        field?.focus();
+      });
+    }
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      setSubmitError('Please fix the highlighted fields before placing your order.');
+      return;
+    }
 
     setLoading(true);
     setSubmitError('');
@@ -230,38 +252,39 @@ export function Checkout() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
-                    <input type="text" placeholder="Enter your full name" value={form.fullName} onChange={e => update('fullName', e.target.value)} className={inputCls('fullName')} />
-                    {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
+                    <input ref={el => { fieldRefs.current.fullName = el; }} id="checkout-full-name" type="text" autoComplete="name" placeholder="Enter your full name" value={form.fullName} onChange={e => update('fullName', e.target.value)} className={inputCls('fullName')} aria-invalid={!!errors.fullName} aria-describedby={errors.fullName ? 'error-fullName' : undefined} />
+                    {errors.fullName && <p id="error-fullName" className="text-red-500 text-xs mt-1" role="alert">{errors.fullName}</p>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
-                    <input type="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => updatePhone(e.target.value)} className={inputCls('phone')} />
-                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                    <input ref={el => { fieldRefs.current.phone = el; }} id="checkout-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="03xx xxx xxxx" value={form.phone} onChange={e => updatePhone(e.target.value)} className={inputCls('phone')} aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'error-phone' : undefined} />
+                    {errors.phone && <p id="error-phone" className="text-red-500 text-xs mt-1" role="alert">{errors.phone}</p>
                   </div>
                   <div>
                     <div className="mb-1">
                       <label className="block text-xs font-semibold text-gray-700">WhatsApp Number <span className="text-red-500">*</span></label>
                     </div>
-                    <input type="tel" placeholder="03xx xxx xxxx" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} className={inputCls('whatsapp')} />
-                    {errors.whatsapp && <p className="text-red-500 text-xs mt-1">{errors.whatsapp}</p>}
+                    <input ref={el => { fieldRefs.current.whatsapp = el; }} id="checkout-whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="03xx xxx xxxx" value={form.whatsapp} onChange={e => update('whatsapp', e.target.value)} className={inputCls('whatsapp')} aria-invalid={!!errors.whatsapp} aria-describedby={errors.whatsapp ? 'error-whatsapp' : undefined} />
+                    {errors.whatsapp && <p id="error-whatsapp" className="text-red-500 text-xs mt-1" role="alert">{errors.whatsapp}</p>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
-                    <input type="email" placeholder="Enter your email (optional)" value={form.email} onChange={e => update('email', e.target.value)} className={inputCls('email')} />
+                    <input ref={el => { fieldRefs.current.email = el; }} id="checkout-email" type="email" inputMode="email" autoComplete="email" placeholder="Enter your email (optional)" value={form.email} onChange={e => update('email', e.target.value)} className={inputCls('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'error-email' : undefined} />
+                    {errors.email && <p id="error-email" className="text-red-500 text-xs mt-1" role="alert">{errors.email}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
-                    <input type="text" placeholder="House no., Street, Area" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} />
-                    {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                    <input ref={el => { fieldRefs.current.address = el; }} id="checkout-address" type="text" autoComplete="street-address" placeholder="House no., Street, Area" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} aria-invalid={!!errors.address} aria-describedby={errors.address ? 'error-address' : undefined} />
+                    {errors.address && <p id="error-address" className="text-red-500 text-xs mt-1" role="alert">{errors.address}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Select City <span className="text-red-500">*</span></label>
-                      <select value={form.city} onChange={e => update('city', e.target.value)} className={inputCls('city')}>
+                      <select ref={el => { fieldRefs.current.city = el; }} id="checkout-city" autoComplete="address-level2" value={form.city} onChange={e => update('city', e.target.value)} className={inputCls('city')} aria-invalid={!!errors.city} aria-describedby={errors.city ? 'error-city' : undefined}>
                         <option value="">Select your city</option>
                         {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+                      {errors.city && <p id="error-city" className="text-red-500 text-xs mt-1" role="alert">{errors.city}</p>
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">Select Area</label>
