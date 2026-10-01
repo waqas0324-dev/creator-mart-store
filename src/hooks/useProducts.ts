@@ -43,7 +43,7 @@ async function loadProducts(filters?: {
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return (data as Product[]) || [];
+    return (data as unknown as Product[]) || [];
   })();
 
   productRequests.set(key, request);
@@ -59,7 +59,7 @@ async function loadCategories(): Promise<Category[]> {
     .order('name')
     .then(({ data, error }) => {
       if (error) throw new Error(error.message);
-      return (data || []).map((cat: Category & { products?: { id: string }[] }) => ({
+      return (data || []).map((cat: { id: string; name: string; slug: string; image_url: string; products?: { id: string }[] }) => ({
         ...cat,
         product_count: Array.isArray(cat.products) ? cat.products.length : 0,
       })) as Category[];
