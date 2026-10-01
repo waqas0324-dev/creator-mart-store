@@ -12,7 +12,8 @@ import { Badge } from '../components/UI/Badge';
 import { ProductCard } from '../components/Product/ProductCard';
 import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
-import { useSiteSettings } from '../context/SiteSettingsContext';\nimport { sanitizeRichHtml, plainTextFromHtml } from '../lib/richText';
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { sanitizeRichHtml, plainTextFromHtml } from '../lib/richText';
 
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
@@ -223,7 +224,13 @@ export function ProductDetail() {
                 Buy Now
               </button>
               <a
-                href={`${WHATSAPP_LINK}?text=${encodeURIComponent(`Hi ${BRAND_NAME}! I'd like to order:\n\n${product.name}\nPrice: Rs. ${product.price.toLocaleString()}\nQuantity: ${quantity}\n\nIs this available?`)}`}
+                href={`${WHATSAPP_LINK}?text=${encodeURIComponent(`Hi ${BRAND_NAME}! I'd like to order:
+
+${product.name}
+Price: Rs. ${product.price.toLocaleString()}
+Quantity: ${quantity}
+
+Is this available?`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition-colors mb-4 btn-interactive"
