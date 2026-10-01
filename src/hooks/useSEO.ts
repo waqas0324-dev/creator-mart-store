@@ -46,7 +46,12 @@ export function useSEO({ title, description, image, jsonLd, canonical }: SEOOpti
     setMetaTag('property', 'og:description', description);
     setMetaTag('property', 'og:image', image || DEFAULT_IMAGE);
     setMetaTag('property', 'og:url', window.location.href);
-    setCanonical(canonical || null);
+    setMetaTag('property', 'og:type', 'website');
+    setMetaTag('name', 'twitter:card', 'summary_large_image');
+    setMetaTag('name', 'twitter:title', title);
+    setMetaTag('name', 'twitter:description', description);
+    setMetaTag('name', 'twitter:image', image || DEFAULT_IMAGE);
+    setCanonical(canonical || window.location.origin + window.location.pathname);
 
     let script: HTMLScriptElement | null = null;
     if (jsonLd) {
@@ -64,7 +69,11 @@ export function useSEO({ title, description, image, jsonLd, canonical }: SEOOpti
       setMetaTag('property', 'og:description', DEFAULT_DESCRIPTION);
       setMetaTag('property', 'og:image', DEFAULT_IMAGE);
       setMetaTag('property', 'og:url', window.location.origin + '/');
-      setCanonical(null);
+      setMetaTag('property', 'og:type', 'website');
+      setMetaTag('name', 'twitter:title', DEFAULT_TITLE);
+      setMetaTag('name', 'twitter:description', DEFAULT_DESCRIPTION);
+      setMetaTag('name', 'twitter:image', DEFAULT_IMAGE);
+      setCanonical(window.location.origin + '/');
       if (script) script.remove();
     };
   }, [title, description, image, jsonLdKey, canonical]);
