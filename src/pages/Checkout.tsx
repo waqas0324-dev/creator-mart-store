@@ -62,6 +62,7 @@ export function Checkout() {
     else if (phoneDigits.length < 10 || phoneDigits.length > 15) e.phone = 'Please enter a valid phone number.';
     if (!form.whatsapp.trim()) e.whatsapp = 'Please enter your WhatsApp number.';
     else if (whatsappDigits.length < 10 || whatsappDigits.length > 15) e.whatsapp = 'Please enter a valid WhatsApp number.';
+    if (form.email.trim() && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.email.trim())) e.email = 'Please enter a valid email address.';
     if (!form.address.trim()) e.address = 'Please enter your complete delivery address.';
     else if (form.address.trim().length < 8) e.address = 'Please enter a more complete delivery address.';
     if (!form.city) e.city = 'Please select your city.';
@@ -268,7 +269,8 @@ export function Checkout() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
-                    <input id="checkout-email" type="email" inputMode="email" autoComplete="email" placeholder="Enter your email (optional)" value={form.email} onChange={e => update('email', e.target.value)} className={inputCls('email')} />
+                    <input id="checkout-email" type="email" inputMode="email" autoComplete="email" placeholder="Enter your email (optional)" value={form.email} onChange={e => update('email', e.target.value)} className={inputCls('email')} aria-invalid={!!errors.email} aria-describedby={errors.email ? 'error-email' : undefined} />
+                    {errors.email && <p id="error-email" className="text-red-500 text-xs mt-1" role="alert">{errors.email}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
