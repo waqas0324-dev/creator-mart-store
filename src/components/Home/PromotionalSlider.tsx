@@ -58,10 +58,10 @@ export function PromotionalSlider() {
   return (
     <section className="bg-white py-8 sm:py-10">
       <div className="max-w-7xl mx-auto px-3 sm:px-4">
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#e8e9f0] bg-[#f5f6fb] shadow-sm min-h-[410px] sm:min-h-[430px]">
+        <div style={{ backgroundColor: cfg.backgroundColor }} className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#e8e9f0] shadow-sm min-h-[410px] sm:min-h-[430px]">
           {cfg.show_arrows && slides.length > 1 && (
             <>
-              <button aria-label="Previous promotion" onClick={() => setIndex(i => (i - 1 + slides.length) % slides.length)} className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/95 border border-gray-200 text-gray-700 shadow-md flex items-center justify-center hover:bg-white hover:text-orange-500 transition-colors">
+              <button aria-label="Previous promotion" onClick={() => setIndex(i => (i - 1 + slides.length) % slides.length)} style={{ backgroundColor: cfg.arrowBgColor, color: cfg.arrowTextColor }} className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-gray-200 shadow-md flex items-center justify-center hover:opacity-80 transition-opacity">
                 <ChevronLeft size={20}/>
               </button>
               <button aria-label="Next promotion" onClick={() => setIndex(i => (i + 1) % slides.length)} style={{ backgroundColor: cfg.arrowBgColor, color: cfg.arrowTextColor }} className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-gray-200 shadow-md flex items-center justify-center hover:opacity-80 transition-colors">
@@ -84,16 +84,16 @@ export function PromotionalSlider() {
                 <article key={slideItem.id} className="min-w-full w-full shrink-0 min-h-[410px] sm:min-h-[430px] flex items-center">
                   <div className="w-full grid grid-cols-1 md:grid-cols-[1fr_1.05fr_0.8fr] items-center gap-2 sm:gap-4 px-10 sm:px-14 md:px-14 py-10 sm:py-12">
                     <div className="min-w-0 md:pr-3 order-1">
-                      {slideItem.badge && <p className="text-[10px] sm:text-xs font-black tracking-[0.22em] text-gray-500 uppercase mb-3">{slideItem.badge}</p>}
-                      <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-black leading-[1.02] tracking-tight text-[#17213b]">{slideItem.title}</h2>
+                      {slideItem.badge && <p style={{ color: cfg.mutedTextColor }} className="text-[10px] sm:text-xs font-black tracking-[0.22em] uppercase mb-3">{slideItem.badge}</p>}
+                      <h2 style={{ color: cfg.textColor }} className="text-3xl sm:text-4xl lg:text-[42px] font-black leading-[1.02] tracking-tight">{slideItem.title}</h2>
                       <p style={{ color: cfg.mutedTextColor }} className="mt-4 text-sm sm:text-[15px] leading-6 max-w-md">{slideItem.description}</p>
                       <div className="mt-6 flex flex-wrap gap-3">
                         {(slideItem.features || []).slice(0, 3).map((feature, i) => {
                           const Icon = featureIcons[i] || Zap;
                           return (
                             <div key={i} className="flex flex-col items-center gap-1.5 min-w-[68px]">
-                              <div className="w-10 h-10 rounded-full bg-[#dfe3f1] text-[#26345d] flex items-center justify-center"><Icon size={17} strokeWidth={2.2}/></div>
-                              <span className="text-[9px] font-black uppercase tracking-wider text-[#5f6880] text-center">{feature}</span>
+                              <div style={{ backgroundColor: cfg.accentColor, color: cfg.textColor }} className="w-10 h-10 rounded-full flex items-center justify-center"><Icon size={17} strokeWidth={2.2}/></div>
+                              <span style={{ color: cfg.mutedTextColor }} className="text-[9px] font-black uppercase tracking-wider text-center">{feature}</span>
                             </div>
                           );
                         })}
@@ -120,13 +120,13 @@ export function PromotionalSlider() {
 
                     <div className="order-3 md:pl-3 flex flex-col items-start md:items-center md:text-left">
                       <div className="w-full max-w-[210px]">
-                        <span className="inline-flex px-3 py-1 rounded-full bg-[#d8a53c] text-[#1d2437] text-[9px] font-black tracking-wider uppercase mb-3">{slideItem.badge === 'TOP PICK' ? 'BEST VALUE' : (slideItem.badge || 'BEST VALUE')}</span>
+                        <span style={{ backgroundColor: cfg.badgeBgColor, color: cfg.badgeTextColor }} className="inline-flex px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase mb-3">{slideItem.badge === 'TOP PICK' ? 'BEST VALUE' : (slideItem.badge || 'BEST VALUE')}</span>
                         <div className="flex items-end gap-2">
                           <span style={{ color: cfg.textColor }} className="text-3xl sm:text-4xl font-black"><span className="text-xs font-bold mr-1 align-middle">Rs</span>{Number(slideItem.price || itemProduct?.price || 0).toLocaleString()}</span>
                         </div>
                         {slideItem.old_price && <div style={{ color: cfg.mutedTextColor }} className="text-xs mt-1 line-through">Rs {Number(slideItem.old_price).toLocaleString()}</div>}
-                        <p style={{ color: cfg.mutedTextColor }} className="mt-2 text-xs sm:text-sm leading-5 max-w-[190px]">Crystal clear quality. Perfect for creators on the go.</p>
-                        <button onClick={itemGo} className="mt-5 inline-flex items-center justify-center gap-2 bg-[#17213b] hover:bg-[#111827] text-white font-black px-6 py-3 rounded-lg shadow-md transition-colors">Shop Now <ArrowRight size={16}/></button>
+                        <p style={{ color: cfg.mutedTextColor }} className="mt-2 text-xs sm:text-sm leading-5 max-w-[190px]">{slideItem.description}</p>
+                        <button onClick={itemGo} style={{ backgroundColor: cfg.buttonBgColor, color: cfg.buttonTextColor }} className="mt-5 inline-flex items-center justify-center gap-2 font-black px-6 py-3 rounded-lg shadow-md transition-opacity hover:opacity-90">Shop Now <ArrowRight size={16}/></button>
                       </div>
                     </div>
                   </div>
@@ -138,7 +138,7 @@ export function PromotionalSlider() {
           {cfg.show_dots && slides.length > 1 && (
             <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5">
               {slides.map((s, i) => (
-                <button key={s.id} aria-label={'Go to slide '+(i+1)} onClick={() => setIndex(i)} className={'h-1.5 rounded-full transition-all '+(i===index?'w-7 bg-[#17213b]':'w-2 bg-gray-300')}/>
+                <button key={s.id} aria-label={'Go to slide '+(i+1)} onClick={() => setIndex(i)} className={'h-1.5 rounded-full transition-all '+(i===index?'w-7':'w-2 bg-gray-300')}/>
               ))}
             </div>
           )}
