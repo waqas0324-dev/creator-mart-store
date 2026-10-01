@@ -71,7 +71,7 @@ export function ProductDetail() {
           '@type': 'Product',
           name: product.name,
           image: images.length > 0 ? images : undefined,
-          description: product.description ? stripHtml(product.description) : undefined,
+          description: product.description ? htmlToText(product.description) : undefined,
           sku: product.id,
           brand: { '@type': 'Brand', name: BRAND_NAME },
           offers: {

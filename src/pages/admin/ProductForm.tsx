@@ -149,20 +149,96 @@ export function AdminProductForm() {
     else { setSuccess(isEdit ? 'Product updated!' : 'Product added!'); setTimeout(() => navigate('admin-products'), 1500); }
   };
 
-  const applyDescriptionColor = (color: string) => {
+  // Keep the last text selection inside the description editor, so toolbar
+  // actions (color pickers etc.) can restore it after the click blurs focus.
+  const savedRangeRef = useRef<Range | null>(null);
+  const [activeFormats, setActiveFormats] = useState<string[]>([]);
+
+  const FORMAT_CMDS = ['bold', 'italic', 'underline', 'strikeThrough', 'justifyLeft', 'justifyCenter', 'justifyRight', 'insertUnorderedList', 'insertOrderedList'];
+
+  const refreshActiveFormats = () => {
+    const active: string[] = [];
+    FORMAT_CMDS.forEach(cmd => {
+      try { if (document.queryCommandState(cmd)) active.push(cmd); } catch { /* unsupported */ }
+    });
+    setActiveFormats(active);
+  };
+
+  useEffect(() => {
+    const onSelectionChange = () => {
+      const editor = descriptionRef.current;
+      const sel = window.getSelection();
+      if (!editor || !sel || sel.rangeCount === 0 || !editor.contains(sel.anchorNode)) return;
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+      refreshActiveFormats();
+    };
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => document.removeEventListener('selectionchange', onSelectionChange);
+  }, []);
+
+  // execCommand color commands make <font> tags by default, which the sanitizer
+  // strips. styleWithCSS makes them <span style="color:..."> instead, which survives.
+  const withCssStyles = () => {
+    try { document.execCommand('styleWithCSS', false, true); } catch { /* ignore */ }
+  };
+
+  // Bring back the saved selection; returns false when nothing was selected.
+  const restoreEditorSelection = (): boolean => {
     const editor = descriptionRef.current;
-    if (!editor) return;
+    const range = savedRangeRef.current;
+    if (!editor || !range) return false;
     editor.focus();
-    document.execCommand('selectAll', false);
+    const sel = window.getSelection();
+    if (!sel) return false;
+    sel.removeAllRanges();
+    try { sel.addRange(range.cloneRange()); } catch { return false; }
+    return !range.collapsed;
+  };
+
+  const syncDescription = () => {
+    const editor = descriptionRef.current;
+    if (editor) update('description', sanitizeRichHtml(editor.innerHTML));
+    refreshActiveFormats();
+  };
+
+  // Inline toggles (bold/italic/...) only apply to a real text selection.
+  // With just a blinking cursor they do nothing — no stuck button, no surprise bold typing.
+  const INLINE_TOGGLES = ['bold', 'italic', 'underline', 'strikeThrough'];
+
+  const applyFormat = (cmd: string, value?: string) => {
+    if (!descriptionRef.current) return;
+    const hasSelection = restoreEditorSelection();
+    if (!hasSelection && INLINE_TOGGLES.includes(cmd)) return;
+    withCssStyles();
+    document.execCommand(cmd, false, value);
+    syncDescription();
+  };
+
+  const applyDescriptionColor = (color: string) => {
+    if (!descriptionRef.current) return;
+    if (!restoreEditorSelection()) return; // only the selected text changes color
+    withCssStyles();
     document.execCommand('foreColor', false, color);
     window.getSelection()?.removeAllRanges();
-    update('description', sanitizeRichHtml(editor.innerHTML));
+    savedRangeRef.current = null;
+    syncDescription();
+  };
+
+  const applyHighlightColor = (color: string) => {
+    if (!descriptionRef.current) return;
+    if (!restoreEditorSelection()) return; // only the selected text gets background
+    withCssStyles();
+    try { document.execCommand('hiliteColor', false, color); }
+    catch { try { document.execCommand('backColor', false, color); } catch { /* ignore */ } }
+    window.getSelection()?.removeAllRanges();
+    savedRangeRef.current = null;
+    syncDescription();
   };
 
   const applyFontSize = (px: number) => {
     const editor = descriptionRef.current;
     if (!editor) return;
-    editor.focus();
+    if (!restoreEditorSelection()) return;
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
     const range = sel.getRangeAt(0);
@@ -175,7 +251,8 @@ export function AdminProductForm() {
       range.insertNode(span);
     }
     sel.removeAllRanges();
-    update('description', sanitizeRichHtml(editor.innerHTML));
+    savedRangeRef.current = null;
+    syncDescription();
   };
 
   const inputCls = (field: string) => `w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors[field] ? 'border-red-400' : 'border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-100'}`;
@@ -355,24 +432,33 @@ export function AdminProductForm() {
                     {label:'Right', icon:<AlignRight size={15}/>, cmd:'justifyRight'},
                     {label:'Bullets', icon:<List size={15}/>, cmd:'insertUnorderedList'},
                     {label:'Numbered', icon:<ListOrdered size={15}/>, cmd:'insertOrderedList'},
-                    {label:'Highlight', icon:<Highlighter size={15}/>, cmd:'hiliteColor', value:'#fff1e6'},
-                  ].map(tool => (
-                    <button key={tool.label} type="button" title={tool.label} onMouseDown={e=>e.preventDefault()} onClick={()=>{
-                      descriptionRef.current?.focus();
-                      document.execCommand(tool.cmd, false, tool.value);
-                      update('description', sanitizeRichHtml(descriptionRef.current?.innerHTML || ''));
-                    }} className="w-8 h-8 rounded-lg hover:bg-white hover:text-orange-500 text-gray-600 flex items-center justify-center transition-colors">
-                      {tool.icon}
-                    </button>
-                  ))}
-                  <label title="Description color" className="relative w-8 h-8 rounded-lg hover:bg-white text-gray-600 flex items-center justify-center cursor-pointer transition-colors">
+                  ].map(tool => {
+                    const isActive = activeFormats.includes(tool.cmd);
+                    return (
+                      <button key={tool.label} type="button" title={tool.label} onMouseDown={e=>e.preventDefault()} onClick={()=>applyFormat(tool.cmd, (tool as {value?: string}).value)}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isActive ? 'bg-orange-500 text-white' : 'text-gray-600 hover:bg-white hover:text-orange-500'}`}>
+                        {tool.icon}
+                      </button>
+                    );
+                  })}
+                  <label title="Text color — applies to selected text only" className="relative w-8 h-8 rounded-lg hover:bg-white text-gray-600 flex items-center justify-center cursor-pointer transition-colors">
                     <Palette size={15} />
                     <input
                       type="color"
                       defaultValue="#f97316"
                       onChange={e => applyDescriptionColor(e.target.value)}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      aria-label="Description color"
+                      aria-label="Text color for selected text"
+                    />
+                  </label>
+                  <label title="Background color — applies to selected text only" className="relative w-8 h-8 rounded-lg hover:bg-white text-gray-600 flex items-center justify-center cursor-pointer transition-colors">
+                    <Highlighter size={15} />
+                    <input
+                      type="color"
+                      defaultValue="#fff1e6"
+                      onChange={e => applyHighlightColor(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      aria-label="Background color for selected text"
                     />
                   </label>
                   <select
