@@ -12,7 +12,9 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
+  mini_description: string;
   seo_keywords: string;
+  visible_tags: string[];
   specifications: Array<{ key: string; value: string }>;
   price: number;
   original_price: number | null;
