@@ -12,7 +12,7 @@ import { Badge } from '../components/UI/Badge';
 import { ProductCard } from '../components/Product/ProductCard';
 import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
-import { useSiteSettings } from '../context/SiteSettingsContext';\nimport { sanitizeRichHtml } from '../lib/richText';
+import { useSiteSettings } from '../context/SiteSettingsContext';\nimport { sanitizeRichHtml, plainTextFromHtml } from '../lib/richText';
 
 export function ProductDetail() {
   const { nav, navigate } = useNavigation();
@@ -42,7 +42,7 @@ export function ProductDetail() {
   useSEO({
     title: product ? `${product.name} - Buy Online in Pakistan | ${BRAND_NAME}` : `Loading... | ${BRAND_NAME}`,
     description: product
-      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${(product.description || '').slice(0, 100)}`
+      ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${plainTextFromHtml(product.description_html || product.description || '').slice(0, 100)}`
       : `Buy premium content-creator gear online in Pakistan. Cash on Delivery available.`,
     image: product?.image_url || undefined,
     canonical: product ? window.location.origin + '/product/' + encodeURIComponent(product.slug) : undefined,
