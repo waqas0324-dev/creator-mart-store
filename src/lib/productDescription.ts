@@ -25,10 +25,11 @@ const KNOWN_SPEC_LABELS = [
 function matchKnownSpecLabel(line: string): { key: string; value: string } | null {
   const lower = line.toLowerCase();
   for (const label of KNOWN_SPEC_LABELS) {
-    if (lower === label) continue;
-    if (lower.startsWith(label + ' ')) {
+    // Label must be followed by whitespace (space, tab, etc.) — longest match wins.
+    const m = lower.match(new RegExp('^' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+'));
+    if (m) {
       const key = line.slice(0, label.length).trim();
-      const value = line.slice(label.length).trim();
+      const value = line.slice(m[0].length).trim();
       if (key && value.length >= 2) return { key, value };
     }
   }
