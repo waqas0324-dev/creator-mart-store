@@ -39,3 +39,4 @@ export function extractProductSpecifications(html: string): ProductSpecification
 }
 
 // Automatic specification parser build fix.
+// Production deployment verification trigger.
