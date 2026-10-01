@@ -78,6 +78,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3" style={{ minHeight: hd.height }}>
         <div className="flex items-center gap-2 sm:gap-4">
           <button
+            data-no-motion
             className="flex items-center cursor-pointer flex-shrink-0 focus:outline-none [-webkit-tap-highlight-color:transparent] active:bg-transparent"
             onClick={() => navigate('home')}
             aria-label="ABR Gadgets home"
