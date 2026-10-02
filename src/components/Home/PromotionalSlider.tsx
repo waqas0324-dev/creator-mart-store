@@ -125,7 +125,6 @@ export function PromotionalSlider() {
                           <span style={{ color: cfg.textColor }} className="text-3xl sm:text-4xl font-black"><span className="text-xs font-bold mr-1 align-middle">Rs</span>{Number(slideItem.price || itemProduct?.price || 0).toLocaleString()}</span>
                         </div>
                         {slideItem.old_price && <div style={{ color: cfg.mutedTextColor }} className="text-xs mt-1 line-through">Rs {Number(slideItem.old_price).toLocaleString()}</div>}
-                        <p style={{ color: cfg.mutedTextColor }} className="mt-2 text-xs sm:text-sm leading-5 max-w-[190px]">{slideItem.description}</p>
                         <button onClick={itemGo} style={{ backgroundColor: cfg.buttonBgColor, color: cfg.buttonTextColor }} className="mt-5 inline-flex items-center justify-center gap-2 font-black px-6 py-3 rounded-lg shadow-md transition-opacity hover:opacity-90">Shop Now <ArrowRight size={16}/></button>
                       </div>
                     </div>
