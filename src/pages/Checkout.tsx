@@ -6,9 +6,7 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 import { supabase } from '../lib/supabase';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 
-const CITIES = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
-
-const PROVINCES = ['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', 'Gilgit Baltistan', 'Azad Kashmir', 'Islamabad Capital Territory', 'FATA'];
+const PROVINCES = ['Azad Kashmir', 'Balochistan', 'FATA', 'Gilgit Baltistan', 'Islamabad Capital Territory', 'Khyber Pakhtunkhwa', 'Punjab', 'Sindh'];
 
 type PayMethod = 'cash_on_delivery' | 'full_advance';
 
@@ -19,7 +17,7 @@ export function Checkout() {
 
   const [form, setForm] = useState({
     fullName: '', phone: '', whatsapp: '', email: '', address: '',
-    city: '', province: '', area: '', paymentMethod: 'cash_on_delivery' as PayMethod,
+    province: '', area: '', paymentMethod: 'cash_on_delivery' as PayMethod,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -78,7 +76,6 @@ export function Checkout() {
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = 'Please enter a valid email address.';
     if (!form.address.trim()) e.address = 'Please enter your complete delivery address.';
     else if (form.address.trim().length < 8) e.address = 'Please enter a more complete delivery address.';
-    if (!form.city) e.city = 'Please select your city.';
     if (!form.province) e.province = 'Please select your province.';
 
     setErrors(e);
@@ -115,7 +112,7 @@ export function Checkout() {
       customer_whatsapp: form.whatsapp,
       customer_email: form.email || null,
       customer_address: form.province ? `${form.address}, ${form.province}` : form.address,
-      customer_city: form.city,
+      customer_city: null,
       customer_area: form.area || null,
       payment_method: form.paymentMethod,
       subtotal, shipping: shippingFee, total,
@@ -298,7 +295,7 @@ export function Checkout() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
-                    <input ref={el => { fieldRefs.current.address = el; }} id="checkout-address" type="text" autoComplete="street-address" placeholder="House no., Street, Area" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} aria-invalid={!!errors.address} aria-describedby={errors.address ? 'error-address' : undefined} />
+                    <input ref={el => { fieldRefs.current.address = el; }} id="checkout-address" type="text" autoComplete="street-address" placeholder="House no., Street, Area, City" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} aria-invalid={!!errors.address} aria-describedby={errors.address ? 'error-address' : undefined} />
                     {errors.address && <p id="error-address" className="text-red-500 text-xs mt-1" role="alert">{errors.address}</p>}
                   </div>
                   <div>
@@ -309,19 +306,9 @@ export function Checkout() {
                     </select>
                     {errors.province && <p id="error-province" className="text-red-500 text-xs mt-1" role="alert">{errors.province}</p>}
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Select City <span className="text-red-500">*</span></label>
-                      <select ref={el => { fieldRefs.current.city = el; }} id="checkout-city" autoComplete="address-level2" value={form.city} onChange={e => update('city', e.target.value)} className={inputCls('city')} aria-invalid={!!errors.city} aria-describedby={errors.city ? 'error-city' : undefined}>
-                        <option value="">Select your city</option>
-                        {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      {errors.city && <p id="error-city" className="text-red-500 text-xs mt-1" role="alert">{errors.city}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Select Area</label>
-                      <input type="text" placeholder="Area / Sector" value={form.area} onChange={e => update('area', e.target.value)} className={inputCls('area')} />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Select Area</label>
+                    <input type="text" placeholder="Area / Sector" value={form.area} onChange={e => update('area', e.target.value)} className={inputCls('area')} />
                   </div>
                 </div>
               </div>
