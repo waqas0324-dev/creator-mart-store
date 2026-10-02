@@ -16,13 +16,23 @@ import { sanitizeRichHtml } from '../lib/richText';
 import { extractProductSpecifications, hasExplicitProductSpecifications, removeSpecSection } from '../lib/productDescription';
 import { getMiniDescription, htmlToText } from '../lib/productFields';
 
-const cleanDescriptionHtml = (value: string) => {
+const cleanDescriptionHtml = (value: string, productName = '') => {
   if (!value) return '';
   // Drop leading whitespace / &nbsp; so the heading checks below see the real start.
   let out = value.replace(/^(\s|&nbsp;|&#160;|\u00a0)+/i, '');
+
+  // The product title is already shown above the tabs. Remove a duplicate title
+  // when the description starts with the same title.
+  if (productName) {
+    const escapedName = productName.replace(/[.*+?^\$\{\}()|[\]\\]/g, '\\$&');
+    const titleRe = new RegExp('^' + escapedName + '\\s*(?:<br\\s*/?>)?\\s*', 'i');
+    out = out.replace(titleRe, '');
+  }
+
   // Case 1: a whole leading block that is just "Product Description" -> drop the block.
   const blockRe = /^<(h2|h3|h4|p)(\s[^>]*)?>\s*Product Description\s*<\/\1>\s*/i;
   if (blockRe.test(out)) return out.replace(blockRe, '').trim();
+
   // Case 2: "Product Description" as leading text inside the first paragraph
   // (optionally wrapped in strong/b/span) -> drop just the words, keep the paragraph.
   out = out.replace(
@@ -309,7 +319,7 @@ export function ProductDetail() {
             </div>
             {activeTab === 'description' && (
               <div className="text-sm text-gray-700 leading-relaxed max-w-4xl">
-                <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(descriptionHtml)) }} />
+                <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(descriptionHtml, product.name)) }} />
                 {specifications.length > 0 && (
                   <div className="mt-8">
                     <h3 className="text-lg font-black text-orange-500 mb-3">Specification</h3>
