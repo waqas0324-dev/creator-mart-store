@@ -13,7 +13,7 @@ import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { sanitizeRichHtml } from '../lib/richText';
-import { extractProductSpecifications, removeSpecSection } from '../lib/productDescription';
+import { extractProductSpecifications, hasExplicitProductSpecifications, removeSpecSection } from '../lib/productDescription';
 import { getMiniDescription, htmlToText } from '../lib/productFields';
 
 const cleanDescriptionHtml = (value: string) => {
@@ -117,12 +117,19 @@ export function ProductDetail() {
     );
   }
 
+  const hasExplicitSpecifications = hasExplicitProductSpecifications(product.description || '');
   const automaticSpecifications = extractProductSpecifications(product.description || '');
+
+  // If the description explicitly contains a Specifications section, that section
+  // is the only source for the automatic table. Legacy product.specifications are
+  // ignored in this case so old feature lists cannot leak into the table.
+  // If there is no explicit section, preserve any manually stored legacy specs.
   const specifications = automaticSpecifications.length > 0
     ? automaticSpecifications
-    : (Array.isArray(product.specifications) ? product.specifications : []);
-  // When the spec table is auto-rendered, strip the spec text from the
-  // description so it doesn't appear twice.
+    : (!hasExplicitSpecifications && Array.isArray(product.specifications) ? product.specifications : []);
+
+  // Remove the explicit specification section only when it was successfully
+  // parsed into table rows. All other description content remains untouched.
   const descriptionHtml = automaticSpecifications.length > 0
     ? removeSpecSection(product.description || '')
     : (product.description || '');
