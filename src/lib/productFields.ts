@@ -39,7 +39,23 @@ export function htmlToText(html: string): string {
     .trim();
 }
 
-/** Mini description: manual value (unlimited) or a safe fallback from the main description (500 chars). */
+/** Truncate text to maxChars, always ending at a complete sentence (never mid-sentence). */
+function truncateToSentence(text: string, maxChars: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxChars) return trimmed;
+  const sliced = trimmed.slice(0, maxChars);
+  // Prefer the last complete sentence (. ! ? or Urdu ۔) within the limit
+  const sentenceEnd = sliced.match(/.*[.!?۔]/s);
+  if (sentenceEnd) {
+    const candidate = sentenceEnd[0].trim();
+    if (candidate.length >= maxChars * 0.4) return candidate;
+  }
+  // Fallback: end at the last whole word
+  const lastSpace = sliced.lastIndexOf(' ');
+  return (lastSpace > 0 ? sliced.slice(0, lastSpace) : sliced).trim();
+}
+
+/** Mini description: manual value (unlimited) or a safe fallback from the main description (500 chars, complete sentences). */
 export function getMiniDescription(product: {
   mini_description?: string | null;
   description?: string;
@@ -50,7 +66,7 @@ export function getMiniDescription(product: {
     /^Product Description\s+/i,
     ''
   );
-  return text.slice(0, 500);
+  return truncateToSentence(text, 500);
 }
 
 /** Normalize the tags value into a clean string array. */
