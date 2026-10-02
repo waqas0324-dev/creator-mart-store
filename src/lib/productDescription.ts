@@ -1,3 +1,4 @@
+// spec-extractor v2
 // Product description is the single source of truth for specification rows.
 // The same parser is used when saving a product and when rendering the storefront.
 
