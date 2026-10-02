@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { ShoppingCart, Heart } from 'lucide-react';
 import type { Product } from '../../types';
 import { StarRating } from '../UI/StarRating';
@@ -32,7 +32,7 @@ export function ProductCard({ product }: ProductCardProps) {
   // long enough to matter, preventing the home page from downloading every
   // hidden gallery image at once.
   const gallery = product.images && product.images.length > 1 ? product.images : [product.image_url];
-  const [activeImage, setActiveImage] = useState(0);
+  const activeImage = 0; // Static first image — no auto-scroll, no manual nav on cards.
 
   useEffect(() => {
     if (gallery.length <= 1) return;
@@ -57,13 +57,7 @@ export function ProductCard({ product }: ProductCardProps) {
     };
   }, [gallery.length, gallery.join('|')]);
 
-  useEffect(() => {
-    if (gallery.length <= 1) return;
-    const timer = window.setInterval(() => {
-      setActiveImage(prev => (prev + 1) % gallery.length);
-    }, 2200);
-    return () => window.clearInterval(timer);
-  }, [gallery.length]);
+  // Auto-scroll removed per request — card shows first image; user taps dots/arrows manually.
 
   const whatsappMsg = encodeURIComponent(
     `Hi ${BRAND_NAME}! I'd like to order:\n\n${product.name}\nPrice: Rs. ${product.price.toLocaleString()}\n\nIs this available?`
