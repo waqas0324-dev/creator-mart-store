@@ -130,8 +130,13 @@ function renderProductHtml(template, p) {
     /<meta name="twitter:image" content=".*?" \/>/,
     `<meta name="twitter:image" content="${esc(img)}" />`
   );
-  // Product JSON-LD before </head>
-  html = html.replace('</head>', `    ${productJsonLd(p, url, img)}\n  </head>`);
+  // Product JSON-LD + crawler hints before </head>
+  const crawlerMeta = [
+    `<meta name="robots" content="index,follow,max-image-preview:large" />`,
+    `<meta property="og:image:alt" content="${esc(p.name)}" />`,
+    `<meta name="twitter:image:alt" content="${esc(p.name)}" />`,
+  ].join('\n    ');
+  html = html.replace('</head>', `    ${crawlerMeta}\n    ${productJsonLd(p, url, img)}\n  </head>`);
   return html;
 }
 
@@ -154,14 +159,28 @@ async function main() {
     return;
   }
   let count = 0;
+  const productUrls = [];
   for (const p of products) {
     if (!p.slug) continue;
     const dir = join(DIST, 'product', p.slug);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'index.html'), renderProductHtml(template, p));
+    productUrls.push(`${SITE_URL}/product/${p.slug}`);
     count++;
   }
-  console.log(`[prerender] Wrote ${count} product pages with OG meta.`);
+
+  const staticUrls = [
+    '/', '/shop', '/new-arrivals', '/best-sellers', '/flash-deals',
+    '/about', '/contact', '/return-policy', '/privacy-policy', '/terms', '/faq',
+  ].map(path => `${SITE_URL}${path}`);
+  const sitemapUrls = [...staticUrls, ...productUrls];
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapUrls.map(url => `  <url><loc>${url}</loc></url>`).join('\n')}
+</urlset>
+`;
+  writeFileSync(join(DIST, 'sitemap.xml'), sitemap);
+  console.log(`[prerender] Wrote ${count} product pages + sitemap (${sitemapUrls.length} URLs).`);
 }
 
 main();
