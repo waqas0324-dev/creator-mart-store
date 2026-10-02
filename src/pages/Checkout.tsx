@@ -8,6 +8,8 @@ import { onImageError, resolveProductImage } from '../lib/imageFallback';
 
 const CITIES = ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
 
+const PROVINCES = ['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', 'Gilgit Baltistan', 'Azad Kashmir', 'Islamabad Capital Territory', 'FATA'];
+
 type PayMethod = 'cash_on_delivery' | 'full_advance';
 
 export function Checkout() {
@@ -17,7 +19,7 @@ export function Checkout() {
 
   const [form, setForm] = useState({
     fullName: '', phone: '', whatsapp: '', email: '', address: '',
-    city: '', area: '', paymentMethod: 'cash_on_delivery' as PayMethod,
+    city: '', province: '', area: '', paymentMethod: 'cash_on_delivery' as PayMethod,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -77,6 +79,7 @@ export function Checkout() {
     if (!form.address.trim()) e.address = 'Please enter your complete delivery address.';
     else if (form.address.trim().length < 8) e.address = 'Please enter a more complete delivery address.';
     if (!form.city) e.city = 'Please select your city.';
+    if (!form.province) e.province = 'Please select your province.';
 
     setErrors(e);
 
@@ -111,7 +114,7 @@ export function Checkout() {
       customer_phone: form.phone,
       customer_whatsapp: form.whatsapp,
       customer_email: form.email || null,
-      customer_address: form.address,
+      customer_address: form.province ? `${form.address}, ${form.province}` : form.address,
       customer_city: form.city,
       customer_area: form.area || null,
       payment_method: form.paymentMethod,
@@ -297,6 +300,14 @@ export function Checkout() {
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Address <span className="text-red-500">*</span></label>
                     <input ref={el => { fieldRefs.current.address = el; }} id="checkout-address" type="text" autoComplete="street-address" placeholder="House no., Street, Area" value={form.address} onChange={e => update('address', e.target.value)} className={inputCls('address')} aria-invalid={!!errors.address} aria-describedby={errors.address ? 'error-address' : undefined} />
                     {errors.address && <p id="error-address" className="text-red-500 text-xs mt-1" role="alert">{errors.address}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Select Province <span className="text-red-500">*</span></label>
+                    <select ref={el => { fieldRefs.current.province = el; }} id="checkout-province" autoComplete="address-level1" value={form.province} onChange={e => update('province', e.target.value)} className={inputCls('province')} aria-invalid={!!errors.province} aria-describedby={errors.province ? 'error-province' : undefined}>
+                      <option value="">Select your province</option>
+                      {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    {errors.province && <p id="error-province" className="text-red-500 text-xs mt-1" role="alert">{errors.province}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
