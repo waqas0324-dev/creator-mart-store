@@ -1,16 +1,15 @@
-// spec-extractor v2
+// spec-extractor v3
 // Product description is the single source of truth for specification rows.
-// The same parser is used when saving a product and when rendering the storefront.
+// Only an explicit Specifications / Technical Specifications / Product Specifications
+// section is eligible for automatic table extraction. Everything else stays normal
+// description content.
 
 export type ProductSpecification = { key: string; value: string };
 
-const BLOCK_ENDINGS = /<\/(?:p|li|h1|h2|h3|h4|h5|h6|div|blockquote|tr)>/gi;
-const BREAKS = /<br\s*\/?>/gi;
+const BLOCK_ENDINGS = /<\\/(?:p|li|h1|h2|h3|h4|h5|h6|div|blockquote|tr)>/gi;
+const BREAKS = /<br\\s*\\/?>/gi;
 const SPEC_HEADINGS = /^(specifications?|technical specifications?|product specifications?)$/i;
 
-// Known spec labels so lines WITHOUT a colon (e.g. "Brand Plokama") can still
-// become table rows when they appear under a Specifications heading.
-// Longest match wins ("output power" beats "power").
 const KNOWN_SPEC_LABELS = [
   'output power', 'battery capacity', 'battery life', 'light modes', 'light type',
   'color temperature', 'colour temperature', 'rgb colors', 'in the box',
@@ -20,14 +19,31 @@ const KNOWN_SPEC_LABELS = [
   'dimensions', 'size', 'color', 'colour', 'material', 'warranty', 'connectivity',
   'compatibility', 'display', 'screen', 'processor', 'ram', 'storage', 'capacity',
   'bluetooth', 'wireless', 'cable', 'input', 'output', 'voltage', 'frequency',
-  'waterproof',
+  'waterproof', 'product type', 'panel size', 'microphone configuration',
+  'pickup pattern', 'operation', 'design', 'attachment', 'lighting modes',
+  'brightness', 'mirror', 'rotation', 'charging port', 'battery backup',
+  'extended length', 'folded length', 'phone holder', 'tilt adjustment',
+  'remote control', 'lighting', 'design type', 'usage',
 ];
+
+function normalizeText(value: string): string {
+  return value
+    .replace(/\\u00a0/g, ' ')
+    .replace(/\\s+/g, ' ')
+    .trim();
+}
+
+function stripHtml(value: string): string {
+  const temp = document.createElement('div');
+  temp.innerHTML = value;
+  return normalizeText(temp.textContent || '');
+}
 
 function matchKnownSpecLabel(line: string): { key: string; value: string } | null {
   const lower = line.toLowerCase();
   for (const label of KNOWN_SPEC_LABELS) {
-    // Label must be followed by whitespace (space, tab, etc.) — longest match wins.
-    const m = lower.match(new RegExp('^' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+'));
+    const escaped = label.replace(/[.*+?^()|[\\]\\\\]/g, '\\\\$&');
+    const m = lower.match(new RegExp('^' + escaped + '\\\\s+'));
     if (m) {
       const key = line.slice(0, label.length).trim();
       const value = line.slice(m[0].length).trim();
@@ -37,162 +53,151 @@ function matchKnownSpecLabel(line: string): { key: string; value: string } | nul
   return null;
 }
 
-// Detects a section heading line (e.g. "Multiple Applications", "What's Included
-// in the Package?", "Why Choose X?") so spec/feature extraction stops when a new
-// section begins. Conservative: short, no colon, not a sentence, starts with capital.
-function isSectionHeading(line: string, isBullet: boolean): boolean {
-  if (isBullet) return false;
-  if (line.length > 90) return false;
-  if (/:/.test(line)) return false;
-  if (/[.!]$/.test(line)) return false;
-  if (!/^[A-Z]/.test(line)) return false;
-  // Question headings or common section words
-  if (/\?$/.test(line)) return true;
-  if (/\b(applications?|included|package|why|benefits?|usage|use cases?|faq|questions?)\b/i.test(line)) return true;
-  // Short title-case lines (2-8 words) are likely headings
-  const words = line.split(/\s+/);
-  if (words.length >= 2 && words.length <= 8) return true;
-  return false;
+function isSpecHeadingElement(el: Element): boolean {
+  const text = normalizeText(el.textContent || '');
+  return SPEC_HEADINGS.test(text);
+}
+
+function isHeadingElement(el: Element): boolean {
+  return /^H[1-6]$/.test(el.tagName);
+}
+
+function findSpecificationHeadings(doc: Document): Element[] {
+  return Array.from(doc.body.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div'))
+    .filter(isSpecHeadingElement);
+}
+
+function addUniqueSpec(
+  specs: ProductSpecification[],
+  seen: Set<string>,
+  key: string,
+  value: string,
+) {
+  key = normalizeText(key).replace(/:$/, '');
+  value = normalizeText(value);
+  if (!key || !value || value.length < 2) return;
+
+  const signature = key.toLowerCase() + '\\0' + value.toLowerCase();
+  if (seen.has(signature)) return;
+  seen.add(signature);
+  specs.push({ key, value });
+}
+
+function parseSpecificationSection(
+  heading: Element,
+  specs: ProductSpecification[],
+  seen: Set<string>,
+) {
+  const section = document.createElement('div');
+  let node = heading.nextElementSibling;
+
+  while (node) {
+    if (isHeadingElement(node)) break;
+    section.appendChild(node.cloneNode(true));
+    node = node.nextElementSibling;
+  }
+
+  // 1) Real HTML tables.
+  for (const row of Array.from(section.querySelectorAll('tr'))) {
+    const cells = Array.from(row.querySelectorAll('th,td'))
+      .map(cell => normalizeText(cell.textContent || ''))
+      .filter(Boolean);
+    if (cells.length >= 2) {
+      addUniqueSpec(specs, seen, cells[0], cells.slice(1).join(' '));
+    }
+  }
+
+  // 2) List / paragraph rows such as <strong>Brand:</strong> Plokama.
+  for (const item of Array.from(section.querySelectorAll('li,p,div'))) {
+    const text = normalizeText(item.textContent || '');
+    const match = text.match(/^([^:]{2,80}):\\s*(.{2,300})$/);
+    if (match) {
+      addUniqueSpec(specs, seen, match[1], match[2]);
+    }
+  }
+
+  // 3) Compact editor output used by older products:
+  // <strong>Brand</strong>Plokama<strong>Model</strong>Live-K6...
+  const html = section.innerHTML;
+  const strongRe = /<(?:strong|b)\\b[^>]*>[\\s\\S]*?<\\/(?:strong|b)>/gi;
+  const matches = Array.from(html.matchAll(strongRe));
+
+  for (let i = 0; i < matches.length; i++) {
+    const current = matches[i];
+    const nextIndex = i + 1 < matches.length
+      ? (matches[i + 1].index ?? html.length)
+      : html.length;
+    const label = stripHtml(current[0]);
+    const value = stripHtml(html.slice((current.index ?? 0) + current[0].length, nextIndex));
+
+    if (/^(specification|specifications|details)$/i.test(label)) continue;
+    if (value && !/:$/.test(label)) {
+      addUniqueSpec(specs, seen, label, value);
+    }
+  }
+
+  // 4) Plain-text rows with a colon inside the explicit section.
+  const rawLines = section.innerHTML
+    .replace(BLOCK_ENDINGS, '\\n')
+    .replace(BREAKS, '\\n')
+    .replace(/<[^>]+>/g, '')
+    .split(/\\r?\\n/)
+    .map(normalizeText)
+    .filter(Boolean);
+
+  for (const line of rawLines) {
+    const match = line.match(/^([^:]{2,80}):\\s*(.{2,300})$/);
+    if (match) {
+      addUniqueSpec(specs, seen, match[1], match[2]);
+      continue;
+    }
+
+    const known = matchKnownSpecLabel(line);
+    if (known) addUniqueSpec(specs, seen, known.key, known.value);
+  }
+}
+
+export function hasExplicitProductSpecifications(html: string): boolean {
+  if (!html || typeof window === 'undefined') return false;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return findSpecificationHeadings(doc).length > 0;
 }
 
 export function extractProductSpecifications(html: string): ProductSpecification[] {
   if (!html || typeof window === 'undefined') return [];
 
-  const normalized = html
-    .replace(BLOCK_ENDINGS, '\n')
-    .replace(BREAKS, '\n');
-
-  const doc = new DOMParser().parseFromString(normalized, 'text/html');
-  const rawLines = (doc.body.textContent || '')
-    .split(/\r?\n/)
-    .map(line => line.replace(/\u00a0/g, ' ').trim())
-    .filter(Boolean);
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const headings = findSpecificationHeadings(doc);
+  if (headings.length === 0) return [];
 
   const seen = new Set<string>();
   const specs: ProductSpecification[] = [];
-  let specMode = false;
 
-  const addSpec = (key: string, value: string) => {
-    key = key.trim().replace(/\s+/g, ' ');
-    value = value.trim().replace(/\s+/g, ' ');
-    if (!key || !value) return;
-
-    const signature = key.toLowerCase() + '\0' + value.toLowerCase();
-    if (seen.has(signature)) return;
-    seen.add(signature);
-    specs.push({ key, value });
-  };
-
-  for (const originalLine of rawLines) {
-    const isBullet = /^[•●▪◦*-]\s*/.test(originalLine);
-    const line = originalLine.replace(/^[•●▪◦*-]\s*/, '').trim();
-
-    if (SPEC_HEADINGS.test(line)) {
-      // Only an explicit Specifications heading starts table extraction.
-      specMode = true;
-      continue;
-    }
-
-    // Any other section heading (e.g. "Why Use", "What's Included", "Multiple
-    // Applications") ends the spec/feature section — content under it stays in
-    // the description under its own heading and never becomes spec rows.
-    if (isSectionHeading(line, isBullet)) {
-      // Any new non-spec section ends specification extraction.
-      specMode = false;
-      continue;
-    }
-
-    // Explicit Label: Value lines are specifications ONLY under a
-    // Specifications heading — never from other sections like "Why Use".
-    const match = line.match(/^([^:]{2,80}):\s*(.{2,300})$/);
-    if (match && specMode) {
-      addSpec(match[1], match[2]);
-      continue;
-    }
-
-    // Forgiving mode: under a Specifications heading, lines like
-    // "Brand Plokama" (no colon) split on a known label.
-    if (specMode) {
-      const known = matchKnownSpecLabel(line);
-      if (known) {
-        addSpec(known.key, known.value);
-        continue;
-      }
-    }
-
+  for (const heading of headings) {
+    parseSpecificationSection(heading, specs, seen);
   }
 
   return specs;
 }
 
-// Removes the "Technical Specifications"/"Specifications" section (heading +
-// following label-value spec lines, including TAB-separated ones) from the
-// description HTML, so spec content doesn't render twice when the spec table
-// is shown. Key Features and all other content are left intact.
-// String-based (no DOMParser) so it also works outside the browser.
 export function removeSpecSection(html: string): string {
-  if (!html) return html;
+  if (!html || typeof window === 'undefined') return html;
 
-  const textOf = (raw: string) => raw.replace(/<[^>]*>/g, '').replace(/\u00a0/g, ' ').trim();
-  const isSpecHeadingText = (t: string) =>
-    /^(specifications?|technical specifications?|product specifications?)$/i.test(t);
-  const isSpecLineText = (t: string) => {
-    if (!t) return true; // blank spacer lines inside the spec section
-    if (/^([^:]{2,80}):\s*(.{2,300})$/.test(t)) return true;
-    if (/^specifications?\s+details?$/i.test(t)) return true; // "Specification Detail" header row
-    return matchKnownSpecLabel(t) !== null;
-  };
-  const BLOCK_TAG = /^(p|div|h1|h2|h3|h4|h5|h6|ul|ol|li|table|tr|blockquote)$/i;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const headings = findSpecificationHeadings(doc);
 
-  // Find a block element whose only text is a spec heading (no nested blocks).
-  // Matches e.g. <div><b>Technical Specifications</b></div>.
-  const findHeading = (src: string): { index: number; length: number } | null => {
-    const re = /<(p|div|h1|h2|h3|h4|h5|h6)\b[^>]*>(?:\s*<[a-z][^>]*>\s*)*(specifications?|technical specifications?|product specifications?)(?:\s*<\/[a-z][^>]*>\s*)*<\/\1>/gi;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(src)) !== null) {
-      // Reject if the "inline" wrappers actually contain block-level tags.
-      const inner = m[0].slice(m[0].indexOf('>') + 1, m[0].lastIndexOf('<'));
-      const tagRe = /<\/?([a-z][a-z0-9]*)\b/gi;
-      let tm: RegExpExecArray | null;
-      let nested = false;
-      while ((tm = tagRe.exec(inner)) !== null) {
-        if (BLOCK_TAG.test(tm[1])) { nested = true; break; }
-      }
-      if (nested) continue;
-      if (isSpecHeadingText(textOf(inner))) return { index: m.index, length: m[0].length };
-      if (m[0].length === 0) break;
+  for (const heading of headings) {
+    const nodesToRemove: Element[] = [];
+    let node: Element | null = heading;
+
+    while (node) {
+      if (node !== heading && isHeadingElement(node)) break;
+      nodesToRemove.push(node);
+      node = node.nextElementSibling as Element | null;
     }
-    return null;
-  };
 
-  let out = html;
-  // Loop in case of multiple spec sections.
-  for (let guard = 0; guard < 5; guard++) {
-    const found = findHeading(out);
-    if (!found) break;
-    let pos = found.index + found.length;
-    // Also match <ul>/<ol> blocks: if every <li> inside looks like a spec line,
-    // the whole list belongs to the spec section and gets removed.
-    const listRe = /^\s*<(ul|ol)\b[^>]*>([\s\S]*?)<\/\1>/i;
-    const lineRe = /^\s*(<(p|div|li|tr)\b[^>]*>[\s\S]*?<\/\2>|<br\s*\/?>)/i;
-    for (let g2 = 0; g2 < 200; g2++) {
-      const listMatch = out.slice(pos).match(listRe);
-      if (listMatch) {
-        const items = [...listMatch[2].matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)];
-        const allSpec = items.length > 0 && items.every(m => isSpecLineText(textOf(m[1])));
-        if (allSpec) {
-          pos += listMatch[0].length;
-          continue;
-        }
-        break;
-      }
-      const lm = out.slice(pos).match(lineRe);
-      if (!lm) break;
-      if (!isSpecLineText(textOf(lm[1] || lm[0]))) break;
-      pos += lm[0].length;
-      if (lm[0].length === 0) break;
-    }
-    out = out.slice(0, found.index) + out.slice(pos);
+    for (const item of nodesToRemove) item.remove();
   }
-  return out;
+
+  return doc.body.innerHTML.trim();
 }
