@@ -246,19 +246,7 @@ export function ProductDetail() {
                 </p>
               )}
               {(product.stock === 0 || product.stock > 10) && <div className="mb-4" />}
-              {productTags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-5">
-                  {productTags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => navigate('shop', { tag })}
-                      className="text-xs font-semibold bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-orange-600 px-3 py-1.5 rounded-full transition-colors"
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Tags removed from main area — now shown as plain text below trust badges (CM Shop style) */}
 
               {/* Quantity + Cart */}
               <div className="flex items-center gap-3 mb-4">
@@ -306,6 +294,22 @@ export function ProductDetail() {
                   </div>
                 ))}
               </div>
+              {productTags.length > 0 && (
+                <p className="text-xs text-gray-500 mt-4">
+                  <span className="font-semibold text-gray-600">Tags:</span>{' '}
+                  {productTags.map((tag, i) => (
+                    <span key={tag}>
+                      <button
+                        onClick={() => navigate('shop', { tag })}
+                        className="hover:text-orange-600 hover:underline transition-colors"
+                      >
+                        {tag}
+                      </button>
+                      {i < productTags.length - 1 && ', '}
+                    </span>
+                  ))}
+                </p>
+              )}
             </div>
           </div>
 
