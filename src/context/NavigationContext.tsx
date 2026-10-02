@@ -9,9 +9,11 @@ const PAGE_PATHS: Record<Page, string> = {
   home: '/', shop: '/shop', categories: '/categories', product: '/product', cart: '/cart', wishlist: '/wishlist', checkout: '/checkout', payment: '/payment',
   'order-success': '/order-success', 'track-order': '/track-order', 'new-arrivals': '/new-arrivals', 'best-sellers': '/best-sellers',
   contact: '/contact', about: '/about', 'return-policy': '/return-policy', 'privacy-policy': '/privacy-policy',
+  terms: '/terms', faq: '/faq', 'flash-deals': '/flash-deals',
   admin: '/admin', 'admin-login': '/admin-login', 'admin-products': '/admin-products', 'admin-categories': '/admin-categories',
   'admin-orders': '/admin-orders', 'admin-product-form': '/admin-product-form', 'admin-account': '/admin-account',
   'dev-login': '/ws-studio', 'dev-panel': '/ws-studio/panel',
+  notfound: '/404',
 };
 const PATH_TO_PAGE = new Map(Object.entries(PAGE_PATHS).map(([page, path]) => [path, page as Page]));
 
@@ -25,11 +27,13 @@ function parseLocation(): NavState {
     const legacyPage = pagePart as Page;
     if (PAGE_PATHS[legacyPage]) {
       const state: NavState = { page: legacyPage };
+      const stringKeys = ['productSlug', 'categorySlug', 'tag', 'orderId', 'adminProductId', 'searchQuery'] as const;
+      type StringKey = typeof stringKeys[number];
       for (const part of paramParts) {
         const [key, ...rest] = part.split('=');
         const value = decodeURIComponent(rest.join('='));
-        if (['productSlug', 'categorySlug', 'tag', 'orderId', 'adminProductId', 'searchQuery'].includes(key) && value) {
-          (state as Record<string, string>)[key] = value;
+        if ((stringKeys as readonly string[]).includes(key) && value) {
+          state[key as StringKey] = value;
         }
       }
       return state;
@@ -57,7 +61,7 @@ function parseLocation(): NavState {
     if (adminProductId) state.adminProductId = adminProductId;
     return state;
   }
-  return { page: 'home' };
+  return { page: 'notfound' };
 }
 
 function buildUrl(page: Page, params?: Partial<Omit<NavState, 'page'>>): string {

@@ -102,3 +102,62 @@ export function extractProductSpecifications(html: string): ProductSpecification
 
   return specs;
 }
+
+// Removes the "Technical Specifications"/"Specifications" section (heading +
+// following label-value spec lines, including TAB-separated ones) from the
+// description HTML, so spec content doesn't render twice when the spec table
+// is shown. Key Features and all other content are left intact.
+// String-based (no DOMParser) so it also works outside the browser.
+export function removeSpecSection(html: string): string {
+  if (!html) return html;
+
+  const textOf = (raw: string) => raw.replace(/<[^>]*>/g, '').replace(/\u00a0/g, ' ').trim();
+  const isSpecHeadingText = (t: string) =>
+    /^(specifications?|technical specifications?|product specifications?)$/i.test(t);
+  const isSpecLineText = (t: string) => {
+    if (!t) return true; // blank spacer lines inside the spec section
+    if (/^([^:]{2,80}):\s*(.{2,300})$/.test(t)) return true;
+    if (/^specifications?\s+details?$/i.test(t)) return true; // "Specification Detail" header row
+    return matchKnownSpecLabel(t) !== null;
+  };
+  const BLOCK_TAG = /^(p|div|h1|h2|h3|h4|h5|h6|ul|ol|li|table|tr|blockquote)$/i;
+
+  // Find a block element whose only text is a spec heading (no nested blocks).
+  // Matches e.g. <div><b>Technical Specifications</b></div>.
+  const findHeading = (src: string): { index: number; length: number } | null => {
+    const re = /<(p|div|h1|h2|h3|h4|h5|h6)\b[^>]*>(?:\s*<[a-z][^>]*>\s*)*(specifications?|technical specifications?|product specifications?)(?:\s*<\/[a-z][^>]*>\s*)*<\/\1>/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src)) !== null) {
+      // Reject if the "inline" wrappers actually contain block-level tags.
+      const inner = m[0].slice(m[0].indexOf('>') + 1, m[0].lastIndexOf('<'));
+      const tagRe = /<\/?([a-z][a-z0-9]*)\b/gi;
+      let tm: RegExpExecArray | null;
+      let nested = false;
+      while ((tm = tagRe.exec(inner)) !== null) {
+        if (BLOCK_TAG.test(tm[1])) { nested = true; break; }
+      }
+      if (nested) continue;
+      if (isSpecHeadingText(textOf(inner))) return { index: m.index, length: m[0].length };
+      if (m[0].length === 0) break;
+    }
+    return null;
+  };
+
+  let out = html;
+  // Loop in case of multiple spec sections.
+  for (let guard = 0; guard < 5; guard++) {
+    const found = findHeading(out);
+    if (!found) break;
+    let pos = found.index + found.length;
+    const lineRe = /^\s*(<(p|div|li|tr)\b[^>]*>[\s\S]*?<\/\2>|<br\s*\/?>)/i;
+    for (let g2 = 0; g2 < 200; g2++) {
+      const lm = out.slice(pos).match(lineRe);
+      if (!lm) break;
+      if (!isSpecLineText(textOf(lm[1] || lm[0]))) break;
+      pos += lm[0].length;
+      if (lm[0].length === 0) break;
+    }
+    out = out.slice(0, found.index) + out.slice(pos);
+  }
+  return out;
+}

@@ -33,5 +33,9 @@ export function sanitizeRichHtml(html: string): string {
     });
   };
   clean(doc.body);
+  // Strip empty headings like <h3><div><br></div></h3> — blank space at the top of descriptions.
+  doc.body.querySelectorAll('h2,h3,h4').forEach(h => {
+    if ((h.textContent || '').replace(/\u00a0/g, ' ').trim() === '') h.remove();
+  });
   return doc.body.innerHTML;
 }

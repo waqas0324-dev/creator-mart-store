@@ -4,10 +4,13 @@
   <url><loc>https://abrgadgets.vercel.app/shop</loc></url>
   <url><loc>https://abrgadgets.vercel.app/new-arrivals</loc></url>
   <url><loc>https://abrgadgets.vercel.app/best-sellers</loc></url>
+  <url><loc>https://abrgadgets.vercel.app/flash-deals</loc></url>
   <url><loc>https://abrgadgets.vercel.app/about</loc></url>
   <url><loc>https://abrgadgets.vercel.app/contact</loc></url>
   <url><loc>https://abrgadgets.vercel.app/return-policy</loc></url>
   <url><loc>https://abrgadgets.vercel.app/privacy-policy</loc></url>
+  <url><loc>https://abrgadgets.vercel.app/terms</loc></url>
+  <url><loc>https://abrgadgets.vercel.app/faq</loc></url>
   <url><loc>https://abrgadgets.vercel.app/product/26cm-ring-light-with-stand</loc></url>
   <url><loc>https://abrgadgets.vercel.app/product/10000mah-power-bank</loc></url>
   <url><loc>https://abrgadgets.vercel.app/product/mobile-holder-stand</loc></url>
@@ -16,4 +19,5 @@
   <url><loc>https://abrgadgets.vercel.app/product/lavalier-collar-microphone</loc></url>
   <url><loc>https://abrgadgets.vercel.app/product/3-in-1-fast-charging-cable</loc></url>
   <url><loc>https://abrgadgets.vercel.app/product/aluminum-tripod-stand-3366</loc></url>
+  <url><loc>https://abrgadgets.vercel.app/product/plokrama-u480-pro-20w-rgb-led-video-light-2700k-5700k</loc></url>
 </urlset>

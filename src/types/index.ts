@@ -53,6 +53,7 @@ export interface Order {
   status: string;
   coupon_code: string | null;
   advance_amount: number;
+  advance_waived?: boolean;
   advance_payment_status: 'pending' | 'received';
   advance_payment_received_at: string | null;
   notes: string | null;
@@ -186,6 +187,8 @@ export interface SiteSettings {
   footer_quick_about: string;
   footer_quick_return: string;
   footer_quick_privacy: string;
+  footer_quick_terms: string;
+  footer_quick_faq: string;
   footer_categories: string;
   footer_copyright: string;
   design_settings: DesignSettings;
@@ -221,6 +224,9 @@ export type Page =
   | 'about'
   | 'return-policy'
   | 'privacy-policy'
+  | 'terms'
+  | 'faq'
+  | 'flash-deals'
   | 'admin'
   | 'admin-login'
   | 'admin-products'
@@ -228,5 +234,6 @@ export type Page =
   | 'admin-orders'
   | 'admin-product-form'
   | 'admin-account'
+  | 'notfound'
   | 'dev-login'
   | 'dev-panel';

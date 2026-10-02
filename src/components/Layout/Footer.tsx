@@ -76,6 +76,8 @@ export function Footer() {
               { label: settings.footer_quick_about, page: 'about' as const },
               { label: settings.footer_quick_return, page: 'return-policy' as const },
               { label: settings.footer_quick_privacy, page: 'privacy-policy' as const },
+              { label: settings.footer_quick_terms, page: 'terms' as const },
+              { label: settings.footer_quick_faq, page: 'faq' as const },
             ].map(link => (
               <li key={link.label}>
                 <button

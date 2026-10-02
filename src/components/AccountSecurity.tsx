@@ -97,13 +97,13 @@ export function AccountSecurity({ role }: { role: Role }) {
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2"><ShieldAlert size={18} className="text-orange-500" /><h3 className="font-black text-gray-900">Security Activity</h3></div>
-          <button onClick={load} className="text-gray-400 hover:text-gray-700"><RefreshCw size={16} /></button>
+          <button onClick={load} aria-label="Refresh security activity" className="text-gray-400 hover:text-gray-700"><RefreshCw size={16} /></button>
         </div>
         {activity.length === 0 ? <p className="text-sm text-gray-400">No security activity recorded yet.</p> : (
           <div className="space-y-2">
             {activity.map(item => <div key={item.id} className="flex items-start gap-3 border-b border-gray-100 last:border-0 py-2.5">
               <CheckCircle size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-              <div className="min-w-0"><p className="text-sm font-semibold text-gray-800">{item.action.replaceAll('_', ' ')}</p><p className="text-[11px] text-gray-400">{new Date(item.created_at).toLocaleString()}</p></div>
+              <div className="min-w-0"><p className="text-sm font-semibold text-gray-800">{item.action.replace(/_/g, ' ')}</p><p className="text-[11px] text-gray-400">{new Date(item.created_at).toLocaleString()}</p></div>
             </div>)}
           </div>
         )}

@@ -72,7 +72,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="bg-white rounded-xl overflow-hidden border border-gray-200/90 group flex flex-col h-full transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(15,23,42,0.10)] hover:border-gray-300">
       <div
-        className="relative overflow-hidden cursor-pointer bg-white aspect-square transition-colors duration-300"
+        className="relative overflow-hidden cursor-pointer bg-gray-100 aspect-square transition-colors duration-300"
         onClick={() => navigate('product', { productSlug: product.slug })}
       >
         <img
