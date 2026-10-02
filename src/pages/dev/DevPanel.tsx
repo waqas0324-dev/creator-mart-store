@@ -44,6 +44,9 @@ const ORIGINAL_DESIGN_SETTINGS: DesignSettings = {
   hero: { borderWidth: 0, borderColor: '#e5e7eb', radius: 0, shadow: 'none' },
   buttons: { radius: 8, fontWeight: 700, hoverScale: 1.02, transitionMs: 240, bgColor: '#f97316', hoverBgColor: '#ea580c', hoverTextColor: '#ffffff', textColor: '#ffffff', hoverShadow: 'soft' },
   animations: { enabled: true, style: 'lift-scale', hoverLift: 2, clickScale: 0.98 },
+  promoSlider: { enabled: true, heading: 'Featured Deals', subheading: 'Creator gear picked for you', auto_play: true, auto_play_ms: 4500, show_arrows: true, show_dots: true, backgroundColor: '#f5f6fb', textColor: '#17213b', mutedTextColor: '#6b7280', accentColor: '#17213b', badgeBgColor: '#d8a53c', badgeTextColor: '#1d2437', arrowBgColor: '#ffffff', arrowTextColor: '#374151', buttonBgColor: '#17213b', buttonTextColor: '#ffffff', slides: [] },
+  recentlyViewed: { enabled: true, heading: 'Recently Viewed', max_items: 8, auto_play: true, auto_play_ms: 3500 },
+  announcementBar: { height: 38, backgroundColor: '#000000', textColor: '#f3f4f6', accentColor: '#f97316', fontSize: 12, fontWeight: 800, paddingX: 24 },
 };
 
 const INPUT_CLASS = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-purple-500 transition-colors';

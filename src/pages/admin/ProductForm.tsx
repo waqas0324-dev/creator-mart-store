@@ -179,7 +179,7 @@ export function AdminProductForm() {
   // execCommand color commands make <font> tags by default, which the sanitizer
   // strips. styleWithCSS makes them <span style="color:..."> instead, which survives.
   const withCssStyles = () => {
-    try { document.execCommand('styleWithCSS', false, true); } catch { /* ignore */ }
+    try { document.execCommand('styleWithCSS', false, 'true'); } catch { /* ignore */ }
   };
 
   // Bring back the saved selection; returns false when nothing was selected.
