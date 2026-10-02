@@ -62,7 +62,37 @@ function isHeadingElement(el: Element): boolean {
   return /^H[1-6]$/.test(el.tagName);
 }
 
-function findSpecificationHeadings(doc: Document): Element[] {
+const SECTION_BOUNDARIES = [
+  'description',
+  'key features',
+  'features',
+  'multiple applications',
+  'applications',
+  'key benefits',
+  'benefits',
+  "what's included in the box",
+  'what’s included in the box',
+  "what's included in the package",
+  'what’s included in the package',
+  'why choose',
+  'frequently asked questions',
+  'faqs',
+  'buy ',
+];
+
+function isSectionBoundaryElement(el: Element): boolean {
+  if (isHeadingElement(el)) return true;
+
+  const text = normalizeText(el.textContent || '').toLowerCase();
+  if (!text || text.length > 120) return false;
+
+  return SECTION_BOUNDARIES.some((boundary) => {
+    if (boundary === 'buy ') return text.startsWith(boundary);
+    return text === boundary;
+  });
+}
+
+function findSpecificationHeadings(doc: Document) {
   return Array.from(doc.body.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div'))
     .filter(isSpecHeadingElement);
 }
@@ -92,7 +122,7 @@ function parseSpecificationSection(
   let node = heading.nextElementSibling;
 
   while (node) {
-    if (isHeadingElement(node)) break;
+    if (isSectionBoundaryElement(node)) break;
     section.appendChild(node.cloneNode(true));
     node = node.nextElementSibling;
   }
@@ -130,7 +160,7 @@ function parseSpecificationSection(
     const label = stripHtml(current[0]);
     const value = stripHtml(html.slice((current.index ?? 0) + current[0].length, nextIndex));
 
-    if (/^(specification|specifications|details)$/i.test(label)) continue;
+    if (/^(specification|specifications|details|specification details)$/i.test(label)) continue;
     if (value && !/:$/.test(label)) {
       addUniqueSpec(specs, seen, label, value);
     }
@@ -191,7 +221,7 @@ export function removeSpecSection(html: string): string {
     let node: Element | null = heading;
 
     while (node) {
-      if (node !== heading && isHeadingElement(node)) break;
+      if (node !== heading && isSectionBoundaryElement(node)) break;
       nodesToRemove.push(node);
       node = node.nextElementSibling as Element | null;
     }
