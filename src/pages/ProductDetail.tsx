@@ -89,13 +89,7 @@ export function ProductDetail() {
   });
 
 
-  useEffect(() => {
-    if (images.length <= 1) return;
-    const timer = setInterval(() => {
-      setActiveImage(prev => (prev + 1) % images.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [images.length]);
+  // Auto-scroll removed per request — user navigates with left/right buttons only.
 
   if (loading) {
     return (

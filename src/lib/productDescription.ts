@@ -178,8 +178,21 @@ export function removeSpecSection(html: string): string {
     const found = findHeading(out);
     if (!found) break;
     let pos = found.index + found.length;
+    // Also match <ul>/<ol> blocks: if every <li> inside looks like a spec line,
+    // the whole list belongs to the spec section and gets removed.
+    const listRe = /^\s*<(ul|ol)\b[^>]*>([\s\S]*?)<\/\1>/i;
     const lineRe = /^\s*(<(p|div|li|tr)\b[^>]*>[\s\S]*?<\/\2>|<br\s*\/?>)/i;
     for (let g2 = 0; g2 < 200; g2++) {
+      const listMatch = out.slice(pos).match(listRe);
+      if (listMatch) {
+        const items = [...listMatch[2].matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)];
+        const allSpec = items.length > 0 && items.every(m => isSpecLineText(textOf(m[1])));
+        if (allSpec) {
+          pos += listMatch[0].length;
+          continue;
+        }
+        break;
+      }
       const lm = out.slice(pos).match(lineRe);
       if (!lm) break;
       if (!isSpecLineText(textOf(lm[1] || lm[0]))) break;
