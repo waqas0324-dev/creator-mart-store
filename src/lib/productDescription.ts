@@ -6,8 +6,8 @@
 
 export type ProductSpecification = { key: string; value: string };
 
-const BLOCK_ENDINGS = /<\\/(?:p|li|h1|h2|h3|h4|h5|h6|div|blockquote|tr)>/gi;
-const BREAKS = /<br\\s*\\/?>/gi;
+const BLOCK_ENDINGS = /<\/(?:p|li|h1|h2|h3|h4|h5|h6|div|blockquote|tr)>/gi;
+const BREAKS = /<br\s*\/?>/gi;
 const SPEC_HEADINGS = /^(specifications?|technical specifications?|product specifications?)$/i;
 
 const KNOWN_SPEC_LABELS = [
@@ -28,8 +28,8 @@ const KNOWN_SPEC_LABELS = [
 
 function normalizeText(value: string): string {
   return value
-    .replace(/\\u00a0/g, ' ')
-    .replace(/\\s+/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -42,8 +42,8 @@ function stripHtml(value: string): string {
 function matchKnownSpecLabel(line: string): { key: string; value: string } | null {
   const lower = line.toLowerCase();
   for (const label of KNOWN_SPEC_LABELS) {
-    const escaped = label.replace(/[.*+?^()|[\\]\\\\]/g, '\\\\$&');
-    const m = lower.match(new RegExp('^' + escaped + '\\\\s+'));
+    const escaped = label.replace(/[.*+?^()|[\]\\]/g, '\\$&');
+    const m = lower.match(new RegExp('^' + escaped + '\\s+'));
     if (m) {
       const key = line.slice(0, label.length).trim();
       const value = line.slice(m[0].length).trim();
@@ -77,7 +77,7 @@ function addUniqueSpec(
   value = normalizeText(value);
   if (!key || !value || value.length < 2) return;
 
-  const signature = key.toLowerCase() + '\\0' + value.toLowerCase();
+  const signature = key.toLowerCase() + '\0' + value.toLowerCase();
   if (seen.has(signature)) return;
   seen.add(signature);
   specs.push({ key, value });
@@ -110,7 +110,7 @@ function parseSpecificationSection(
   // 2) List / paragraph rows such as <strong>Brand:</strong> Plokama.
   for (const item of Array.from(section.querySelectorAll('li,p,div'))) {
     const text = normalizeText(item.textContent || '');
-    const match = text.match(/^([^:]{2,80}):\\s*(.{2,300})$/);
+    const match = text.match(/^([^:]{2,80}):\s*(.{2,300})$/);
     if (match) {
       addUniqueSpec(specs, seen, match[1], match[2]);
     }
@@ -119,7 +119,7 @@ function parseSpecificationSection(
   // 3) Compact editor output used by older products:
   // <strong>Brand</strong>Plokama<strong>Model</strong>Live-K6...
   const html = section.innerHTML;
-  const strongRe = /<(?:strong|b)\\b[^>]*>[\\s\\S]*?<\\/(?:strong|b)>/gi;
+  const strongRe = /<(?:strong|b)\b[^>]*>[\s\S]*?<\/(?:strong|b)>/gi;
   const matches = Array.from(html.matchAll(strongRe));
 
   for (let i = 0; i < matches.length; i++) {
@@ -138,15 +138,15 @@ function parseSpecificationSection(
 
   // 4) Plain-text rows with a colon inside the explicit section.
   const rawLines = section.innerHTML
-    .replace(BLOCK_ENDINGS, '\\n')
-    .replace(BREAKS, '\\n')
+    .replace(BLOCK_ENDINGS, '\n')
+    .replace(BREAKS, '\n')
     .replace(/<[^>]+>/g, '')
-    .split(/\\r?\\n/)
+    .split(/\r?\n/)
     .map(normalizeText)
     .filter(Boolean);
 
   for (const line of rawLines) {
-    const match = line.match(/^([^:]{2,80}):\\s*(.{2,300})$/);
+    const match = line.match(/^([^:]{2,80}):\s*(.{2,300})$/);
     if (match) {
       addUniqueSpec(specs, seen, match[1], match[2]);
       continue;
