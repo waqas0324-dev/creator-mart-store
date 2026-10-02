@@ -1,4 +1,4 @@
-// Build-time prerenderer for product pages.
+// Build-time prerenderer for product pages. (rebuild trigger: product data updated 2026-10-02)
 //
 // Problem: WhatsApp/Facebook crawlers don't execute JavaScript, so when a
 // product link is shared they only see the static index.html meta tags
