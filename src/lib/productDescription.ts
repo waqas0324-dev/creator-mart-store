@@ -1,20 +1,26 @@
 // Product description is the single source of truth for specification rows.
-// The same parser is used when saving a product and when rendering the storefront.
+// Only content inside an explicit Specifications section is converted into the table.
+// All other description content (headings, features, usage, notes, etc.) stays in the
+// rich description exactly as entered by the admin.
 
 export type ProductSpecification = { key: string; value: string };
 
 const BLOCK_ENDINGS = /<\/(?:p|li|h1|h2|h3|h4|h5|h6|div|blockquote|tr)>/gi;
 const BREAKS = /<br\s*\/?>/gi;
-const SPEC_HEADINGS = /^(specifications?|technical specifications?|product specifications?|key features?|features?|highlights?)$/i;
+const SPEC_HEADINGS = /^(specifications?|technical specifications?|product specifications?)$/i;
+const ANY_HEADING = /^(?:h1|h2|h3|h4|h5|h6)$/i;
 
 export function extractProductSpecifications(html: string): ProductSpecification[] {
   if (!html || typeof window === 'undefined') return [];
 
-  const normalized = html
+  // Mark headings before converting HTML to plain text so we can distinguish the
+  // actual Specifications section from normal "Label: Value" text elsewhere.
+  const marked = html
+    .replace(/<(h[1-6])\b[^>]*>([\s\S]*?)<\/\1>/gi, '\n@@HEADING@@$2@@END_HEADING@@\n')
     .replace(BLOCK_ENDINGS, '\n')
     .replace(BREAKS, '\n');
 
-  const doc = new DOMParser().parseFromString(normalized, 'text/html');
+  const doc = new DOMParser().parseFromString(marked, 'text/html');
   const rawLines = (doc.body.textContent || '')
     .split(/\r?\n/)
     .map(line => line.replace(/\u00a0/g, ' ').trim())
@@ -22,8 +28,7 @@ export function extractProductSpecifications(html: string): ProductSpecification
 
   const seen = new Set<string>();
   const specs: ProductSpecification[] = [];
-  let featureMode = false;
-  let featureIndex = 1;
+  let specificationMode = false;
 
   const addSpec = (key: string, value: string) => {
     key = key.trim().replace(/\s+/g, ' ');
@@ -37,24 +42,27 @@ export function extractProductSpecifications(html: string): ProductSpecification
   };
 
   for (const originalLine of rawLines) {
-    const isBullet = /^[•●▪◦*-]\s*/.test(originalLine);
-    const line = originalLine.replace(/^[•●▪◦*-]\s*/, '').trim();
+    const headingMatch = originalLine.match(/^@@HEADING@@([\s\S]*?)@@END_HEADING@@$/i);
 
-    if (SPEC_HEADINGS.test(line)) {
-      featureMode = /features?|highlights?/i.test(line);
+    if (headingMatch) {
+      const heading = headingMatch[1]
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // Enter specification mode only for an explicit Specifications heading.
+      // Any other heading closes specification mode.
+      specificationMode = SPEC_HEADINGS.test(heading);
       continue;
     }
 
-    // Explicit Label: Value lines are always specifications.
+    if (!specificationMode) continue;
+
+    const line = originalLine.replace(/^[•●▪◦*-]\s*/, '').trim();
     const match = line.match(/^([^:]{2,80}):\s*(.{2,300})$/);
+
     if (match) {
       addSpec(match[1], match[2]);
-      continue;
-    }
-
-    // Bullet points under Key Features / Features are converted automatically.
-    if (isBullet && featureMode && line.length >= 2) {
-      addSpec(`Feature ${featureIndex++}`, line);
     }
   }
 
