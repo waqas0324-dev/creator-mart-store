@@ -32,6 +32,7 @@ export function AdminProductForm() {
   const [fetchLoading, setFetchLoading] = useState(isEdit);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
 
   useEffect(() => {
     if (!isEdit || !nav.adminProductId) return;
@@ -47,6 +48,7 @@ export function AdminProductForm() {
           discount_percent: String(p.discount_percent || ''),
         });
         setTagsInput(Array.isArray(p.tags) ? (p.tags as unknown[]).map(t => String(t)).join(', ') : '');
+        setSlugTouched(false);
         const savedImages = Array.isArray(p.images) ? p.images : [];
         const unifiedImages = Array.from(new Set([p.image_url, ...savedImages].filter(Boolean)));
         setGalleryImages(unifiedImages);
@@ -399,13 +401,13 @@ export function AdminProductForm() {
             <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Basic Information</h3>
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-gray-700 mb-1">Product Name <span className="text-red-500">*</span></label>
-              <input type="text" value={form.name} onChange={e => { update('name', e.target.value); if (!isEdit) update('slug', generateSlug(e.target.value)); }} className={inputCls('name')} placeholder="e.g. Boya BY-M1 Collar Microphone" />
+              <input type="text" value={form.name} onChange={e => { update('name', e.target.value); if (!slugTouched) update('slug', generateSlug(e.target.value)); }} className={inputCls('name')} placeholder="e.g. Boya BY-M1 Collar Microphone" />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">URL Slug</label>
-                <input type="text" value={form.slug} onChange={e => update('slug', e.target.value)} className={inputCls('slug')} placeholder="auto-generated" />
+                <input type="text" value={form.slug} onChange={e => { setSlugTouched(true); update('slug', e.target.value); }} className={inputCls('slug')} placeholder="auto-generated" />
                 <p className="text-[11px] text-gray-400 mt-1">Used to create the product page URL.</p>
               </div>
               <div>
