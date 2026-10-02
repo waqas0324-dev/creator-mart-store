@@ -6,7 +6,7 @@ export type ProductSpecification = { key: string; value: string };
 
 const BLOCK_ENDINGS = /<\/(?:p|li|h1|h2|h3|h4|h5|h6|div|blockquote|tr)>/gi;
 const BREAKS = /<br\s*\/?>/gi;
-const SPEC_HEADINGS = /^(specifications?|technical specifications?|product specifications?|key features?|features?|highlights?)$/i;
+const SPEC_HEADINGS = /^(specifications?|technical specifications?|product specifications?)$/i;
 
 // Known spec labels so lines WITHOUT a colon (e.g. "Brand Plokama") can still
 // become table rows when they appear under a Specifications heading.
@@ -70,9 +70,7 @@ export function extractProductSpecifications(html: string): ProductSpecification
 
   const seen = new Set<string>();
   const specs: ProductSpecification[] = [];
-  let featureMode = false;
   let specMode = false;
-  let featureIndex = 1;
 
   const addSpec = (key: string, value: string) => {
     key = key.trim().replace(/\s+/g, ' ');
@@ -90,9 +88,8 @@ export function extractProductSpecifications(html: string): ProductSpecification
     const line = originalLine.replace(/^[•●▪◦*-]\s*/, '').trim();
 
     if (SPEC_HEADINGS.test(line)) {
-      const isFeature = /features?|highlights?/i.test(line);
-      featureMode = isFeature;
-      specMode = !isFeature;
+      // Only an explicit Specifications heading starts table extraction.
+      specMode = true;
       continue;
     }
 
@@ -100,7 +97,7 @@ export function extractProductSpecifications(html: string): ProductSpecification
     // Applications") ends the spec/feature section — content under it stays in
     // the description under its own heading and never becomes spec rows.
     if (isSectionHeading(line, isBullet)) {
-      featureMode = false;
+      // Any new non-spec section ends specification extraction.
       specMode = false;
       continue;
     }
@@ -123,10 +120,6 @@ export function extractProductSpecifications(html: string): ProductSpecification
       }
     }
 
-    // Bullet points under Key Features / Features are converted automatically.
-    if (isBullet && featureMode && line.length >= 2) {
-      addSpec(`Feature ${featureIndex++}`, line);
-    }
   }
 
   return specs;
