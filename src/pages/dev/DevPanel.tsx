@@ -414,9 +414,28 @@ export function DevPanel() {
           </div>}
         />
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Enable slider</span><input type="checkbox" checked={d.enabled} onChange={e => updateDesign('promoSlider', { enabled: e.target.checked })} className="w-5 h-5 accent-purple-600" /></label>
           <label className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3"><span className="text-sm font-bold text-white">Auto-play</span><input type="checkbox" checked={d.auto_play} onChange={e => updateDesign('promoSlider', { auto_play: e.target.checked })} className="w-5 h-5 accent-purple-600" /></label>
+          <Field label="Total slides" value={slides.length} type="number" onChange={v => {
+            const target = Math.max(1, Math.min(20, Number(v) || 1));
+            if (target === slides.length) return;
+            if (target < slides.length) {
+              updateDesign('promoSlider', { slides: slides.slice(0, target).map((slide, i) => ({ ...slide, order: i })) });
+              return;
+            }
+            const nextSlides = [...slides];
+            while (nextSlides.length < target) {
+              const i = nextSlides.length;
+              nextSlides.push({
+                id: crypto.randomUUID(), enabled: true, order: i, product_id: null,
+                image_url: '', title: 'New Promotion', price: 0, old_price: null, badge: 'FEATURED',
+                description: 'Add your slider title, description and image.',
+                features: ['', '', ''],
+              });
+            }
+            updateDesign('promoSlider', { slides: nextSlides });
+          }} />
           <Field label="Auto-play interval (ms)" value={d.auto_play_ms} type="number" onChange={v => updateDesign('promoSlider', { auto_play_ms: Math.max(2500, Number(v) || 4500) })} />
           <Field label="Heading (optional)" value={d.heading} onChange={v => updateDesign('promoSlider', { heading: v })} />
         </div>
@@ -442,7 +461,7 @@ export function DevPanel() {
           </div>
         </div>
 
-        {slides.length === 0 && <div className="rounded-xl border border-dashed border-gray-700 p-5 text-sm text-gray-400">No manual slides yet. Click <strong className="text-white">Load 3 Demo Slides</strong> to populate the editable slider from your current creator products.</div>}
+        {slides.length === 0 && <div className="rounded-xl border border-dashed border-gray-700 p-5 text-sm text-gray-400">You control the slide count. Use <strong className="text-white">Total slides</strong> to set 1, 4, 5 or any number up to 20. Each slide has its own image preview, title and description.</div>}
 
         {slides.map((s, i) => (
           <div key={s.id} className="rounded-2xl border border-gray-800 bg-gray-900 p-4 space-y-4">
@@ -455,7 +474,28 @@ export function DevPanel() {
               <Field label="Price" value={s.price} type="number" onChange={v => patch(s.id, { price: Number(v) || 0 })}/>
               <Field label="Old price" value={s.old_price || 0} type="number" onChange={v => patch(s.id, { old_price: Number(v) || null })}/>
             </div>
-            <div><label className={LABEL_CLASS}>Slider image</label><div className="flex gap-2"><input value={s.image_url} onChange={e => patch(s.id, { image_url: e.target.value })} placeholder="Image URL" className={INPUT_CLASS}/><label className="shrink-0 cursor-pointer px-3 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-xs font-bold text-gray-200 hover:border-purple-500">{uploadingPromoSlideId === s.id ? 'Uploading…' : 'Upload'}<input type="file" accept="image/*" className="hidden" disabled={uploadingPromoSlideId === s.id} onChange={e => { const f = e.target.files?.[0]; if (f) uploadPromoImage(s.id, f); e.currentTarget.value = ''; }}/></label></div></div>
+            <div>
+              <label className={LABEL_CLASS}>Slider image</label>
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2">
+                  <input value={s.image_url} onChange={e => patch(s.id, { image_url: e.target.value })} placeholder="Image URL" className={INPUT_CLASS}/>
+                  <label className="shrink-0 cursor-pointer px-3 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-xs font-bold text-gray-200 hover:border-purple-500">
+                    {uploadingPromoSlideId === s.id ? 'Uploading…' : 'Upload'}
+                    <input type="file" accept="image/*" className="hidden" disabled={uploadingPromoSlideId === s.id} onChange={e => { const f = e.target.files?.[0]; if (f) uploadPromoImage(s.id, f); e.currentTarget.value = ''; }}/>
+                  </label>
+                </div>
+                {s.image_url ? (
+                  <div className="bg-white rounded-xl border border-gray-700 p-3">
+                    <p className="text-[11px] font-bold text-gray-500 mb-2">Image Preview</p>
+                    <div className="h-40 sm:h-48 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                      <img src={s.image_url} alt={s.title || 'Slider image preview'} referrerPolicy="no-referrer" className="max-h-full max-w-full object-contain" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-24 rounded-xl border border-dashed border-gray-700 flex items-center justify-center text-xs text-gray-500">No image uploaded yet</div>
+                )}
+              </div>
+            </div>
             <TextArea label="Short description" value={s.description} onChange={v => patch(s.id, { description: v })}/>
             <div className="grid sm:grid-cols-3 gap-3">{[0, 1, 2].map(i => <Field key={i} label={'Feature ' + (i + 1)} value={s.features?.[i] || ''} onChange={v => { const f = [...(s.features || [])]; f[i] = v; patch(s.id, { features: f.slice(0, 3) }); }}/>)}</div>
           </div>
