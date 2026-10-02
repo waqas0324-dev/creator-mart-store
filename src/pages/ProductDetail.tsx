@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import { ShoppingCart, Truck, Banknote, RotateCcw, ShieldCheck, Minus, Plus, Check, Star, MessageCircle, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduct, useProducts, useReviews } from '../hooks/useProducts';
@@ -14,7 +14,7 @@ import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { sanitizeRichHtml } from '../lib/richText';
 import { extractProductSpecifications, removeSpecSection } from '../lib/productDescription';
-import { getMiniDescription, getProductTags, htmlToText } from '../lib/productFields';
+import { getMiniDescription, htmlToText } from '../lib/productFields';
 
 const cleanDescriptionHtml = (value: string) => {
   if (!value) return '';
@@ -133,7 +133,6 @@ export function ProductDetail() {
     ? removeSpecSection(product.description || '')
     : (product.description || '');
   const miniDescription = getMiniDescription(product);
-  const productTags = getProductTags(product);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -280,21 +279,21 @@ export function ProductDetail() {
                 <MessageCircle size={18} />
                 Order on WhatsApp
               </a>
-              {productTags.length > 0 && (
-                <p className="text-sm font-bold text-gray-800 mt-5 leading-7">
-                  {productTags.map((tag, i) => (
-                    <span key={tag}>
-                      <button
-                        onClick={() => navigate('shop', { tag })}
-                        className="hover:text-orange-600 transition-colors"
-                      >
-                        {tag}
-                      </button>
-                      {i < productTags.length - 1 && <span className="text-gray-300 font-normal">, </span>}
-                    </span>
-                  ))}
-                </p>
-              )}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-gray-100">
+                {[
+                  { Icon: Truck, title: 'FAST DELIVERY', sub: 'All Over Pakistan' },
+                  { Icon: Banknote, title: 'CASH ON DELIVERY', sub: 'Pay When You Receive' },
+                  { Icon: RotateCcw, title: '7 DAYS RETURN', sub: 'No Questions Asked' },
+                  { Icon: ShieldCheck, title: '100% ORIGINAL', sub: 'Original Products' },
+                ].map(({ Icon, title, sub }) => (
+                  <div key={title} className="flex flex-col items-center text-center gap-1">
+                    <Icon size={20} className="text-orange-500" />
+                    <p className="text-xs font-bold text-gray-800 leading-tight">{title}</p>
+                    <p className="text-xs text-gray-500">{sub}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Product page tags hidden for now — admin can still manage tags via ProductForm; re-enable here if needed */}
             </div>
           </div>
 
