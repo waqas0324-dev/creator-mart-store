@@ -39,7 +39,7 @@ export function AdminProductForm() {
       if (data) {
         const p = data as Product;
         setForm({
-          name: p.name, slug: p.slug, description: p.description || '', mini_description: (p.mini_description || '').slice(0, 220), seo_keywords: p.seo_keywords || '',
+          name: p.name, slug: p.slug, description: p.description || '', mini_description: p.mini_description || '', seo_keywords: p.seo_keywords || '',
           price: String(p.price), original_price: String(p.original_price || ''),
           category_id: p.category_id || '', image_url: p.image_url,
           rating: String(p.rating), review_count: String(p.review_count),
@@ -122,7 +122,7 @@ export function AdminProductForm() {
     const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean).slice(0, 20);
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: sanitizeRichHtml(form.description), mini_description: form.mini_description.trim().slice(0, 220) || null,
+      description: sanitizeRichHtml(form.description), mini_description: form.mini_description.trim() || null,
       tags, seo_keywords: form.seo_keywords.trim(), specifications: extractProductSpecifications(form.description), price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
@@ -480,11 +480,10 @@ export function AdminProductForm() {
               <p className="text-[11px] text-gray-400 mt-1">Word-style editing: headings, bold, italic, underline, strikethrough, font size, alignment, bullets, text color and highlighting.</p>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2">Mini Description <span className="text-gray-400 font-normal">(max 220 characters)</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">Mini Description</label>
               <textarea
                 value={form.mini_description}
-                onChange={e => update('mini_description', e.target.value.slice(0, 220))}
-                maxLength={220}
+                onChange={e => update('mini_description', e.target.value)}
                 rows={2}
                 className={inputCls('mini_description') + ' resize-none'}
                 placeholder="Short one-line summary shown beside the product image. Leave empty to auto-generate from the description."

@@ -39,18 +39,18 @@ export function htmlToText(html: string): string {
     .trim();
 }
 
-/** Mini description: manual value (max 220 chars) or a safe fallback from the main description. */
+/** Mini description: manual value (unlimited) or a safe fallback from the main description (500 chars). */
 export function getMiniDescription(product: {
   mini_description?: string | null;
   description?: string;
 }): string {
   const manual = (product.mini_description || '').trim();
-  if (manual) return manual.slice(0, 220);
+  if (manual) return manual;
   const text = htmlToText(product.description || '').replace(
     /^Product Description\s+/i,
     ''
   );
-  return text.slice(0, 220);
+  return text.slice(0, 500);
 }
 
 /** Normalize the tags value into a clean string array. */
