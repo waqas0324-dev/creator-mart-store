@@ -36,6 +36,24 @@ function matchKnownSpecLabel(line: string): { key: string; value: string } | nul
   return null;
 }
 
+// Detects a section heading line (e.g. "Multiple Applications", "What's Included
+// in the Package?", "Why Choose X?") so spec/feature extraction stops when a new
+// section begins. Conservative: short, no colon, not a sentence, starts with capital.
+function isSectionHeading(line: string, isBullet: boolean): boolean {
+  if (isBullet) return false;
+  if (line.length > 90) return false;
+  if (/:/.test(line)) return false;
+  if (/[.!]$/.test(line)) return false;
+  if (!/^[A-Z]/.test(line)) return false;
+  // Question headings or common section words
+  if (/\?$/.test(line)) return true;
+  if (/\b(applications?|included|package|why|benefits?|usage|use cases?|faq|questions?)\b/i.test(line)) return true;
+  // Short title-case lines (2-8 words) are likely headings
+  const words = line.split(/\s+/);
+  if (words.length >= 2 && words.length <= 8) return true;
+  return false;
+}
+
 export function extractProductSpecifications(html: string): ProductSpecification[] {
   if (!html || typeof window === 'undefined') return [];
 
@@ -77,9 +95,19 @@ export function extractProductSpecifications(html: string): ProductSpecification
       continue;
     }
 
-    // Explicit Label: Value lines are always specifications.
+    // Any other section heading (e.g. "Why Use", "What's Included", "Multiple
+    // Applications") ends the spec/feature section — content under it stays in
+    // the description under its own heading and never becomes spec rows.
+    if (isSectionHeading(line, isBullet)) {
+      featureMode = false;
+      specMode = false;
+      continue;
+    }
+
+    // Explicit Label: Value lines are specifications ONLY under a
+    // Specifications heading — never from other sections like "Why Use".
     const match = line.match(/^([^:]{2,80}):\s*(.{2,300})$/);
-    if (match) {
+    if (match && specMode) {
       addSpec(match[1], match[2]);
       continue;
     }
