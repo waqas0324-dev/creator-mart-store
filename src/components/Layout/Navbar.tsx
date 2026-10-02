@@ -17,6 +17,7 @@ const NAV_LINKS: { label: string; page: Page }[] = [
   { label: 'Shop', page: 'shop' },
   { label: 'New Arrivals', page: 'new-arrivals' },
   { label: 'Best Sellers', page: 'best-sellers' },
+  { label: 'Flash Deals', page: 'flash-deals' },
 ];
 
 export function Navbar() {

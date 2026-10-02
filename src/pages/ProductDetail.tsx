@@ -13,7 +13,7 @@ import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { sanitizeRichHtml } from '../lib/richText';
-import { extractProductSpecifications } from '../lib/productDescription';
+import { extractProductSpecifications, removeSpecSection } from '../lib/productDescription';
 import { getMiniDescription, getProductTags, htmlToText } from '../lib/productFields';
 
 const cleanDescriptionHtml = (value: string) => {
@@ -61,7 +61,9 @@ export function ProductDetail() {
     description: product
       ? `Buy ${product.name} in Pakistan at the best price. Cash on Delivery, fast shipping, 7 days easy return. ${htmlToText(product.description || '').slice(0, 100)}`
       : `Buy premium content-creator gear online in Pakistan. Cash on Delivery available.`,
-    image: product?.image_url || undefined,
+    image: product?.image_url
+      ? (product.image_url.startsWith('http') ? product.image_url : window.location.origin + product.image_url)
+      : undefined,
     canonical: product ? window.location.origin + '/product/' + encodeURIComponent(product.slug) : undefined,
     jsonLd: product
       ? {
@@ -125,6 +127,11 @@ export function ProductDetail() {
   const specifications = automaticSpecifications.length > 0
     ? automaticSpecifications
     : (Array.isArray(product.specifications) ? product.specifications : []);
+  // When the spec table is auto-rendered, strip the spec text from the
+  // description so it doesn't appear twice.
+  const descriptionHtml = automaticSpecifications.length > 0
+    ? removeSpecSection(product.description || '')
+    : (product.description || '');
   const miniDescription = getMiniDescription(product);
   const productTags = getProductTags(product);
 
@@ -206,8 +213,8 @@ export function ProductDetail() {
               {images.length > 1 && (
                 <div className="flex gap-2">
                   {images.map((img, i) => (
-                    <button key={i} onClick={() => setActiveImage(i)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 bg-white transition-colors ${activeImage === i ? 'border-orange-500' : 'border-gray-200'}`}>
-                      <img src={resolveProductImage(img)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full object-contain" />
+                    <button key={i} onClick={() => setActiveImage(i)} aria-label={`View product image ${i + 1}`} className={`w-16 h-16 rounded-lg overflow-hidden border-2 bg-white transition-colors ${activeImage === i ? 'border-orange-500' : 'border-gray-200'}`}>
+                      <img src={resolveProductImage(img)} alt={`Product image ${i + 1}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(e) => onImageError(e, product.name)} className="w-full h-full object-contain" />
                     </button>
                   ))}
                 </div>
@@ -256,11 +263,11 @@ export function ProductDetail() {
               {/* Quantity + Cart */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-3 py-2 hover:bg-gray-100 transition-colors">
+                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} aria-label="Decrease quantity" className="px-3 py-2 hover:bg-gray-100 transition-colors">
                     <Minus size={16} />
                   </button>
                   <span className="px-4 py-2 font-bold text-gray-900 min-w-[3rem] text-center border-x border-gray-300">{quantity}</span>
-                  <button onClick={() => setQuantity(q => q + 1)} className="px-3 py-2 hover:bg-gray-100 transition-colors">
+                  <button onClick={() => setQuantity(q => q + 1)} aria-label="Increase quantity" className="px-3 py-2 hover:bg-gray-100 transition-colors">
                     <Plus size={16} />
                   </button>
                 </div>
@@ -313,7 +320,7 @@ export function ProductDetail() {
             </div>
             {activeTab === 'description' && (
               <div className="text-sm text-gray-700 leading-relaxed max-w-4xl">
-                <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(product.description || '')) }} />
+                <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(descriptionHtml)) }} />
                 {specifications.length > 0 && (
                   <div className="mt-8">
                     <h3 className="text-lg font-black text-orange-500 mb-3">Specification</h3>

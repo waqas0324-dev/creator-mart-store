@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
@@ -6,6 +7,14 @@ import { onImageError, resolveProductImage } from '../lib/imageFallback';
 export function CartDrawer() {
   const { items, removeItem, updateQuantity, subtotal, totalItems, drawerOpen, closeDrawer } = useCart();
   const { navigate } = useNavigation();
+
+  // Never render the drawer until it has been explicitly opened once —
+  // guards against any first-paint flash or restored open state on page load.
+  const [everOpened, setEverOpened] = useState(false);
+  useEffect(() => {
+    if (drawerOpen) setEverOpened(true);
+  }, [drawerOpen]);
+  if (!everOpened) return null;
 
   const handleCheckout = () => {
     closeDrawer();
@@ -43,6 +52,7 @@ export function CartDrawer() {
           </div>
           <button
             onClick={closeDrawer}
+            aria-label="Close cart"
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
           >
             <X size={18} />
@@ -87,6 +97,7 @@ export function CartDrawer() {
                       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          aria-label="Decrease quantity"
                           className="px-2 py-1 hover:bg-gray-100 text-gray-600 transition-colors"
                         >
                           <Minus size={11} />
@@ -96,6 +107,7 @@ export function CartDrawer() {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          aria-label="Increase quantity"
                           className="px-2 py-1 hover:bg-gray-100 text-gray-600 transition-colors"
                         >
                           <Plus size={11} />
@@ -107,6 +119,7 @@ export function CartDrawer() {
                         </span>
                         <button
                           onClick={() => removeItem(item.product.id)}
+                          aria-label="Remove item from cart"
                           className="text-gray-300 hover:text-red-500 transition-colors"
                         >
                           <Trash2 size={13} />

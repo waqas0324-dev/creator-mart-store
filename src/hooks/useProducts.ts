@@ -54,20 +54,28 @@ async function loadProducts(filters?: {
   return request;
 }
 
+type RawCategory = { id: string; name: string; slug: string; image_url: string; products?: { id: string }[] | null };
+
 async function loadCategories(): Promise<Category[]> {
   if (categoriesRequest) return categoriesRequest;
-  categoriesRequest = supabase
-    .from('categories')
-    .select('id,name,slug,image_url,products(id)')
-    .order('name')
-    .then(({ data, error }) => {
+  categoriesRequest = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id,name,slug,image_url,products(id)')
+        .order('name');
       if (error) throw new Error(error.message);
-      return (data || []).map((cat: Category & { products?: { id: string }[] }) => ({
-        ...cat,
+      return ((data || []) as RawCategory[]).map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        image_url: cat.image_url,
         product_count: Array.isArray(cat.products) ? cat.products.length : 0,
       })) as Category[];
-    })
-    .finally(() => { categoriesRequest = null; });
+    } finally {
+      categoriesRequest = null;
+    }
+  })();
   return categoriesRequest;
 }
 
@@ -108,16 +116,23 @@ export function useProduct(slug: string) {
 
   useEffect(() => {
     if (!slug) return;
-    supabase
-      .from('products')
-      .select('*, categories(id, name, slug)')
-      .eq('slug', slug)
-      .single()
-      .then(({ data }) => {
-        setProduct(data as Product);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('products')
+          .select('*, categories(id, name, slug)')
+          .eq('slug', slug)
+          .single();
+        if (!cancelled) {
+          setProduct(data as Product);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [slug]);
 
   return { product, loading };

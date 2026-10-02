@@ -64,6 +64,7 @@ const DEFAULTS: SiteSettings = {
   footer_quick_title: 'Quick Links', footer_categories_title: 'Categories', footer_contact_title: 'Contact Us',
   footer_quick_home: 'Home', footer_quick_shop: 'Shop', footer_quick_new_arrivals: 'New Arrivals', footer_quick_best_sellers: 'Best Sellers',
   footer_quick_contact: 'Contact Us', footer_quick_about: 'About Us', footer_quick_return: 'Return & Refund Policy', footer_quick_privacy: 'Privacy Policy',
+  footer_quick_terms: 'Terms & Conditions', footer_quick_faq: 'FAQ',
   footer_categories: 'Microphones|Tripods|Ring Lights|Power Banks|Earbuds|Speakers',
   footer_copyright: 'All rights reserved.',
   design_settings: {
@@ -114,11 +115,13 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = useCallback(() => {
-    return supabase
-      .from('site_settings')
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle()
+    return Promise.resolve(
+      supabase
+        .from('site_settings')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle()
+    )
       .then(({ data }) => {
         if (data) setSettings(normalizeSettings(data as Partial<SiteSettings>));
         setLoading(false);
@@ -155,7 +158,6 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     fetchSettings();
 
-    const isDevEditor = window.location.pathname.startsWith('/ws-studio');
     const applyIncomingSettings = (payload: unknown) => {
       if (!payload || typeof payload !== 'object') return;
       setSettings(prev => normalizeSettings({ ...prev, ...(payload as Partial<SiteSettings>) }));

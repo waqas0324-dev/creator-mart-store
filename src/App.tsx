@@ -8,10 +8,13 @@ import { CartDrawer } from './components/CartDrawer';
 import { FloatingWhatsApp } from './components/UI/FloatingWhatsApp';
 import { Navbar } from './components/Layout/Navbar';
 import { Footer } from './components/Layout/Footer';
-import { Home } from './pages/Home';
-import { Shop } from './pages/Shop';
 import { syncAdminSession } from './lib/adminAuth';
 import { syncDevSession } from './lib/devAuth';
+
+// Home and Shop are the heaviest storefront pages — load them on demand
+// like every other page so the first paint stays small.
+const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
+const Shop = lazy(() => import('./pages/Shop').then(m => ({ default: m.Shop })));
 
 // Admin pages are loaded on-demand only — a customer browsing the shop
 // never downloads any admin code, keeping the storefront's first load small.
@@ -21,6 +24,7 @@ const AdminProducts = lazy(() => import('./pages/admin/Products').then(m => ({ d
 const AdminProductForm = lazy(() => import('./pages/admin/ProductForm').then(m => ({ default: m.AdminProductForm })));
 const AdminOrders = lazy(() => import('./pages/admin/Orders').then(m => ({ default: m.AdminOrders })));
 const AdminCategories = lazy(() => import('./pages/admin/Categories').then(m => ({ default: m.AdminCategories })));
+const AdminAccount = lazy(() => import('./pages/admin/Account').then(m => ({ default: m.AdminAccount })));
 const DevLogin = lazy(() => import('./pages/dev/DevLogin').then(m => ({ default: m.DevLogin })));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage').then(m => ({ default: m.CategoriesPage })));
 const ProductDetail = lazy(() => import('./pages/ProductDetail').then(m => ({ default: m.ProductDetail })));
@@ -36,9 +40,13 @@ const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Con
 const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
 const ReturnPolicy = lazy(() => import('./pages/ReturnPolicy').then(m => ({ default: m.ReturnPolicy })));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const Terms = lazy(() => import('./pages/Terms').then(m => ({ default: m.Terms })));
+const FAQ = lazy(() => import('./pages/FAQ').then(m => ({ default: m.FAQ })));
+const FlashDeals = lazy(() => import('./pages/FlashDeals').then(m => ({ default: m.FlashDeals })));
+const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const DevPanel = lazy(() => import('./pages/dev/DevPanel').then(m => ({ default: m.DevPanel })));
 
-const ADMIN_PAGES = ['admin', 'admin-login', 'admin-products', 'admin-categories', 'admin-orders', 'admin-product-form'];
+const ADMIN_PAGES = ['admin', 'admin-login', 'admin-products', 'admin-categories', 'admin-orders', 'admin-product-form', 'admin-account'];
 const DEV_PAGES = ['dev-login', 'dev-panel'];
 
 const CustomerLoadingScreen = () => (
@@ -146,6 +154,7 @@ function Router() {
             {nav.page === 'admin-categories' && <AdminCategories />}
             {nav.page === 'admin-product-form' && <AdminProductForm />}
             {nav.page === 'admin-orders' && <AdminOrders />}
+            {nav.page === 'admin-account' && <AdminAccount />}
           </>
         )}
       </Suspense>
@@ -173,6 +182,10 @@ function Router() {
           {nav.page === 'about' && <About />}
           {nav.page === 'return-policy' && <ReturnPolicy />}
           {nav.page === 'privacy-policy' && <PrivacyPolicy />}
+          {nav.page === 'terms' && <Terms />}
+          {nav.page === 'faq' && <FAQ />}
+          {nav.page === 'flash-deals' && <FlashDeals />}
+          {nav.page === 'notfound' && <NotFound />}
         </Suspense>
       </main>
       <Footer />
