@@ -488,7 +488,7 @@ export function AdminProductForm() {
                 className={inputCls('mini_description') + ' resize-none'}
                 placeholder="Short one-line summary shown beside the product image. Leave empty to auto-generate from the description."
               />
-              <p className="text-[11px] text-gray-400 mt-1">{form.mini_description.length}/220 characters</p>
+              <p className="text-[11px] text-gray-400 mt-1">{form.mini_description.length} characters</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-2">Product Tags</label>
