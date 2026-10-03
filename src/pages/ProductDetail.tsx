@@ -130,18 +130,14 @@ export function ProductDetail() {
   const hasExplicitSpecifications = hasExplicitProductSpecifications(product.description || '');
   const automaticSpecifications = extractProductSpecifications(product.description || '');
 
-  // Existing saved specification rows are authoritative. Automatic extraction is
-  // only a fallback for older products whose specifications column is empty.
-  // This prevents the legacy parser from generating duplicate/fragmented rows when
-  // a product already has a clean specification table saved in the database.
-  const savedSpecifications = Array.isArray(product.specifications) ? product.specifications : [];
-  const specifications = savedSpecifications.length > 0
-    ? savedSpecifications
-    : automaticSpecifications;
+  // The description is the single source of truth.
+  // A table is shown ONLY when this product has an explicit Specifications /
+  // Technical Specifications / Product Specifications section. Never reuse old
+  // saved specification rows and never manufacture a table from keywords/features.
+  const specifications = hasExplicitSpecifications ? automaticSpecifications : [];
 
-  // An explicit specification section must not remain as raw text in the description,
-  // even when its legacy/compact formatting cannot be parsed automatically.
-  // The table above will use the saved product.specifications as a fallback.
+  // Remove exactly that explicit specification section from the description.
+  // If there is no explicit specification section, leave the description untouched.
   const descriptionHtml = hasExplicitSpecifications
     ? removeSpecSection(product.description || '')
     : (product.description || '');
