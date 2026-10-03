@@ -130,17 +130,17 @@ export function ProductDetail() {
   const hasExplicitSpecifications = hasExplicitProductSpecifications(product.description || '');
   const automaticSpecifications = extractProductSpecifications(product.description || '');
 
-  // If the description explicitly contains a Specifications section, that section
-  // is the only source for the automatic table. Legacy product.specifications are
-  // ignored in this case so old feature lists cannot leak into the table.
-  // If there is no explicit section, preserve any manually stored legacy specs.
+  // Prefer automatically parsed rows when the explicit specification section
+  // can be parsed, otherwise preserve the product's existing manually stored specs.
+  // This keeps older products from losing their specification table.
   const specifications = automaticSpecifications.length > 0
     ? automaticSpecifications
-    : (!hasExplicitSpecifications && Array.isArray(product.specifications) ? product.specifications : []);
+    : (Array.isArray(product.specifications) ? product.specifications : []);
 
-  // Remove the explicit specification section only when it was successfully
-  // parsed into table rows. All other description content remains untouched.
-  const descriptionHtml = automaticSpecifications.length > 0
+  // An explicit specification section must not remain as raw text in the description,
+  // even when its legacy/compact formatting cannot be parsed automatically.
+  // The table above will use the saved product.specifications as a fallback.
+  const descriptionHtml = hasExplicitSpecifications
     ? removeSpecSection(product.description || '')
     : (product.description || '');
   const miniDescription = getMiniDescription(product);
