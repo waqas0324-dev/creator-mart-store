@@ -193,8 +193,7 @@ function parseSpecificationSection(
 
       // In the legacy format the value can start immediately after the label
       // (e.g. "BrandNeepho"), so there is intentionally no word-boundary check here.
-        found.push({ index, label });
-      }
+      if (looksLikeLabelStart) found.push({ index, label });
       from = index + label.length;
     }
   }
