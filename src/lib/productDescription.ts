@@ -119,12 +119,15 @@ function parseSpecificationSection(
   seen: Set<string>,
 ) {
   const section = document.createElement('div');
-  let node = heading.nextElementSibling;
+  let node = heading.nextSibling;
 
+  // Specifications in some existing products are stored as plain text immediately
+  // after the heading, without a wrapping <p>/<div>. Use all sibling nodes so that
+  // this legacy format is parsed instead of being left on the page as raw text.
   while (node) {
-    if (isSectionBoundaryElement(node)) break;
+    if (node.nodeType === Node.ELEMENT_NODE && isSectionBoundaryElement(node as Element)) break;
     section.appendChild(node.cloneNode(true));
-    node = node.nextElementSibling;
+    node = node.nextSibling;
   }
 
   // 1) Real HTML tables.
@@ -166,7 +169,45 @@ function parseSpecificationSection(
     }
   }
 
-  // 4) Plain-text rows with a colon inside the explicit section.
+  // 4) Compact plain-text rows used by several existing products:
+  // SpecificationDetailsBrandNeephoModelNP-36CMProduct TypeLED Soft Ring Light...
+  // There are no separators in this legacy format, so split using the known
+  // specification labels while keeping the value between one label and the next.
+  const compactText = stripHtml(section.innerHTML);
+  const labels = [...KNOWN_SPEC_LABELS]
+    .sort((a, b) => b.length - a.length)
+    .map(label => ({ label, lower: label.toLowerCase() }));
+
+  const found: { index: number; label: string }[] = [];
+  const compactLower = compactText.toLowerCase();
+  for (const item of labels) {
+    let from = 0;
+    while (from < compactLower.length) {
+      const index = compactLower.indexOf(item.lower, from);
+      if (index === -1) break;
+      const before = compactText.slice(Math.max(0, index - 1), index);
+      const after = compactText.slice(index + item.label.length, index + item.label.length + 1);
+      if ((index === 0 || /[A-Za-z0-9]/.test(before) === false) &&
+          (index + item.label.length === compactText.length || /[A-Za-z0-9]/.test(after) === false || item.label.length >= 5)) {
+        found.push({ index, label: item.label });
+      }
+      from = index + item.label.length;
+    }
+  }
+
+  found.sort((a, b) => a.index - b.index);
+  const dedupedFound = found.filter((item, index) => index === 0 || item.index !== found[index - 1].index);
+  for (let i = 0; i < dedupedFound.length; i++) {
+    const current = dedupedFound[i];
+    const valueStart = current.index + current.label.length;
+    const valueEnd = i + 1 < dedupedFound.length ? dedupedFound[i + 1].index : compactText.length;
+    const value = compactText.slice(valueStart, valueEnd).trim();
+    if (value && !/^details$/i.test(value) && !/^specification details$/i.test(value)) {
+      addUniqueSpec(specs, seen, current.label, value);
+    }
+  }
+
+  // 5) Plain-text rows with a colon inside the explicit section.
   const rawLines = section.innerHTML
     .replace(BLOCK_ENDINGS, '\n')
     .replace(BREAKS, '\n')
@@ -217,13 +258,13 @@ export function removeSpecSection(html: string): string {
   const headings = findSpecificationHeadings(doc);
 
   for (const heading of headings) {
-    const nodesToRemove: Element[] = [];
-    let node: Element | null = heading;
+    const nodesToRemove: Node[] = [];
+    let node: Node | null = heading;
 
     while (node) {
-      if (node !== heading && isSectionBoundaryElement(node)) break;
+      if (node !== heading && node.nodeType === Node.ELEMENT_NODE && isSectionBoundaryElement(node as Element)) break;
       nodesToRemove.push(node);
-      node = node.nextElementSibling as Element | null;
+      node = node.nextSibling;
     }
 
     for (const item of nodesToRemove) item.remove();
