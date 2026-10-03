@@ -32,6 +32,18 @@ export function AdminProductForm() {
   const [fetchLoading, setFetchLoading] = useState(isEdit);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState('');
+  const draftKey = `abr_admin_product_draft_${isEdit ? nav.adminProductId : 'new'}`;
+
+  const saveDraft = (nextForm = form, nextTags = tagsInput, nextImages = galleryImages) => {
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({
+        form: nextForm,
+        tagsInput: nextTags,
+        galleryImages: nextImages,
+        savedAt: Date.now(),
+      }));
+    } catch { /* local draft is best-effort */ }
+  };
 
   useEffect(() => {
     if (!isEdit || !nav.adminProductId) return;
