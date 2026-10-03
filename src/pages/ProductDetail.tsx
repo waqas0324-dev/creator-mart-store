@@ -130,12 +130,14 @@ export function ProductDetail() {
   const hasExplicitSpecifications = hasExplicitProductSpecifications(product.description || '');
   const automaticSpecifications = extractProductSpecifications(product.description || '');
 
-  // Prefer automatically parsed rows when the explicit specification section
-  // can be parsed, otherwise preserve the product's existing manually stored specs.
-  // This keeps older products from losing their specification table.
-  const specifications = automaticSpecifications.length > 0
-    ? automaticSpecifications
-    : (Array.isArray(product.specifications) ? product.specifications : []);
+  // Existing saved specification rows are authoritative. Automatic extraction is
+  // only a fallback for older products whose specifications column is empty.
+  // This prevents the legacy parser from generating duplicate/fragmented rows when
+  // a product already has a clean specification table saved in the database.
+  const savedSpecifications = Array.isArray(product.specifications) ? product.specifications : [];
+  const specifications = savedSpecifications.length > 0
+    ? savedSpecifications
+    : automaticSpecifications;
 
   // An explicit specification section must not remain as raw text in the description,
   // even when its legacy/compact formatting cannot be parsed automatically.
