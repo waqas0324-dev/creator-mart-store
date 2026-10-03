@@ -11,7 +11,7 @@ const BREAKS = /<br\s*\/?>/gi;
 const SPEC_HEADINGS = /^(specifications?|technical specifications?|product specifications?)$/i;
 
 const KNOWN_SPEC_LABELS = [
-  'output power', 'battery capacity', 'battery life', 'light modes', 'light type',
+  'output power', 'battery capacity', 'battery life', 'battery type', 'battery runtime', 'stand height', 'ring diameter', 'lighting type', 'lighting style', 'light modes', 'light type',
   'color temperature', 'colour temperature', 'rgb colors', 'in the box',
   "what's in the box", 'noise cancellation', 'driver size', 'play time',
   'standby time', 'water resistance', 'model number', 'brand', 'model', 'power',
@@ -169,43 +169,55 @@ function parseSpecificationSection(
     }
   }
 
-  // 4) Compact plain-text rows used by several existing products:
-  // SpecificationDetailsBrandNeephoModelNP-36CMProduct TypeLED Soft Ring Light...
-  // There are no separators in this legacy format, so split using the known
-  // specification labels while keeping the value between one label and the next.
-  const compactText = stripHtml(section.innerHTML);
-  const labels = [...KNOWN_SPEC_LABELS]
-    .sort((a, b) => b.length - a.length)
-    .map(label => ({ label, lower: label.toLowerCase() }));
+  // 4) Compact plain-text rows used by older products that have no <strong> labels.
+  // Only use this fallback when the structured <strong> parser above found nothing;
+  // otherwise it can re-read words inside already-correct values.
+  if (matches.length === 0) {
+    const compactText = stripHtml(section.innerHTML);
+    const labels = [...KNOWN_SPEC_LABELS]
+      .sort((x, y) => y.length - x.length)
+      .map(label => ({ label, lower: label.toLowerCase() }));
 
-  const found: { index: number; label: string }[] = [];
-  const compactLower = compactText.toLowerCase();
-  for (const item of labels) {
-    let from = 0;
-    while (from < compactLower.length) {
-      const index = compactLower.indexOf(item.lower, from);
-      if (index === -1) break;
-      const before = compactText.slice(Math.max(0, index - 1), index);
-      const after = compactText.slice(index + item.label.length, index + item.label.length + 1);
-      // Legacy rows concatenate labels and values without spaces, so labels may
-      // start directly after another alphanumeric character (e.g. BrandNeepho).
-      // The explicit specification section limits this matching to specification data.
-      if (index >= 0 && (index === 0 || before !== '\n')) {
-        found.push({ index, label: item.label });
+    const found: { index: number; label: string }[] = [];
+    const compactLower = compactText.toLowerCase();
+
+    for (const item of labels) {
+      let from = 0;
+      while (from < compactLower.length) {
+        const index = compactLower.indexOf(item.lower, from);
+        if (index === -1) break;
+
+        const firstChar = compactText[index] || '';
+        // Legacy labels are normally capitalized while values are ordinary text.
+        // This prevents a value such as "rechargeable lithium battery" from creating
+        // another false "battery" row.
+        const looksLikeLabelStart =
+          index === 0 ||
+          (firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase());
+
+        if (looksLikeLabelStart) found.push({ index, label: item.label });
+        from = index + item.label.length;
       }
-      from = index + item.label.length;
     }
-  }
 
-  found.sort((a, b) => a.index - b.index);
-  const dedupedFound = found.filter((item, index) => index === 0 || item.index !== found[index - 1].index);
-  for (let i = 0; i < dedupedFound.length; i++) {
-    const current = dedupedFound[i];
-    const valueStart = current.index + current.label.length;
-    const valueEnd = i + 1 < dedupedFound.length ? dedupedFound[i + 1].index : compactText.length;
-    const value = compactText.slice(valueStart, valueEnd).trim();
-    if (value && !/^details$/i.test(value) && !/^specification details$/i.test(value)) {
-      addUniqueSpec(specs, seen, current.label, value);
+    // At the same position choose the longest label, then prevent shorter labels
+    // from starting inside a label already selected.
+    found.sort((x, y) => x.index - y.index || y.label.length - x.label.length);
+    const selected: { index: number; label: string }[] = [];
+    for (const candidate of found) {
+      const previous = selected[selected.length - 1];
+      if (previous && candidate.index < previous.index + previous.label.length) continue;
+      selected.push(candidate);
+    }
+
+    for (let i = 0; i < selected.length; i++) {
+      const current = selected[i];
+      const valueStart = current.index + current.label.length;
+      const valueEnd = i + 1 < selected.length ? selected[i + 1].index : compactText.length;
+      const value = compactText.slice(valueStart, valueEnd).trim();
+      if (value && !/^details$/i.test(value) && !/^specification details$/i.test(value)) {
+        addUniqueSpec(specs, seen, current.label, value);
+      }
     }
   }
 
