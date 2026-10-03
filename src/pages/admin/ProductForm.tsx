@@ -38,23 +38,61 @@ export function AdminProductForm() {
     supabase.from('products').select('*').eq('id', nav.adminProductId).single().then(({ data }) => {
       if (data) {
         const p = data as Product;
-        setForm({
+        const loadedForm = {
           name: p.name, slug: p.slug, description: p.description || '', mini_description: p.mini_description || '', seo_keywords: p.seo_keywords || '',
           price: String(p.price), original_price: String(p.original_price || ''),
           category_id: p.category_id || '', image_url: p.image_url,
           rating: String(p.rating), review_count: String(p.review_count),
           stock: String(p.stock), is_featured: p.is_featured, is_bestseller: p.is_bestseller,
           discount_percent: String(p.discount_percent || ''),
-        });
-        setTagsInput(Array.isArray(p.tags) ? (p.tags as unknown[]).map(t => String(t)).join(', ') : '');
+        };
         const savedImages = Array.isArray(p.images) ? p.images : [];
         const unifiedImages = Array.from(new Set([p.image_url, ...savedImages].filter(Boolean)));
-        setGalleryImages(unifiedImages);
-        requestAnimationFrame(() => { if (descriptionRef.current) descriptionRef.current.innerHTML = sanitizeRichHtml(p.description || ''); });
+        let draft: { form?: Partial<typeof loadedForm>; tagsInput?: string; galleryImages?: string[] } = {};
+        try {
+          const raw = localStorage.getItem(draftKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.savedAt && Date.now() - Number(parsed.savedAt) < 24 * 60 * 60 * 1000) draft = parsed;
+          }
+        } catch { /* ignore malformed draft */ }
+
+        const restoredForm = { ...loadedForm, ...(draft.form || {}) };
+        const restoredTags = typeof draft.tagsInput === 'string'
+          ? draft.tagsInput
+          : (Array.isArray(p.tags) ? (p.tags as unknown[]).map(t => String(t)).join(', ') : '');
+        const restoredImages = Array.isArray(draft.galleryImages) && draft.galleryImages.length > 0
+          ? draft.galleryImages
+          : unifiedImages;
+
+        setForm(restoredForm);
+        setTagsInput(restoredTags);
+        setGalleryImages(restoredImages);
+        requestAnimationFrame(() => {
+          if (descriptionRef.current) descriptionRef.current.innerHTML = sanitizeRichHtml(restoredForm.description || '');
+        });
       }
       setFetchLoading(false);
     });
-  }, [isEdit, nav.adminProductId]);
+  }, [isEdit, nav.adminProductId, draftKey]);
+
+  useEffect(() => {
+    if (isEdit) return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.savedAt || Date.now() - Number(parsed.savedAt) >= 24 * 60 * 60 * 1000) return;
+      if (parsed.form) {
+        setForm(parsed.form);
+        requestAnimationFrame(() => {
+          if (descriptionRef.current) descriptionRef.current.innerHTML = sanitizeRichHtml(parsed.form.description || '');
+        });
+      }
+      if (typeof parsed.tagsInput === 'string') setTagsInput(parsed.tagsInput);
+      if (Array.isArray(parsed.galleryImages)) setGalleryImages(parsed.galleryImages);
+    } catch { /* ignore malformed draft */ }
+  }, [isEdit, draftKey]);
 
   const update = (field: string, value: string | boolean) => {
     setForm(prev => {
@@ -69,6 +107,7 @@ export function AdminProductForm() {
           next.price = disc > 0 ? String(Math.round(orig - (orig * disc) / 100)) : String(orig);
         }
       }
+      saveDraft(next, tagsInput, galleryImages);
       return next;
     });
   };
@@ -87,12 +126,20 @@ export function AdminProductForm() {
         uploaded.push(publicUrl);
       }
     }
-    setGalleryImages(prev => [...prev, ...uploaded]);
+    setGalleryImages(prev => {
+      const next = [...prev, ...uploaded];
+      saveDraft(form, tagsInput, next);
+      return next;
+    });
     setGalleryUploading(false);
   };
 
   const removeGalleryImage = (index: number) => {
-    setGalleryImages(prev => prev.filter((_, i) => i !== index));
+    setGalleryImages(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      saveDraft(form, tagsInput, next);
+      return next;
+    });
   };
 
   const setPrimaryImage = (index: number) => {
@@ -101,6 +148,7 @@ export function AdminProductForm() {
       const next = [...prev];
       const [primary] = next.splice(index, 1);
       next.unshift(primary);
+      saveDraft(form, tagsInput, next);
       return next;
     });
   };
@@ -145,8 +193,13 @@ export function AdminProductForm() {
     }
 
     setLoading(false);
-    if (error) { setErrors({ general: error.message }); }
-    else { setSuccess(isEdit ? 'Product updated!' : 'Product added!'); setTimeout(() => navigate('admin-products'), 1500); }
+    if (error) {
+      setErrors({ general: error.message });
+    } else {
+      try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+      setSuccess(isEdit ? 'Product updated!' : 'Product added!');
+      setTimeout(() => navigate('admin-products'), 1500);
+    }
   };
 
   // Keep the last text selection inside the description editor, so toolbar
