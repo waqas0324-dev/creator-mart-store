@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { onImageError } from '../../lib/imageFallback';
 import type { Product } from '../../types';
 import { sanitizeRichHtml } from '../../lib/richText';
-import { extractProductSpecifications } from '../../lib/productDescription';
+import { extractProductSpecifications, hasExplicitProductSpecifications } from '../../lib/productDescription';
 import { isMissingColumnError } from '../../lib/productFields';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -183,7 +183,14 @@ export function AdminProductForm() {
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
       description: sanitizeRichHtml(form.description), mini_description: form.mini_description.trim() || null,
-      tags, seo_keywords: form.seo_keywords.trim(), specifications: extractProductSpecifications(form.description), price: Number(form.price),
+      tags, seo_keywords: form.seo_keywords.trim(),
+      // Specifications are stored only when the description explicitly contains
+      // a Specifications/Technical Specifications/Product Specifications section.
+      // This prevents old/stale rows from being regenerated from keywords/features.
+      specifications: hasExplicitProductSpecifications(form.description)
+        ? extractProductSpecifications(form.description)
+        : [],
+      price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       image_url: galleryImages[0] || '',
@@ -560,7 +567,11 @@ export function AdminProductForm() {
               <input
                 type="text"
                 value={tagsInput}
-                onChange={e => setTagsInput(e.target.value)}
+                onChange={e => {
+                  const next = e.target.value;
+                  setTagsInput(next);
+                  saveDraft(form, next, galleryImages);
+                }}
                 className={inputCls('tags')}
                 placeholder="Wireless, Bluetooth, Earbuds, Audio"
               />
