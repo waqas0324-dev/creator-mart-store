@@ -121,9 +121,7 @@ function parseSpecificationSection(
   const section = document.createElement('div');
   let node = heading.nextSibling;
 
-  // Specifications in some existing products are stored as plain text immediately
-  // after the heading, without a wrapping <p>/<div>. Use all sibling nodes so that
-  // this legacy format is parsed instead of being left on the page as raw text.
+  // Read only the nodes between this specification heading and the next section.
   while (node) {
     if (node.nodeType === Node.ELEMENT_NODE && isSectionBoundaryElement(node as Element)) break;
     section.appendChild(node.cloneNode(true));
@@ -135,110 +133,109 @@ function parseSpecificationSection(
     const cells = Array.from(row.querySelectorAll('th,td'))
       .map(cell => normalizeText(cell.textContent || ''))
       .filter(Boolean);
-    if (cells.length >= 2) {
-      addUniqueSpec(specs, seen, cells[0], cells.slice(1).join(' '));
-    }
+    if (cells.length >= 2) addUniqueSpec(specs, seen, cells[0], cells.slice(1).join(' '));
   }
 
-  // 2) List / paragraph rows such as <strong>Brand:</strong> Plokama.
+  // 2) Explicit colon rows.
   for (const item of Array.from(section.querySelectorAll('li,p,div'))) {
     const text = normalizeText(item.textContent || '');
-    const match = text.match(/^([^:]{2,80}):\s*(.{2,300})$/);
-    if (match) {
-      addUniqueSpec(specs, seen, match[1], match[2]);
-    }
+    const match = text.match(/^([^:]{2,80}):\\s*(.{2,300})$/);
+    if (match) addUniqueSpec(specs, seen, match[1], match[2]);
   }
 
-  // 3) Compact editor output used by older products:
-  // <strong>Brand</strong>Plokama<strong>Model</strong>Live-K6...
+  // 3) Older editor output: <strong>Brand</strong>Plokama<strong>Model</strong>U480...
+  // If this structured format exists, it is the ONLY parser used for this section.
+  // Never run the fallback parsers afterwards, otherwise words inside values such as
+  // "battery", "stand", or "mount" can become fake duplicate rows.
   const html = section.innerHTML;
-  const strongRe = /<(?:strong|b)\b[^>]*>[\s\S]*?<\/(?:strong|b)>/gi;
+  const strongRe = /<(?:strong|b)\\b[^>]*>[\\s\\S]*?<\\/(?:strong|b)>/gi;
   const matches = Array.from(html.matchAll(strongRe));
+  let structuredCount = 0;
 
   for (let i = 0; i < matches.length; i++) {
     const current = matches[i];
-    const nextIndex = i + 1 < matches.length
-      ? (matches[i + 1].index ?? html.length)
-      : html.length;
+    const nextIndex = i + 1 < matches.length ? (matches[i + 1].index ?? html.length) : html.length;
     const label = stripHtml(current[0]);
     const value = stripHtml(html.slice((current.index ?? 0) + current[0].length, nextIndex));
 
     if (/^(specification|specifications|details|specification details)$/i.test(label)) continue;
     if (value && !/:$/.test(label)) {
       addUniqueSpec(specs, seen, label, value);
+      structuredCount++;
     }
   }
 
-  // 4) Compact plain-text rows used by older products that have no <strong> labels.
-  // Only use this fallback when the structured <strong> parser above found nothing;
-  // otherwise it can re-read words inside already-correct values.
-  if (matches.length === 0) {
-    const compactText = stripHtml(section.innerHTML);
-    const labels = [...KNOWN_SPEC_LABELS]
-      .sort((x, y) => y.length - x.length)
-      .map(label => ({ label, lower: label.toLowerCase() }));
+  if (structuredCount > 0) return;
 
-    const found: { index: number; label: string }[] = [];
-    const compactLower = compactText.toLowerCase();
+  // 4) Legacy plain-text format such as:
+  // SpecificationDetailsBrandNeephoModelNP-36CMProduct TypeLED Soft Ring Light...
+  // Only safe/meaningful labels are considered here. Generic prefixes such as
+  // "stand", "mount", and "battery" are intentionally excluded because they often
+  // occur naturally inside specification values.
+  const compactText = stripHtml(section.innerHTML);
+  const compactLabels = KNOWN_SPEC_LABELS.filter(label =>
+    !['battery', 'mount', 'stand', 'power', 'output', 'input', 'color', 'colour', 'size'].includes(label)
+  ).sort((a, b) => b.length - a.length);
 
-    for (const item of labels) {
-      let from = 0;
-      while (from < compactLower.length) {
-        const index = compactLower.indexOf(item.lower, from);
-        if (index === -1) break;
+  const found: { index: number; label: string }[] = [];
+  const compactLower = compactText.toLowerCase();
 
-        const firstChar = compactText[index] || '';
-        // Legacy labels are normally capitalized while values are ordinary text.
-        // This prevents a value such as "rechargeable lithium battery" from creating
-        // another false "battery" row.
-        const looksLikeLabelStart =
-          index === 0 ||
-          (firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase());
+  for (const label of compactLabels) {
+    let from = 0;
+    while (from < compactLower.length) {
+      const index = compactLower.indexOf(label.toLowerCase(), from);
+      if (index === -1) break;
 
-        if (looksLikeLabelStart) found.push({ index, label: item.label });
-        from = index + item.label.length;
+      const firstChar = compactText[index] || '';
+      const after = compactText[index + label.length] || '';
+      const looksLikeLabelStart =
+        index === 0 ||
+        (firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase());
+      const hasWholeLabel = !/[A-Za-z]/.test(after);
+
+      if (looksLikeLabelStart && hasWholeLabel) {
+        found.push({ index, label });
       }
-    }
-
-    // At the same position choose the longest label, then prevent shorter labels
-    // from starting inside a label already selected.
-    found.sort((x, y) => x.index - y.index || y.label.length - x.label.length);
-    const selected: { index: number; label: string }[] = [];
-    for (const candidate of found) {
-      const previous = selected[selected.length - 1];
-      if (previous && candidate.index < previous.index + previous.label.length) continue;
-      selected.push(candidate);
-    }
-
-    for (let i = 0; i < selected.length; i++) {
-      const current = selected[i];
-      const valueStart = current.index + current.label.length;
-      const valueEnd = i + 1 < selected.length ? selected[i + 1].index : compactText.length;
-      const value = compactText.slice(valueStart, valueEnd).trim();
-      if (value && !/^details$/i.test(value) && !/^specification details$/i.test(value)) {
-        addUniqueSpec(specs, seen, current.label, value);
-      }
+      from = index + label.length;
     }
   }
 
-  // 5) Plain-text rows with a colon inside the explicit section.
+  found.sort((a, b) => a.index - b.index || b.label.length - a.label.length);
+
+  const selected: { index: number; label: string }[] = [];
+  for (const candidate of found) {
+    const previous = selected[selected.length - 1];
+    if (previous && candidate.index < previous.index + previous.label.length) continue;
+    selected.push(candidate);
+  }
+
+  for (let i = 0; i < selected.length; i++) {
+    const current = selected[i];
+    const valueStart = current.index + current.label.length;
+    const valueEnd = i + 1 < selected.length ? selected[i + 1].index : compactText.length;
+    let value = compactText.slice(valueStart, valueEnd).trim();
+
+    // Remove the legacy "SpecificationDetails" prefix from the first value.
+    value = value.replace(/^details/i, '').trim();
+
+    if (value && !/^details$/i.test(value) && !/^specification details$/i.test(value)) {
+      addUniqueSpec(specs, seen, current.label, value);
+    }
+  }
+
+  // 5) Plain-text colon rows only. Do not run the generic known-label matcher here,
+  // because it can discover labels inside otherwise valid values.
   const rawLines = section.innerHTML
-    .replace(BLOCK_ENDINGS, '\n')
-    .replace(BREAKS, '\n')
+    .replace(BLOCK_ENDINGS, '\\n')
+    .replace(BREAKS, '\\n')
     .replace(/<[^>]+>/g, '')
-    .split(/\r?\n/)
+    .split(/\\r?\\n/)
     .map(normalizeText)
     .filter(Boolean);
 
   for (const line of rawLines) {
-    const match = line.match(/^([^:]{2,80}):\s*(.{2,300})$/);
-    if (match) {
-      addUniqueSpec(specs, seen, match[1], match[2]);
-      continue;
-    }
-
-    const known = matchKnownSpecLabel(line);
-    if (known) addUniqueSpec(specs, seen, known.key, known.value);
+    const match = line.match(/^([^:]{2,80}):\\s*(.{2,300})$/);
+    if (match) addUniqueSpec(specs, seen, match[1], match[2]);
   }
 }
 
