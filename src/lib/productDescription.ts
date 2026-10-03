@@ -187,13 +187,12 @@ function parseSpecificationSection(
       if (index === -1) break;
 
       const firstChar = compactText[index] || '';
-      const after = compactText[index + label.length] || '';
       const looksLikeLabelStart =
         index === 0 ||
         (firstChar === firstChar.toUpperCase() && firstChar !== firstChar.toLowerCase());
-      const hasWholeLabel = !/[A-Za-z]/.test(after);
 
-      if (looksLikeLabelStart && hasWholeLabel) {
+      // In the legacy format the value can start immediately after the label
+      // (e.g. "BrandNeepho"), so there is intentionally no word-boundary check here.
         found.push({ index, label });
       }
       from = index + label.length;
