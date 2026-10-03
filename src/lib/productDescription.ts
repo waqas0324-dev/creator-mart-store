@@ -187,8 +187,10 @@ function parseSpecificationSection(
       if (index === -1) break;
       const before = compactText.slice(Math.max(0, index - 1), index);
       const after = compactText.slice(index + item.label.length, index + item.label.length + 1);
-      if ((index === 0 || /[A-Za-z0-9]/.test(before) === false) &&
-          (index + item.label.length === compactText.length || /[A-Za-z0-9]/.test(after) === false || item.label.length >= 5)) {
+      // Legacy rows concatenate labels and values without spaces, so labels may
+      // start directly after another alphanumeric character (e.g. BrandNeepho).
+      // The explicit specification section limits this matching to specification data.
+      if (index >= 0 && (index === 0 || before !== '\n')) {
         found.push({ index, label: item.label });
       }
       from = index + item.label.length;
