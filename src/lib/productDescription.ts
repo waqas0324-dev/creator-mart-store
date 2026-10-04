@@ -1,4 +1,4 @@
-// Specification extraction v4
+// Specification extraction v5
 // The product description is the ONLY source for the specification table.
 // A table is created only when the description contains an explicit
 // Specifications / Technical Specifications / Product Specifications heading.
@@ -10,12 +10,6 @@ const SPEC_HEADINGS = /^(specifications?|technical specifications?|product speci
 
 function normalizeText(value: string): string {
   return value.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-function stripHtml(value: string): string {
-  const temp = document.createElement('div');
-  temp.innerHTML = value;
-  return normalizeText(temp.textContent || '');
 }
 
 function isSpecHeading(el: Element): boolean {
@@ -36,8 +30,6 @@ function addUniqueSpec(
   const cleanValue = normalizeText(value);
   if (!cleanKey || !cleanValue || cleanValue.length < 2) return;
 
-  // One row per specification label. This prevents the same field from
-  // appearing twice when malformed/legacy HTML contains repeated markup.
   const keySignature = cleanKey.toLowerCase();
   if (seenKeys.has(keySignature)) return;
 
@@ -65,20 +57,20 @@ function parseSpecificationSection(
 ) {
   const [section] = getSectionNodes(heading);
 
-  // 1) If the editor stored a real HTML table, use its rows exactly.
+  // 1) Real HTML table rows.
   for (const row of Array.from(section.querySelectorAll('tr'))) {
     const cells = Array.from(row.querySelectorAll('th,td'))
       .map(cell => normalizeText(cell.textContent || ''))
       .filter(Boolean);
 
     if (cells.length >= 2) {
+      // Skip a generic table header instead of turning it into a spec row.
+      if (/^specification$/i.test(cells[0]) && /^details?$/i.test(cells[1])) continue;
       addUniqueSpec(specs, seenKeys, cells[0], cells.slice(1).join(' '));
     }
   }
 
-  // 2) Preferred rich-text format:
-  // <strong>Brand</strong>Plokama<strong>Model</strong>U480...
-  // Read each label only until the next strong/b label.
+  // 2) Rich-text label/value pairs.
   const strongNodes = Array.from(section.querySelectorAll('strong,b'));
   for (let i = 0; i < strongNodes.length; i++) {
     const label = normalizeText(strongNodes[i].textContent || '');
@@ -102,19 +94,31 @@ function parseSpecificationSection(
     if (value) addUniqueSpec(specs, seenKeys, label, value);
   }
 
-  // If structured labels were found, do not run other parsers over the same
-  // section. That is the important protection against duplicate rows.
   if (specs.length > 0) return;
 
-  // 3) Plain text / colon format inside the explicit specification section.
-  // Only actual key:value rows are accepted. We never search for keywords
-  // inside ordinary description sentences.
+  // 3) Plain-text specification rows.
+  // Supports both "Label: Value" and "Label<TAB>Value" formats.
+  // These are accepted ONLY inside the explicit specification section.
   const raw = section.innerHTML
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(?:p|li|div|tr)>/gi, '\n')
     .replace(/<[^>]+>/g, '');
 
   for (const line of raw.split(/\r?\n/).map(normalizeText).filter(Boolean)) {
+    const tabMatch = line.split(/\t+/).map(normalizeText).filter(Boolean);
+    if (tabMatch.length >= 2) {
+      if (/^specification$/i.test(tabMatch[0]) && /^details?$/i.test(tabMatch[1])) continue;
+      addUniqueSpec(specs, seenKeys, tabMatch[0], tabMatch.slice(1).join(' '));
+      continue;
+    }
+
+    const pipeMatch = line.split(/\s*\|\s*/).map(normalizeText).filter(Boolean);
+    if (pipeMatch.length >= 2) {
+      if (/^specification$/i.test(pipeMatch[0]) && /^details?$/i.test(pipeMatch[1])) continue;
+      addUniqueSpec(specs, seenKeys, pipeMatch[0], pipeMatch.slice(1).join(' '));
+      continue;
+    }
+
     const match = line.match(/^([^:]{2,80}):\s*(.{2,300})$/);
     if (match) addUniqueSpec(specs, seenKeys, match[1], match[2]);
   }
@@ -142,11 +146,7 @@ export function extractProductSpecifications(html: string): ProductSpecification
   const seenKeys = new Set<string>();
 
   for (const heading of headings) {
-    const before = specs.length;
     parseSpecificationSection(heading, specs, seenKeys);
-    // Multiple explicit specification headings are allowed, but the same
-    // labels remain protected by seenKeys.
-    void before;
   }
 
   return specs;
