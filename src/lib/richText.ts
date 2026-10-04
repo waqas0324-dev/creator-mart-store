@@ -1,4 +1,7 @@
-const ALLOWED_TAGS = new Set(['P','BR','STRONG','B','EM','I','U','S','H2','H3','H4','UL','OL','LI','BLOCKQUOTE','SPAN','DIV']);
+const ALLOWED_TAGS = new Set([
+  'P','BR','STRONG','B','EM','I','U','S','H2','H3','H4','UL','OL','LI',
+  'BLOCKQUOTE','SPAN','DIV','TABLE','THEAD','TBODY','TFOOT','TR','TH','TD'
+]);
 const ALLOWED_STYLES = new Set(['text-align','color','background-color','font-size','font-weight','text-decoration']);
 
 export function sanitizeRichHtml(html: string): string {
@@ -33,7 +36,6 @@ export function sanitizeRichHtml(html: string): string {
     });
   };
   clean(doc.body);
-  // Strip empty headings like <h3><div><br></div></h3> — blank space at the top of descriptions.
   doc.body.querySelectorAll('h2,h3,h4').forEach(h => {
     if ((h.textContent || '').replace(/\u00a0/g, ' ').trim() === '') h.remove();
   });
