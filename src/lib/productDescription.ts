@@ -256,7 +256,7 @@ export function removeSpecSection(html: string): string {
     let node: Node | null = heading;
 
     while (node) {
-      if (node !== heading && node.nodeType === Node.ELEMENT_NODE && isHeading(node as Element)) break;
+      if (node !== heading && node.nodeType === Node.ELEMENT_NODE && isSectionBoundary(node as Element)) break;
       nodesToRemove.push(node);
       node = node.nextSibling;
     }
