@@ -148,6 +148,11 @@ export function ProductDetail() {
     ? removeFaqSection(descriptionWithoutSpecifications)
     : descriptionWithoutSpecifications;
 
+  // FAQ answers should read as normal body copy even if the source content
+  // accidentally pasted them in bold. Questions keep the stronger hierarchy.
+  const cleanFaqAnswerHtml = (html: string) =>
+    html.replace(/<\\/?(?:strong|b)\\b[^>]*>/gi, '');
+
   const miniDescription = getMiniDescription(product);
 
   const handleShare = async () => {
@@ -327,7 +332,7 @@ export function ProductDetail() {
                 <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(descriptionHtml, product.name)) }} />
                 {specifications.length > 0 && (
                   <div className="mt-8">
-                    <h3 className="text-lg font-black text-orange-500 mb-3">Specification</h3>
+                    <h3 className="text-xl font-black text-gray-900 mb-4">Product Specifications</h3>
                     <div className="overflow-x-auto border border-gray-200 rounded-xl">
                       <table className="w-full text-sm">
                         <tbody>
@@ -344,31 +349,37 @@ export function ProductDetail() {
                 )}
 
                 {faqs.length > 0 && (
-                  <div className="mt-8">
-                    <h3 className="text-lg font-black text-gray-900 mb-3">Frequently Asked Questions</h3>
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white divide-y divide-gray-200">
+                  <div className="mt-10">
+                    <h3 className="text-xl font-black text-gray-900 mb-4">Frequently Asked Questions</h3>
+                    <div className="space-y-3">
                       {faqs.map((faq, index) => {
                         const isOpen = openFaq === index;
                         const answerId = "product-faq-answer-" + product.id + "-" + index;
                         return (
-                          <div key={faq.question + "-" + index} className="bg-white">
+                          <div
+                            key={faq.question + "-" + index}
+                            className={"rounded-xl border bg-white overflow-hidden transition-all duration-200 " + (isOpen ? "border-orange-200 shadow-sm" : "border-gray-200")}
+                          >
                             <button
                               type="button"
-                              className={"w-full flex items-center justify-between gap-4 px-4 py-4 text-left transition-colors " + (isOpen ? "bg-gray-50" : "hover:bg-gray-50")}
+                              className="w-full min-h-[58px] flex items-center justify-between gap-4 px-4 sm:px-5 py-4 text-left"
                               onClick={() => setOpenFaq(isOpen ? null : index)}
                               aria-expanded={isOpen}
                               aria-controls={answerId}
                             >
-                              <span className="font-bold text-gray-900 leading-6">{faq.question}</span>
-                              <span className="shrink-0 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600">
-                                {isOpen ? <Minus size={16} /> : <Plus size={16} />}
+                              <span className={"text-[15px] sm:text-base leading-6 pr-2 " + (isOpen ? "font-bold text-gray-900" : "font-semibold text-gray-800")}>
+                                {faq.question}
+                              </span>
+                              <span className={"shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (isOpen ? "bg-orange-500 text-white" : "bg-gray-100 text-gray-700")}>
+                                {isOpen ? <Minus size={16} strokeWidth={2.5} /> : <Plus size={16} strokeWidth={2.5} />}
                               </span>
                             </button>
                             {isOpen && (
                               <div
                                 id={answerId}
-                                className="px-4 pb-5 pt-1 text-sm text-gray-600 leading-7 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(faq.answerHtml) }}
+                                role="region"
+                                className="px-4 sm:px-5 pb-5 pt-0 text-[15px] text-gray-600 leading-7 [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-normal [&_b]:font-normal"
+                                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanFaqAnswerHtml(faq.answerHtml)) }}
                               />
                             )}
                           </div>
