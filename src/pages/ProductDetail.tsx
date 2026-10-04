@@ -13,7 +13,7 @@ import { BRAND_NAME, toWhatsAppNumber } from '../lib/brand';
 import { useSEO } from '../hooks/useSEO';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { sanitizeRichHtml } from '../lib/richText';
-import { extractProductSpecifications, hasExplicitProductSpecifications, removeSpecSection } from '../lib/productDescription';
+import { extractProductSpecifications, hasExplicitProductSpecifications, removeSpecSection, extractProductFaqs, removeFaqSection } from '../lib/productDescription';
 import { getMiniDescription, htmlToText } from '../lib/productFields';
 
 const cleanDescriptionHtml = (value: string, productName = '') => {
@@ -65,6 +65,7 @@ export function ProductDetail() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useSEO({
     title: product ? `${product.name} - Buy Online in Pakistan | ${BRAND_NAME}` : `Loading... | ${BRAND_NAME}`,
@@ -138,9 +139,15 @@ export function ProductDetail() {
 
   // Remove exactly that explicit specification section from the description.
   // If there is no explicit specification section, leave the description untouched.
-  const descriptionHtml = hasExplicitSpecifications
+  const descriptionWithoutSpecifications = hasExplicitSpecifications
     ? removeSpecSection(product.description || '')
     : (product.description || '');
+
+  const faqs = extractProductFaqs(descriptionWithoutSpecifications);
+  const descriptionHtml = faqs.length > 0
+    ? removeFaqSection(descriptionWithoutSpecifications)
+    : descriptionWithoutSpecifications;
+
   const miniDescription = getMiniDescription(product);
 
   const handleShare = async () => {
@@ -317,7 +324,7 @@ export function ProductDetail() {
             </div>
             {activeTab === 'description' && (
               <div className="text-sm text-gray-700 leading-relaxed max-w-4xl">
-                <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(descriptionHtml, product.name)) }} />
+                <div className="[&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3 [&_strong]:font-black [&_u]:underline" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(cleanDescriptionHtml(descriptionHtml, product.name)) }} />
                 {specifications.length > 0 && (
                   <div className="mt-8">
                     <h3 className="text-lg font-black text-orange-500 mb-3">Specification</h3>
@@ -332,6 +339,41 @@ export function ProductDetail() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  </div>
+                )}
+
+                {faqs.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-black text-gray-900 mb-3">Frequently Asked Questions</h3>
+                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white divide-y divide-gray-200">
+                      {faqs.map((faq, index) => {
+                        const isOpen = openFaq === index;
+                        const answerId = "product-faq-answer-" + product.id + "-" + index;
+                        return (
+                          <div key={faq.question + "-" + index} className="bg-white">
+                            <button
+                              type="button"
+                              className={"w-full flex items-center justify-between gap-4 px-4 py-4 text-left transition-colors " + (isOpen ? "bg-gray-50" : "hover:bg-gray-50")}
+                              onClick={() => setOpenFaq(isOpen ? null : index)}
+                              aria-expanded={isOpen}
+                              aria-controls={answerId}
+                            >
+                              <span className="font-bold text-gray-900 leading-6">{faq.question}</span>
+                              <span className="shrink-0 w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-600">
+                                {isOpen ? <Minus size={16} /> : <Plus size={16} />}
+                              </span>
+                            </button>
+                            {isOpen && (
+                              <div
+                                id={answerId}
+                                className="px-4 pb-5 pt-1 text-sm text-gray-600 leading-7 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(faq.answerHtml) }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
