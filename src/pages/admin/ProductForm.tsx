@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { onImageError } from '../../lib/imageFallback';
 import type { Product } from '../../types';
 import { sanitizeRichHtml } from '../../lib/richText';
-import { extractProductSpecifications, hasExplicitProductSpecifications } from '../../lib/productDescription';
+import { extractProductSpecifications, hasExplicitProductSpecifications, normalizeProductDescriptionHtml } from '../../lib/productDescription';
 import { isMissingColumnError } from '../../lib/productFields';
 
 const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -182,13 +182,13 @@ export function AdminProductForm() {
     const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean).slice(0, 20);
     const payload = {
       name: form.name.trim(), slug: form.slug || generateSlug(form.name),
-      description: sanitizeRichHtml(form.description), mini_description: form.mini_description.trim() || null,
+      description: sanitizeRichHtml(normalizeProductDescriptionHtml(form.description)), mini_description: form.mini_description.trim() || null,
       tags, seo_keywords: form.seo_keywords.trim(),
       // Specifications are stored only when the description explicitly contains
       // a Specifications/Technical Specifications/Product Specifications section.
       // This prevents old/stale rows from being regenerated from keywords/features.
-      specifications: hasExplicitProductSpecifications(form.description)
-        ? extractProductSpecifications(form.description)
+      specifications: hasExplicitProductSpecifications(normalizeProductDescriptionHtml(form.description))
+        ? extractProductSpecifications(normalizeProductDescriptionHtml(form.description))
         : [],
       price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
@@ -269,8 +269,30 @@ export function AdminProductForm() {
 
   const syncDescription = () => {
     const editor = descriptionRef.current;
-    if (editor) update('description', sanitizeRichHtml(editor.innerHTML));
+    if (editor) update('description', sanitizeRichHtml(normalizeProductDescriptionHtml(editor.innerHTML)));
     refreshActiveFormats();
+  };
+
+  const handleDescriptionPaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const html = event.clipboardData.getData('text/html');
+    const plain = event.clipboardData.getData('text/plain');
+    let pastedHtml = html;
+    if (!pastedHtml) {
+      const escaped = plain.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      pastedHtml = escaped.split(/\r?\n/).map(line => line.trim() ? `<p>${line}</p>` : '<p><br></p>').join('');
+    }
+    const normalized = normalizeProductDescriptionHtml(sanitizeRichHtml(pastedHtml));
+    descriptionRef.current?.focus();
+    try {
+      document.execCommand('insertHTML', false, normalized);
+    } catch {
+      document.execCommand('insertText', false, plain);
+    }
+    requestAnimationFrame(() => {
+      const editor = descriptionRef.current;
+      if (editor) update('description', sanitizeRichHtml(normalizeProductDescriptionHtml(editor.innerHTML)));
+    });
   };
 
   // Inline toggles (bold/italic/...) only apply to a real text selection.
@@ -547,7 +569,14 @@ export function AdminProductForm() {
                     ))}
                   </select>
                 </div>
-                <div ref={descriptionRef} contentEditable suppressContentEditableWarning onInput={e=>update('description', sanitizeRichHtml(e.currentTarget.innerHTML))} className="min-h-48 p-4 text-sm text-gray-700 outline-none leading-7 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-3 [&_h3]:text-lg [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6" />
+                <div
+                  ref={descriptionRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onPaste={handleDescriptionPaste}
+                  onInput={e=>update('description', sanitizeRichHtml(e.currentTarget.innerHTML))}
+                  className="min-h-48 p-4 text-sm text-gray-700 outline-none leading-7 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:mt-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mt-3 [&_h3]:mb-2 [&_p]:mb-2 [&_strong]:font-black [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
+                />
               </div>
               <p className="text-[11px] text-gray-400 mt-1">Word-style editing: headings, bold, italic, underline, strikethrough, font size, alignment, bullets, text color and highlighting.</p>
             </div>
