@@ -86,11 +86,6 @@ export function ProductCard({ product }: ProductCardProps) {
         >
           <Heart size={17} fill={wished ? 'currentColor' : 'none'} />
         </button>
-        {product.discount_percent && (
-          <Badge variant="orange" className="absolute top-2 left-2 z-10">
-            -{product.discount_percent}%
-          </Badge>
-        )}
         {gallery.length > 1 && (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
             {gallery.map((_, i) => (
@@ -108,10 +103,15 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h3>
         {product.review_count > 0 && <StarRating rating={product.rating} count={product.review_count} />}
-        <div className="flex items-center gap-2 mt-2 mb-3">
+        <div className="flex flex-wrap items-center gap-2 mt-2 mb-3">
           <span className="text-orange-500 font-black text-base">Rs. {product.price.toLocaleString()}</span>
           {product.original_price && (
             <span className="text-gray-400 line-through text-sm">Rs. {product.original_price.toLocaleString()}</span>
+          )}
+          {product.discount_percent && (
+            <Badge variant="orange" className="shrink-0 text-[11px] px-2 py-0.5">
+              -{product.discount_percent}%
+            </Badge>
           )}
         </div>
         <div className="mt-auto flex gap-1.5 sm:gap-2">
