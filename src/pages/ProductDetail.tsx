@@ -151,7 +151,7 @@ export function ProductDetail() {
   // FAQ answers should read as normal body copy even if the source content
   // accidentally pasted them in bold. Questions keep the stronger hierarchy.
   const cleanFaqAnswerHtml = (html: string) =>
-    html.replace(/<\\/?(?:strong|b)\\b[^>]*>/gi, '');
+    html.replace(/<\/?(?:strong|b)\b[^>]*>/gi, '');
 
   const miniDescription = getMiniDescription(product);
 
