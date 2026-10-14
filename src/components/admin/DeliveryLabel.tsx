@@ -12,11 +12,12 @@ export function DeliveryLabel({ order }: Props) {
   const remainingPrice = Math.max(0, order.total - effectiveAdvance);
   const advanceDiscount = Math.max(0, order.subtotal + order.shipping - order.total);
   const isCod = order.payment_method === 'cash_on_delivery';
+  const isAdvancePaid = !isCod && order.advance_payment_status === 'received';
   const address = [order.customer_address, order.customer_area, order.customer_city].filter(Boolean).join(', ');
 
   return (
     <div id="print-area" className="hidden print:block bg-white text-slate-900">
-      <div className="mx-auto w-full max-w-[820px] overflow-hidden border border-slate-300 bg-white shadow-none print:break-inside-avoid">
+      <div className="mx-auto w-full max-w-[720px] overflow-hidden border border-slate-300 bg-white shadow-none print:break-inside-avoid">
         <div className="flex items-stretch justify-between border-b-4 border-orange-500 bg-[#111827] text-white">
           <div className="flex min-w-0 items-center gap-4 px-6 py-4">
             <img
@@ -32,21 +33,27 @@ export function DeliveryLabel({ order }: Props) {
           </div>
           <div className="min-w-[210px] bg-orange-500 px-5 py-4 text-right">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-100">
-              {isCod ? 'Cash on Delivery' : (order.advance_payment_status === 'received' ? 'Paid in Full' : 'Payment Pending')}
+              {isCod ? 'Cash on Delivery' : (isAdvancePaid ? 'Payment: Full Advance' : 'Payment Pending')}
             </p>
             <p className="mt-1 text-2xl font-black">
-              {isCod ? `Rs. ${remainingPrice.toLocaleString()}` : (order.advance_payment_status === 'received' ? 'PAID' : `Rs. ${order.total.toLocaleString()}`)}
+              {isCod ? `Rs. ${remainingPrice.toLocaleString()}` : (isAdvancePaid ? 'Rs. 0' : `Rs. ${order.total.toLocaleString()}`)}
             </p>
             <p className="text-[9px] font-semibold text-orange-100">
-              {isCod ? 'Collect on delivery' : (order.advance_payment_status === 'received' ? 'Full advance received' : 'Advance pending verification')}
+              {isCod ? 'Collect on delivery' : (isAdvancePaid ? 'Nothing to collect' : 'Advance pending verification')}
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-[1.55fr_1fr] border-b border-slate-200">
-          <div className="px-6 py-5">
+        <div className="grid grid-cols-2 border-b border-slate-200">
+          <div className="px-5 py-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Ship From</p>
+            <p className="mt-1 font-black text-slate-900">{BRAND_NAME}</p>
+            <p className="text-xs font-semibold text-slate-600">{settings.whatsapp_number}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">{settings.store_address}</p>
+          </div>
+          <div className="border-l border-slate-200 px-5 py-4">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Deliver To — Customer</p>
-            <div className="mt-3 grid grid-cols-[82px_1fr] gap-x-3 gap-y-2 text-xs">
+            <div className="mt-2 grid grid-cols-[70px_1fr] gap-x-3 gap-y-1.5 text-xs">
               <span className="font-bold text-slate-400">Name</span>
               <span className="font-black text-slate-900">{order.customer_name || '—'}</span>
               <span className="font-bold text-slate-400">Phone</span>
@@ -59,19 +66,11 @@ export function DeliveryLabel({ order }: Props) {
               <span className="font-semibold leading-relaxed text-slate-700">{address || '—'}</span>
             </div>
           </div>
-          <div className="border-l border-slate-200 bg-slate-50 px-5 py-5">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Order Reference</p>
-            <p className="mt-1 text-xl font-black tracking-wide text-slate-900">{order.order_number}</p>
-            <p className="mt-2 text-[9px] uppercase text-slate-400">Order Date</p>
-            <p className="text-sm font-bold text-slate-700">
-              {new Date(order.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </p>
-          </div>
         </div>
 
-        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <p className="text-[9px] font-black uppercase tracking-widest text-orange-500">Payment</p>
-          <p className="mt-1 text-lg font-black text-slate-900">{isCod ? 'COD' : 'FULL ADVANCE'}</p>
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-2 text-xs">
+          <p><span className="font-bold text-slate-400">Order: </span><span className="font-black text-slate-900">{order.order_number}</span></p>
+          <p><span className="font-bold text-slate-400">Date: </span><span className="font-bold text-slate-700">{new Date(order.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</span></p>
         </div>
 
         <div className="border-b border-slate-200">
@@ -89,32 +88,18 @@ export function DeliveryLabel({ order }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_1.15fr] border-b border-slate-200">
-          <div className="px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Ship From</p>
-            <p className="mt-1 font-black text-slate-900">{BRAND_NAME}</p>
-            <p className="text-xs font-semibold text-slate-600">{settings.whatsapp_number}</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600">{settings.store_address}</p>
-          </div>
-          <div className="border-l border-slate-200 bg-slate-50 px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Payment Summary</p>
-            <div className="mt-2 space-y-1 text-xs">
-              <div className="flex justify-between"><span>Product subtotal</span><span className="font-bold">Rs. {order.subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span>Delivery</span><span className="font-bold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()} (${isCod ? (order.advance_payment_status === 'received' ? 'Paid' : 'Pending') : 'Paid'})` : 'Free'}</span></div>
-              {advanceDiscount > 0 && (
-                <div className="flex justify-between text-green-700"><span>Full advance discount</span><span className="font-bold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
-              )}
-              <div className="flex justify-between border-t border-slate-200 pt-1 font-black"><span>Order total</span><span>Rs. {order.total.toLocaleString()}</span></div>
-              {isCod && (
-                <div className="flex justify-between text-green-700">
-                  <span>Advance payment</span>
-                  <span className="font-bold">Rs. {(order.advance_amount || 0).toLocaleString()} ({order.advance_payment_status === 'received' ? 'Received' : 'Pending'})</span>
-                </div>
-              )}
-              <div className="flex justify-between border-t border-orange-200 pt-1 text-sm font-black text-orange-600">
-                <span>{isCod ? 'Collect on delivery' : 'Paid'}</span>
-                <span>{isCod ? `Rs. ${remainingPrice.toLocaleString()}` : `Rs. ${order.total.toLocaleString()}`}</span>
-              </div>
+        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Payment Summary</p>
+          <div className="mt-2 space-y-1 text-xs">
+            <div className="flex justify-between"><span>Product subtotal</span><span className="font-bold">Rs. {order.subtotal.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span>Delivery</span><span className="font-bold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'}</span></div>
+            {advanceDiscount > 0 && (
+              <div className="flex justify-between text-green-700"><span>Full advance discount</span><span className="font-bold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
+            )}
+            <div className="flex justify-between border-t border-slate-200 pt-1 font-black"><span>Order total</span><span>Rs. {order.total.toLocaleString()}</span></div>
+            <div className="flex justify-between border-t border-orange-200 pt-1 text-sm font-black text-orange-600">
+              <span>{isCod ? 'Collect on delivery' : 'Paid'}</span>
+              <span>{isCod ? `Rs. ${remainingPrice.toLocaleString()}` : `Rs. ${order.total.toLocaleString()}`}</span>
             </div>
           </div>
         </div>
