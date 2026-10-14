@@ -32,7 +32,7 @@ export function DeliveryLabel({ order }: Props) {
               <p className="text-[9px] font-medium tracking-wide text-slate-300">Creator Gear & Gadgets</p>
             </div>
           </div>
-          <div className="flex min-w-[220px] flex-col justify-center bg-gradient-to-br from-orange-500 to-orange-600 px-6 py-4 text-right">
+          <div className="flex min-w-[220px] flex-col justify-center bg-orange-500 px-6 py-4 text-right">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-100">
               {isCod ? 'Cash on Delivery' : (isAdvancePaid ? 'Payment: Full Advance' : 'Payment Pending')}
             </p>
@@ -47,7 +47,7 @@ export function DeliveryLabel({ order }: Props) {
         <div className="h-1 bg-orange-500" />
 
         <div className="grid grid-cols-2">
-          <div className="bg-slate-50 px-5 py-4">
+          <div className="px-5 py-4">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Ship From</p>
             <p className="mt-1.5 text-sm font-black text-slate-900">{BRAND_NAME}</p>
             <p className="mt-0.5 text-xs font-bold text-slate-700">{settings.whatsapp_number}</p>
@@ -76,8 +76,8 @@ export function DeliveryLabel({ order }: Props) {
         </div>
 
         <div className="border-b border-slate-200">
-          <div className="bg-orange-50 px-5 py-2 border-b border-orange-100">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-700">Package Contents</p>
+          <div className="bg-slate-100 px-5 py-2">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">Package Contents</p>
           </div>
           <div className="divide-y divide-slate-100">
             {(order.order_items || []).map(item => (
@@ -99,10 +99,10 @@ export function DeliveryLabel({ order }: Props) {
               <span className="font-bold">
                 {order.shipping > 0 ? (
                   <>
-                    <span className="text-slate-900">Rs. {order.shipping.toLocaleString()}</span>
-                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${deliveryPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                    <span className={`mr-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${deliveryPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                       {deliveryPaid ? '✓ Paid' : 'Pending'}
                     </span>
+                    <span className="text-slate-900">Rs. {order.shipping.toLocaleString()}</span>
                   </>
                 ) : (
                   <span className="text-slate-900">Free</span>
