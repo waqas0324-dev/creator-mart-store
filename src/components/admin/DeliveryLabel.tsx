@@ -47,15 +47,15 @@ export function DeliveryLabel({ order }: Props) {
         <div className="h-1 bg-orange-500" />
 
         <div className="grid grid-cols-2">
-          <div className="px-5 py-4">
+          <div className="px-5 py-5">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Ship From</p>
-            <p className="mt-1.5 text-sm font-black text-slate-900">{BRAND_NAME}</p>
-            <p className="mt-0.5 text-xs font-bold text-slate-700">{settings.whatsapp_number}</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600">{settings.store_address}</p>
+            <p className="mt-2 text-sm font-black text-slate-900">{BRAND_NAME}</p>
+            <p className="mt-1 text-xs font-bold text-slate-700">{settings.whatsapp_number}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{settings.store_address}</p>
           </div>
-          <div className="border-l-2 border-orange-100 bg-white px-5 py-4">
+          <div className="border-l-2 border-orange-100 bg-white px-5 py-5">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Deliver To — Customer</p>
-            <div className="mt-2 grid grid-cols-[72px_1fr] gap-x-3 gap-y-1.5 text-xs">
+            <div className="mt-3 grid grid-cols-[72px_1fr] gap-x-3 gap-y-2.5 text-xs">
               <span className="font-bold uppercase text-slate-400 text-[10px]">Name</span>
               <span className="text-sm font-black text-slate-900">{order.customer_name || '—'}</span>
               <span className="font-bold uppercase text-slate-400 text-[10px]">Phone</span>
@@ -81,7 +81,7 @@ export function DeliveryLabel({ order }: Props) {
           </div>
           <div className="divide-y divide-slate-100">
             {(order.order_items || []).map(item => (
-              <div key={item.id} className="grid grid-cols-[1fr_90px_110px] items-center gap-3 px-5 py-3 text-sm">
+              <div key={item.id} className="grid grid-cols-[1fr_90px_110px] items-center gap-3 px-5 py-4 text-sm">
                 <p className="font-bold text-slate-800">{item.product_name}</p>
                 <p className="text-center font-semibold text-slate-500">Qty {item.quantity}</p>
                 <p className="text-right font-black text-slate-900">Rs. {item.subtotal.toLocaleString()}</p>
@@ -90,9 +90,9 @@ export function DeliveryLabel({ order }: Props) {
           </div>
         </div>
 
-        <div className="bg-slate-50 px-5 py-4">
+        <div className="bg-slate-50 px-5 py-5">
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Payment Summary</p>
-          <div className="mt-2 space-y-1.5 text-xs">
+          <div className="mt-3 space-y-2 text-xs">
             <div className="flex justify-between"><span className="text-slate-600">Product subtotal</span><span className="font-bold text-slate-900">Rs. {order.subtotal.toLocaleString()}</span></div>
             <div className="flex justify-between items-center">
               <span className="text-slate-600">Delivery</span>
