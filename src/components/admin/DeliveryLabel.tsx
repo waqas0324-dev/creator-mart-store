@@ -13,69 +13,71 @@ export function DeliveryLabel({ order }: Props) {
   const advanceDiscount = Math.max(0, order.subtotal + order.shipping - order.total);
   const isCod = order.payment_method === 'cash_on_delivery';
   const isAdvancePaid = !isCod && order.advance_payment_status === 'received';
+  const deliveryPaid = !isCod || order.advance_payment_status === 'received';
   const address = [order.customer_address, order.customer_area, order.customer_city].filter(Boolean).join(', ');
 
   return (
     <div id="print-area" className="hidden print:block bg-white text-slate-900">
-      <div className="mx-auto w-full max-w-[720px] overflow-hidden border border-slate-300 bg-white shadow-none print:break-inside-avoid">
-        <div className="flex items-stretch justify-between border-b-4 border-orange-500 bg-[#111827] text-white">
+      <div className="mx-auto w-full max-w-[720px] overflow-hidden rounded-sm border-2 border-slate-800 bg-white shadow-none print:break-inside-avoid">
+        <div className="flex items-stretch justify-between bg-[#111827] text-white">
           <div className="flex min-w-0 items-center gap-4 px-6 py-4">
             <img
               src="/images/logo/abr-gadgets-transparent.png"
               alt={BRAND_NAME}
               className="max-h-14 w-auto max-w-[190px] object-contain"
             />
-            <div className="border-l border-slate-600 pl-4">
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-orange-300">Dispatch Label</p>
-              <p className="mt-1 text-lg font-black">{BRAND_NAME}</p>
-              <p className="text-[9px] text-slate-300">Creator Gear & Gadgets</p>
+            <div className="border-l-2 border-orange-500 pl-4">
+              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-orange-300">Dispatch Label</p>
+              <p className="mt-1 text-xl font-black tracking-tight">{BRAND_NAME}</p>
+              <p className="text-[9px] font-medium tracking-wide text-slate-300">Creator Gear & Gadgets</p>
             </div>
           </div>
-          <div className="min-w-[210px] bg-orange-500 px-5 py-4 text-right">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-100">
+          <div className="flex min-w-[220px] flex-col justify-center bg-gradient-to-br from-orange-500 to-orange-600 px-6 py-4 text-right">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-100">
               {isCod ? 'Cash on Delivery' : (isAdvancePaid ? 'Payment: Full Advance' : 'Payment Pending')}
             </p>
-            <p className="mt-1 text-2xl font-black">
+            <p className="mt-1 text-3xl font-black tracking-tight drop-shadow-sm">
               {isCod ? `Rs. ${remainingPrice.toLocaleString()}` : (isAdvancePaid ? 'Rs. 0' : `Rs. ${order.total.toLocaleString()}`)}
             </p>
-            <p className="text-[9px] font-semibold text-orange-100">
-              {isCod ? 'Collect on delivery' : (isAdvancePaid ? 'Nothing to collect' : 'Advance pending verification')}
+            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-orange-100">
+              {isCod ? 'Collect on delivery' : (isAdvancePaid ? 'Nothing to collect ✓' : 'Advance pending verification')}
             </p>
           </div>
         </div>
+        <div className="h-1 bg-orange-500" />
 
-        <div className="grid grid-cols-2 border-b border-slate-200">
-          <div className="px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Ship From</p>
-            <p className="mt-1 font-black text-slate-900">{BRAND_NAME}</p>
-            <p className="text-xs font-semibold text-slate-600">{settings.whatsapp_number}</p>
+        <div className="grid grid-cols-2">
+          <div className="bg-slate-50 px-5 py-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Ship From</p>
+            <p className="mt-1.5 text-sm font-black text-slate-900">{BRAND_NAME}</p>
+            <p className="mt-0.5 text-xs font-bold text-slate-700">{settings.whatsapp_number}</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-600">{settings.store_address}</p>
           </div>
-          <div className="border-l border-slate-200 px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Deliver To — Customer</p>
-            <div className="mt-2 grid grid-cols-[70px_1fr] gap-x-3 gap-y-1.5 text-xs">
-              <span className="font-bold text-slate-400">Name</span>
-              <span className="font-black text-slate-900">{order.customer_name || '—'}</span>
-              <span className="font-bold text-slate-400">Phone</span>
-              <span className="font-bold text-slate-800">{order.customer_phone || '—'}</span>
-              <span className="font-bold text-slate-400">WhatsApp</span>
+          <div className="border-l-2 border-orange-100 bg-white px-5 py-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Deliver To — Customer</p>
+            <div className="mt-2 grid grid-cols-[72px_1fr] gap-x-3 gap-y-1.5 text-xs">
+              <span className="font-bold uppercase text-slate-400 text-[10px]">Name</span>
+              <span className="text-sm font-black text-slate-900">{order.customer_name || '—'}</span>
+              <span className="font-bold uppercase text-slate-400 text-[10px]">Phone</span>
+              <span className="text-sm font-black text-slate-900">{order.customer_phone || '—'}</span>
+              <span className="font-bold uppercase text-slate-400 text-[10px]">WhatsApp</span>
               <span className="font-bold text-slate-800">{order.customer_whatsapp || order.customer_phone || '—'}</span>
-              <span className="font-bold text-slate-400">Email</span>
+              <span className="font-bold uppercase text-slate-400 text-[10px]">Email</span>
               <span className="font-semibold break-all text-slate-700">{order.customer_email || '—'}</span>
-              <span className="font-bold text-slate-400">Address</span>
+              <span className="font-bold uppercase text-slate-400 text-[10px]">Address</span>
               <span className="font-semibold leading-relaxed text-slate-700">{address || '—'}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-2 text-xs">
-          <p><span className="font-bold text-slate-400">Order: </span><span className="font-black text-slate-900">{order.order_number}</span></p>
-          <p><span className="font-bold text-slate-400">Date: </span><span className="font-bold text-slate-700">{new Date(order.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</span></p>
+        <div className="flex items-center justify-between border-y-2 border-slate-800 bg-slate-900 px-5 py-2 text-xs text-white">
+          <p><span className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Order </span><span className="font-black tracking-wide text-orange-400">{order.order_number}</span></p>
+          <p><span className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Date </span><span className="font-bold text-white">{new Date(order.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</span></p>
         </div>
 
         <div className="border-b border-slate-200">
-          <div className="bg-slate-100 px-5 py-2">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Package Contents</p>
+          <div className="bg-orange-50 px-5 py-2 border-b border-orange-100">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-700">Package Contents</p>
           </div>
           <div className="divide-y divide-slate-100">
             {(order.order_items || []).map(item => (
@@ -88,24 +90,44 @@ export function DeliveryLabel({ order }: Props) {
           </div>
         </div>
 
-        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-500">Payment Summary</p>
-          <div className="mt-2 space-y-1 text-xs">
-            <div className="flex justify-between"><span>Product subtotal</span><span className="font-bold">Rs. {order.subtotal.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span>Delivery</span><span className="font-bold">{order.shipping > 0 ? `Rs. ${order.shipping.toLocaleString()}` : 'Free'}</span></div>
+        <div className="bg-slate-50 px-5 py-4">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Payment Summary</p>
+          <div className="mt-2 space-y-1.5 text-xs">
+            <div className="flex justify-between"><span className="text-slate-600">Product subtotal</span><span className="font-bold text-slate-900">Rs. {order.subtotal.toLocaleString()}</span></div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-600">Delivery</span>
+              <span className="font-bold">
+                {order.shipping > 0 ? (
+                  <>
+                    <span className="text-slate-900">Rs. {order.shipping.toLocaleString()}</span>
+                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${deliveryPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {deliveryPaid ? '✓ Paid' : 'Pending'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-slate-900">Free</span>
+                )}
+              </span>
+            </div>
             {advanceDiscount > 0 && (
               <div className="flex justify-between text-green-700"><span>Full advance discount</span><span className="font-bold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
             )}
-            <div className="flex justify-between border-t border-slate-200 pt-1 font-black"><span>Order total</span><span>Rs. {order.total.toLocaleString()}</span></div>
-            <div className="flex justify-between border-t border-orange-200 pt-1 text-sm font-black text-orange-600">
-              <span>{isCod ? 'Collect on delivery' : 'Paid'}</span>
-              <span>{isCod ? `Rs. ${remainingPrice.toLocaleString()}` : `Rs. ${order.total.toLocaleString()}`}</span>
+            <div className="flex justify-between border-t border-slate-300 pt-1.5 text-sm font-black"><span>Order total</span><span>Rs. {order.total.toLocaleString()}</span></div>
+            {isCod && effectiveAdvance > 0 && (
+              <div className="flex justify-between text-green-700">
+                <span>Advance received</span>
+                <span className="font-bold">Rs. {effectiveAdvance.toLocaleString()} ✓</span>
+              </div>
+            )}
+            <div className="mt-1 flex justify-between rounded-sm bg-slate-900 px-3 py-2 text-sm font-black text-white">
+              <span className="uppercase tracking-wide text-[11px]">{isCod ? 'Collect on delivery' : 'Paid'}</span>
+              <span className="text-orange-400">{isCod ? `Rs. ${remainingPrice.toLocaleString()}` : `Rs. ${order.total.toLocaleString()}`}</span>
             </div>
           </div>
         </div>
 
         {(order.shipping_note || order.notes) && (
-          <div className="border-b border-slate-200 bg-amber-50 px-5 py-3">
+          <div className="border-t border-slate-200 bg-amber-50 px-5 py-3">
             <p className="text-[9px] font-black uppercase tracking-widest text-amber-700">Dispatch Note</p>
             <p className="mt-1 text-xs font-bold text-slate-800">
               {order.shipping_note || order.notes}
@@ -114,7 +136,7 @@ export function DeliveryLabel({ order }: Props) {
         )}
 
         <div className="flex items-center justify-between gap-4 bg-slate-900 px-5 py-3 text-[9px] text-slate-300">
-          <span>{BRAND_NAME} · {order.order_number}</span>
+          <span className="font-bold">{BRAND_NAME} · {order.order_number}</span>
           <span className="font-bold text-white">Verify recipient · phone · address · pieces · collection amount before dispatch.</span>
         </div>
       </div>
