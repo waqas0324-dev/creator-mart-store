@@ -6,6 +6,18 @@ interface Props {
   order: Order;
 }
 
+/**
+ * Dispatch label — PRINT-FIRST design.
+ *
+ * Why everything here is pure black on white:
+ * Browsers/printers skip CSS background colours by default ("Background
+ * graphics" off), so white text on a dark/orange header printed as
+ * invisible/faint text, and the light-grey (slate-400) field labels
+ * (Name / Phone / WhatsApp / Email / Address) printed almost unreadable.
+ * The logo files are also dark-background designs (white letters), so the
+ * brand is set in bold black text instead of an image — text always
+ * prints sharp. No colour in this label depends on a background.
+ */
 export function DeliveryLabel({ order }: Props) {
   const { settings } = useSiteSettings();
   const effectiveAdvance = order.advance_payment_status === 'received' ? (order.advance_amount || 0) : 0;
@@ -17,127 +29,124 @@ export function DeliveryLabel({ order }: Props) {
   const address = [order.customer_address, order.customer_area, order.customer_city].filter(Boolean).join(', ');
 
   return (
-    <div id="print-area" className="hidden print:block bg-white text-slate-900">
-      <div className="mx-auto w-full max-w-[720px] overflow-hidden rounded-sm border-2 border-slate-800 bg-white shadow-none print:break-inside-avoid">
-        <div className="flex items-stretch justify-between bg-[#111827] text-white">
-          <div className="flex min-w-0 items-center gap-4 px-6 py-4">
-            <img
-              src="/images/logo/abr-gadgets-transparent.png"
-              alt={BRAND_NAME}
-              className="max-h-14 w-auto max-w-[190px] object-contain"
-            />
-            <div className="border-l-2 border-orange-500 pl-4">
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-orange-300">Dispatch Label</p>
-              <p className="mt-1 text-xl font-black tracking-tight">{BRAND_NAME}</p>
-              <p className="text-[9px] font-medium tracking-wide text-slate-300">Creator Gear & Gadgets</p>
-            </div>
+    <div id="print-area" className="hidden print:block bg-white text-black">
+      <style>{`
+        @page { margin: 8mm; }
+        @media print {
+          #print-area, #print-area * {
+            color: #000 !important;
+            background: #fff !important;
+            background-color: #fff !important;
+            border-color: #000 !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+      `}</style>
+      <div className="mx-auto w-full max-w-[720px] border-2 border-black bg-white text-black print:break-inside-avoid">
+        {/* Header: brand text left, payment box right — all black on white */}
+        <div className="flex items-start justify-between gap-4 border-b-2 border-black px-5 py-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black">Dispatch Label</p>
+            <p className="mt-1 text-[26px] font-black leading-none text-black">{BRAND_NAME}</p>
+            <p className="mt-1 text-[11px] font-bold text-black">Creator Gear &amp; Gadgets</p>
           </div>
-          <div className="flex min-w-[220px] flex-col justify-center bg-orange-500 px-6 py-4 text-right">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-100">
+          <div className="shrink-0 border-2 border-black px-4 py-2 text-right">
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-black">
               {isCod ? 'Cash on Delivery' : (isAdvancePaid ? 'Payment: Full Advance' : 'Payment Pending')}
             </p>
-            <p className="mt-1 text-3xl font-black tracking-tight drop-shadow-sm">
+            <p className="mt-1 text-[28px] font-black leading-none text-black">
               {isCod ? `Rs. ${remainingPrice.toLocaleString()}` : (isAdvancePaid ? 'Rs. 0' : `Rs. ${order.total.toLocaleString()}`)}
             </p>
-            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-orange-100">
-              {isCod ? 'Collect on delivery' : (isAdvancePaid ? 'Nothing to collect ✓' : 'Advance pending verification')}
+            <p className="mt-1 text-[11px] font-black text-black">
+              {isCod ? 'COLLECT ON DELIVERY' : (isAdvancePaid ? 'NOTHING TO COLLECT ✓' : 'ADVANCE PENDING')}
             </p>
           </div>
         </div>
-        <div className="h-1 bg-orange-500" />
 
-        <div className="grid grid-cols-2">
-          <div className="px-5 py-5">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Ship From</p>
-            <p className="mt-2 text-sm font-black text-slate-900">{BRAND_NAME}</p>
-            <p className="mt-1 text-xs font-bold text-slate-700">{settings.whatsapp_number}</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{settings.store_address}</p>
+        {/* Ship From (left) + Deliver To (right) */}
+        <div className="grid grid-cols-2 border-b-2 border-black">
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black">Ship From</p>
+            <p className="mt-2 text-[15px] font-black text-black">{BRAND_NAME}</p>
+            <p className="mt-1 text-[13px] font-bold text-black">{settings.whatsapp_number}</p>
+            <p className="mt-1 text-[13px] font-bold leading-relaxed text-black">{settings.store_address}</p>
           </div>
-          <div className="border-l-2 border-orange-100 bg-white px-5 py-5">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Deliver To — Customer</p>
-            <div className="mt-3 grid grid-cols-[72px_1fr] gap-x-3 gap-y-2.5 text-xs">
-              <span className="font-bold uppercase text-slate-400 text-[10px]">Name</span>
-              <span className="text-sm font-black text-slate-900">{order.customer_name || '—'}</span>
-              <span className="font-bold uppercase text-slate-400 text-[10px]">Phone</span>
-              <span className="text-sm font-black text-slate-900">{order.customer_phone || '—'}</span>
-              <span className="font-bold uppercase text-slate-400 text-[10px]">WhatsApp</span>
-              <span className="font-bold text-slate-800">{order.customer_whatsapp || order.customer_phone || '—'}</span>
-              <span className="font-bold uppercase text-slate-400 text-[10px]">Email</span>
-              <span className="font-semibold break-all text-slate-700">{order.customer_email || '—'}</span>
-              <span className="font-bold uppercase text-slate-400 text-[10px]">Address</span>
-              <span className="font-semibold leading-relaxed text-slate-700">{address || '—'}</span>
+          <div className="border-l-2 border-black px-5 py-4">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black">Deliver To — Customer</p>
+            <div className="mt-2 grid grid-cols-[86px_1fr] gap-x-3 gap-y-2 text-[13px]">
+              <span className="font-black text-black">NAME</span>
+              <span className="text-[16px] font-black leading-tight text-black">{order.customer_name || '—'}</span>
+              <span className="font-black text-black">PHONE</span>
+              <span className="text-[15px] font-black text-black">{order.customer_phone || '—'}</span>
+              <span className="font-black text-black">WHATSAPP</span>
+              <span className="text-[14px] font-black text-black">{order.customer_whatsapp || order.customer_phone || '—'}</span>
+              <span className="font-black text-black">EMAIL</span>
+              <span className="break-all text-[13px] font-bold text-black">{order.customer_email || '—'}</span>
+              <span className="font-black text-black">ADDRESS</span>
+              <span className="text-[14px] font-black leading-relaxed text-black">{address || '—'}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-y-2 border-slate-800 bg-slate-900 px-5 py-2 text-xs text-white">
-          <p><span className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Order </span><span className="font-black tracking-wide text-orange-400">{order.order_number}</span></p>
-          <p><span className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">Date </span><span className="font-bold text-white">{new Date(order.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</span></p>
+        {/* Order meta */}
+        <div className="flex items-center justify-between border-b-2 border-black px-5 py-2 text-[13px]">
+          <p><span className="font-black text-black">ORDER: </span><span className="font-black text-black">{order.order_number}</span></p>
+          <p><span className="font-black text-black">DATE: </span><span className="font-black text-black">{new Date(order.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</span></p>
         </div>
 
-        <div className="border-b border-slate-200">
-          <div className="bg-slate-100 px-5 py-2">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">Package Contents</p>
-          </div>
-          <div className="divide-y divide-slate-100">
+        {/* Package contents */}
+        <div className="border-b-2 border-black">
+          <p className="border-b border-black px-5 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-black">Package Contents</p>
+          <div className="divide-y divide-black">
             {(order.order_items || []).map(item => (
-              <div key={item.id} className="grid grid-cols-[1fr_90px_110px] items-center gap-3 px-5 py-4 text-sm">
-                <p className="font-bold text-slate-800">{item.product_name}</p>
-                <p className="text-center font-semibold text-slate-500">Qty {item.quantity}</p>
-                <p className="text-right font-black text-slate-900">Rs. {item.subtotal.toLocaleString()}</p>
+              <div key={item.id} className="grid grid-cols-[1fr_90px_110px] items-center gap-3 px-5 py-3 text-[14px]">
+                <p className="font-black text-black">{item.product_name}</p>
+                <p className="text-center font-bold text-black">Qty {item.quantity}</p>
+                <p className="text-right font-black text-black">Rs. {item.subtotal.toLocaleString()}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-slate-50 px-5 py-5">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-600">Payment Summary</p>
-          <div className="mt-3 space-y-2 text-xs">
-            <div className="flex justify-between"><span className="text-slate-600">Product subtotal</span><span className="font-bold text-slate-900">Rs. {order.subtotal.toLocaleString()}</span></div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-600">Delivery</span>
-              <span className="font-bold">
-                {order.shipping > 0 ? (
-                  <>
-                    <span className={`mr-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${deliveryPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {deliveryPaid ? '✓ Paid' : 'Pending'}
-                    </span>
-                    <span className="text-slate-900">Rs. {order.shipping.toLocaleString()}</span>
-                  </>
-                ) : (
-                  <span className="text-slate-900">Free</span>
-                )}
+        {/* Payment summary at the very bottom */}
+        <div className="px-5 py-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black">Payment Summary</p>
+          <div className="mt-2 space-y-1.5 text-[13px]">
+            <div className="flex justify-between"><span className="font-bold text-black">Product subtotal</span><span className="font-black text-black">Rs. {order.subtotal.toLocaleString()}</span></div>
+            <div className="flex justify-between">
+              <span className="font-bold text-black">Delivery</span>
+              <span className="font-black text-black">
+                {order.shipping > 0
+                  ? `Rs. ${order.shipping.toLocaleString()} · ${deliveryPaid ? 'PAID' : 'PENDING'}`
+                  : 'FREE'}
               </span>
             </div>
             {advanceDiscount > 0 && (
-              <div className="flex justify-between text-green-700"><span>Full advance discount</span><span className="font-bold">-Rs. {advanceDiscount.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="font-bold text-black">Full advance discount</span><span className="font-black text-black">-Rs. {advanceDiscount.toLocaleString()}</span></div>
             )}
-            <div className="flex justify-between border-t border-slate-300 pt-1.5 text-sm font-black"><span>Order total</span><span>Rs. {order.total.toLocaleString()}</span></div>
+            <div className="flex justify-between border-t-2 border-black pt-1.5 text-[15px] font-black"><span className="text-black">Order total</span><span className="text-black">Rs. {order.total.toLocaleString()}</span></div>
             {isCod && effectiveAdvance > 0 && (
-              <div className="flex justify-between text-green-700">
-                <span>Advance received</span>
-                <span className="font-bold">Rs. {effectiveAdvance.toLocaleString()} ✓</span>
-              </div>
+              <div className="flex justify-between"><span className="font-bold text-black">Advance received</span><span className="font-black text-black">Rs. {effectiveAdvance.toLocaleString()} ✓</span></div>
             )}
-            <div className="mt-1 flex justify-between rounded-sm bg-slate-900 px-3 py-2 text-sm font-black text-white">
-              <span className="uppercase tracking-wide text-[11px]">{isCod ? 'Collect on delivery' : 'Paid'}</span>
-              <span className="text-orange-400">{isCod ? `Rs. ${remainingPrice.toLocaleString()}` : `Rs. ${order.total.toLocaleString()}`}</span>
+            <div className="flex justify-between border-2 border-black px-2 py-1.5 text-[15px] font-black">
+              <span className="text-black">{isCod ? 'COLLECT ON DELIVERY' : 'PAID'}</span>
+              <span className="text-black">{isCod ? `Rs. ${remainingPrice.toLocaleString()}` : `Rs. ${order.total.toLocaleString()}`}</span>
             </div>
           </div>
         </div>
 
         {(order.shipping_note || order.notes) && (
-          <div className="border-t border-slate-200 bg-amber-50 px-5 py-3">
-            <p className="text-[9px] font-black uppercase tracking-widest text-amber-700">Dispatch Note</p>
-            <p className="mt-1 text-xs font-bold text-slate-800">
-              {order.shipping_note || order.notes}
-            </p>
+          <div className="border-t-2 border-black px-5 py-2">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black">Dispatch Note</p>
+            <p className="mt-1 text-[13px] font-bold text-black">{order.shipping_note || order.notes}</p>
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-4 bg-slate-900 px-5 py-3 text-[9px] text-slate-300">
-          <span className="font-bold">{BRAND_NAME} · {order.order_number}</span>
-          <span className="font-bold text-white">Verify recipient · phone · address · pieces · collection amount before dispatch.</span>
+        <div className="border-t-2 border-black px-5 py-2 text-[11px] font-bold text-black">
+          {BRAND_NAME} · {order.order_number} — Verify recipient, phone, address, pieces and collection amount before dispatch.
         </div>
       </div>
     </div>

@@ -80,6 +80,19 @@
     page-break-inside: avoid !important;
     page-break-after: avoid !important;
   }
+
+  /* Dispatch label is print-first pure black on white: background colours
+     and light-grey text print faint/invisible on most printers, so force
+     every label element to solid black text on white paper. */
+  #print-area,
+  #print-area * {
+    color: #000 !important;
+    background: #fff !important;
+    background-color: #fff !important;
+    border-color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
 }
 
 /* Global editable design animations — settings are controlled from Developer Studio */
