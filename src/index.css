@@ -93,6 +93,11 @@
     box-shadow: none !important;
     text-shadow: none !important;
   }
+
+  /* The ONE accent colour: deep dark orange, headings only. */
+  #print-area .label-accent {
+    color: #9A3412 !important;
+  }
 }
 
 /* Global editable design animations — settings are controlled from Developer Studio */
