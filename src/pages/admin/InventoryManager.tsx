@@ -121,6 +121,14 @@ export function InventoryManager() {
   const products: StockProduct[] = useMemo(() => db.manualProducts.map(mp => ({ id: mp.id, name: mp.name, stock: mp.qty })), [db.manualProducts]);
   const [msg, setMsg] = useState<string | null>(null);
   const [backupText, setBackupText] = useState('');
+
+  const updateDb = (next: LocalDb | ((prev: LocalDb) => LocalDb)) => {
+    setDb(prev => {
+      const n = typeof next === 'function' ? (next as (p: LocalDb) => LocalDb)(prev) : next;
+      saveLocal(n);
+      return n;
+    });
+  };
   // --- Totals: SIRF manual sales (owner 2026-11-04). Website orders
   // sale me nahi ginay jate, kyunki owner khud asli sale price add karta hai.
   const totals = useMemo(() => {
