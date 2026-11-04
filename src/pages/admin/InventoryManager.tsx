@@ -389,12 +389,12 @@ function CostField({ initial, onSave }: { initial: number | undefined; onSave: (
   const [val, setVal] = useState(initial == null ? '' : String(initial));
   const [saved, setSaved] = useState(false);
   return (
-    <span className="flex items-center gap-1">
+    <span className="flex flex-1 items-center gap-1 min-w-0">
       <input type="number" min={0} value={val} placeholder="Cost" aria-label="Cost"
         onChange={e => { setVal(e.target.value); setSaved(false); }}
-        className="border rounded-lg px-2 py-1.5 w-20 text-right text-sm" />
+        className="border rounded-lg px-2 py-1.5 flex-1 min-w-0 text-right text-sm" />
       <button type="button" onClick={() => { const v = Number(val); if (v > 0) { onSave(v); setSaved(true); } }}
-        className="px-2 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold">Save</button>
+        className="shrink-0 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold">Save</button>
       {saved && <span className="text-xs font-bold text-green-700">✓ Save ho gaya</span>}
     </span>
   );
@@ -423,28 +423,27 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
   }, [pid]);
   return (
     <div className="space-y-4">
-      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock list — sirf naam aur stock</h2>
-      <p className="text-xs text-gray-500">Har line me: product ka naam — aage stock — stock kam ho to LOW ALERT. Cost isi line me likh kar Save dabayen, galat ho to Delete dabayen.</p>
+      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock list</h2>
       <form className="bg-white rounded-xl border-2 border-orange-500 p-4 space-y-3" onSubmit={e => {
         e.preventDefault(); setAddErr(null);
         if (!newName.trim() || newQty < 1) { setAddErr('Product ka naam aur sahi quantity likhein.'); return; }
         onAddProduct(newName.trim(), newQty, newCost === '' ? null : Number(newCost));
         setNewName(''); setNewQty(1); setNewCost('');
       }}>
-        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Naya product add karein (inventory khud add karein)</h2>
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Naya product add karein</h2>
         <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Product ka naam" className="w-full border rounded-lg px-3 py-2" />
         <input type="number" min={1} value={newQty} onChange={e => setNewQty(Number(e.target.value))} placeholder="Quantity (kitni inventory hai)" className="w-full border rounded-lg px-3 py-2" />
         <input type="number" min={0} value={newCost} onChange={e => setNewCost(e.target.value)} placeholder="Khareed price / cost (1 piece, optional)" className="w-full border rounded-lg px-3 py-2" />
         {addErr && <p className="text-sm text-red-600">{addErr}</p>}
         <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Inventory me add karein</button>
       </form>
-      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+      <div className="space-y-3">
         {products.map(p => {
           const cost = costById[p.id];
           const isLow = p.stock <= low;
           if (editing?.id === p.id) {
             return (
-              <div key={p.id} className="px-3 py-2.5 space-y-2">
+              <div key={p.id} className="bg-white rounded-2xl border-2 border-orange-500 shadow-sm p-4 space-y-2">
                 <input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} className="w-full border rounded-lg px-2 py-1.5 text-sm" />
                 <input type="number" min={0} value={editing.qty} onChange={e => setEditing({ ...editing, qty: Number(e.target.value) })} className="w-full border rounded-lg px-2 py-1.5 text-sm" />
                 <input value={editing.cost} onChange={e => setEditing({ ...editing, cost: e.target.value })} placeholder="Cost (khali chhorein to purani cost rahe gi)" className="w-full border rounded-lg px-2 py-1.5 text-sm" />
@@ -456,24 +455,29 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
             );
           }
           return (
-            <div key={p.id} className="px-3 py-2.5 flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold leading-5 min-w-0">
-                {p.name}
-                {isLow && <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">LOW ALERT</span>}
+            <div key={p.id} className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-base font-bold leading-6">{p.name}</p>
+                {isLow && <span className="shrink-0 whitespace-nowrap text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">LOW ALERT</span>}
+              </div>
+              <p className="text-sm text-gray-700">
+                <span className="font-bold">Stock: {p.stock}</span>
+                <span className="text-gray-400"> &nbsp;|&nbsp; </span>
+                <span>{cost != null ? `Cost: ${rs(cost)}` : 'Cost nahi hai'}</span>
               </p>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-sm font-bold ${isLow ? 'text-red-700' : ''}`}>Stock: {p.stock}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold shrink-0">Cost:</span>
                 <CostField key={`${p.id}-${cost ?? 'none'}`} initial={cost} onSave={v => onCost(p.id, v)} />
-                {cost != null && <TwoTapDelete onDelete={() => onDeleteCost(p.id)} />}
-                <button type="button" onClick={() => setEditing({ id: p.id, name: p.name, qty: p.stock, cost: cost == null ? '' : String(cost) })} className="px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-bold">Edit</button>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setEditing({ id: p.id, name: p.name, qty: p.stock, cost: cost == null ? '' : String(cost) })} className="px-4 py-1.5 rounded-lg bg-gray-100 text-xs font-bold">Edit</button>
                 <TwoTapDelete onDelete={() => onDeleteProduct(p.id)} />
               </div>
             </div>
           );
         })}
-        {products.length === 0 && <p className="px-3 py-3 text-sm text-gray-500">Koi product nahi hai.</p>}
+      {products.length === 0 && <p className="bg-white rounded-2xl border-2 border-gray-200 p-4 text-sm text-gray-500">Koi product nahi hai.</p>}
       </div>
-      <p className="text-xs text-gray-500">Cost badalne se purani sales ka profit nahi badle ga (snapshot mehfooz hai).</p>
       {products.length > 0 && (
         <form className="bg-white rounded-xl border border-gray-200 p-4 space-y-3" onSubmit={async e => {
           e.preventDefault(); setErr(null);
@@ -489,7 +493,6 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
           </select>
           <input type="number" min={1} value={addQty} onChange={e => setAddQty(Number(e.target.value))} placeholder="Kitna maal aaya" className="w-full border rounded-lg px-3 py-2" />
           <input type="number" min={0} value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="Asli price (1 piece)" className="w-full border rounded-lg px-3 py-2" />
-          <p className="text-xs text-gray-500">Weighted average: nayi cost = (purana stock x purani cost + naya maal x nayi price) / total stock.</p>
           {err && <p className="text-sm text-red-600">{err}</p>}
           <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Stock In karein</button>
         </form>
