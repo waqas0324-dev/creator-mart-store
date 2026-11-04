@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
+import { supabase } from '../../lib/supabase';
 
 // ---------------------------------------------------------------------------
 // ABR Gadgets — Inventory Manager (inside the admin panel, but FULLY
@@ -121,6 +122,31 @@ export function InventoryManager() {
   const products: StockProduct[] = useMemo(() => db.manualProducts.map(mp => ({ id: mp.id, name: mp.name, stock: mp.qty })), [db.manualProducts]);
   const [msg, setMsg] = useState<string | null>(null);
   const [backupText, setBackupText] = useState('');
+  // Website totals (READ-ONLY, only for the 2 stock boxes): total pieces and
+  // total amount at website sale prices. Website orders/sales are never used.
+  const [webStock, setWebStock] = useState<{ qty: number | null; amount: number | null }>({ qty: null, amount: null });
+  useEffect(() => {
+    if (tab !== 'dashboard') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        let qty = 0, amount = 0, from = 0;
+        for (;;) {
+          const { data, error } = await supabase.from('products').select('stock,price').range(from, from + 999);
+          if (error || !data) { if (!cancelled) setWebStock({ qty: null, amount: null }); return; }
+          for (const r of data as { stock: number | null; price: number | null }[]) {
+            const s = r.stock ?? 0;
+            qty += s;
+            amount += s * (r.price ?? 0);
+          }
+          if (data.length < 1000) break;
+          from += 1000;
+        }
+        if (!cancelled) setWebStock({ qty, amount });
+      } catch { if (!cancelled) setWebStock({ qty: null, amount: null }); }
+    })();
+    return () => { cancelled = true; };
+  }, [tab]);
 
 
   const updateDb = (next: LocalDb | ((prev: LocalDb) => LocalDb)) => {
@@ -215,7 +241,7 @@ export function InventoryManager() {
         {tab === 'dashboard' && (
           <DashboardTab
             totals={totals} expenseByName={expenseByName} products={products} onGoInventory={() => setTab('inventory')}
-            totalQty={totalQty} stockValue={stockValue} low={db.low}
+            webStockQty={webStock.qty} webStockAmount={webStock.amount} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
@@ -328,10 +354,10 @@ export function InventoryManager() {
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
+function DashboardTab({ totals, expenseByName, products, webStockQty, webStockAmount, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[];
-  totalQty: number; stockValue: { value: number; known: boolean }; low: number;
+  webStockQty: number | null; webStockAmount: number | null; low: number;
   onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void; onZero: () => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
@@ -360,11 +386,11 @@ function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, l
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4">
           <p className="text-xs font-black tracking-widest text-gray-500">TOTAL STOCK</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{totalQty}</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{webStockQty == null ? '—' : webStockQty.toLocaleString('en-PK')}</p>
         </div>
         <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4">
           <p className="text-xs font-black tracking-widest text-gray-500">TOTAL AMOUNT</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{stockValue.known ? rs(stockValue.value) : 'No cost'}</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{webStockAmount == null ? '—' : rs(webStockAmount)}</p>
         </div>
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
