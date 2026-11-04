@@ -348,9 +348,9 @@ function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, l
           <p className="text-xs font-black tracking-widest text-green-700">TOTAL PROFIT</p>
           <p className="text-2xl font-black text-gray-900 mt-1">{rs(totals.saleProfit)}</p>
         </div>
-        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4">
-          <p className="text-xs font-black tracking-widest text-gray-500">EXPENSES</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{rs(totals.totalExpenses)}</p>
+        <div className="bg-white rounded-2xl border-2 border-red-200 shadow-lg p-4">
+          <p className="text-xs font-black tracking-widest text-red-600">EXPENSES</p>
+          <p className="text-2xl font-black text-red-600 mt-1">{rs(totals.totalExpenses)}</p>
         </div>
         <div className={`rounded-2xl border-2 shadow-lg p-4 ${totals.netProfit < 0 ? 'bg-white border-red-200' : 'bg-white border-green-200'}`}>
           <p className={`text-xs font-black tracking-widest ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>NET PROFIT</p>
