@@ -11,7 +11,7 @@ const PAGE_PATHS: Record<Page, string> = {
   contact: '/contact', about: '/about', 'return-policy': '/return-policy', 'privacy-policy': '/privacy-policy',
   terms: '/terms', faq: '/faq', 'flash-deals': '/flash-deals',
   admin: '/admin', 'admin-login': '/admin-login', 'admin-products': '/admin-products', 'admin-categories': '/admin-categories',
-  'admin-orders': '/admin-orders', 'admin-product-form': '/admin-product-form', 'admin-account': '/admin-account',
+  'admin-orders': '/admin-orders', 'admin-inventory': '/admin-inventory', 'admin-product-form': '/admin-product-form', 'admin-account': '/admin-account',
   'dev-login': '/ws-studio', 'dev-panel': '/ws-studio/panel',
   notfound: '/404',
 };

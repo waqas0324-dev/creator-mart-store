@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X, type LucideIcon, Store, Loader2, Tags } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X, type LucideIcon, Store, Loader2, Tags, ClipboardList } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { adminLogout, syncAdminSession } from '../../lib/adminAuth';
@@ -14,6 +14,7 @@ const NAV_ITEMS: { label: string; icon: LucideIcon; page: Page }[] = [
   { label: 'Products', icon: Package, page: 'admin-products' },
   { label: 'Categories', icon: Tags, page: 'admin-categories' },
   { label: 'Orders', icon: ShoppingBag, page: 'admin-orders' },
+  { label: 'Inventory Manager', icon: ClipboardList, page: 'admin-inventory' },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

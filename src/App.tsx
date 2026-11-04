@@ -25,6 +25,7 @@ const AdminProductForm = lazy(() => import('./pages/admin/ProductForm').then(m =
 const AdminOrders = lazy(() => import('./pages/admin/Orders').then(m => ({ default: m.AdminOrders })));
 const AdminCategories = lazy(() => import('./pages/admin/Categories').then(m => ({ default: m.AdminCategories })));
 const AdminAccount = lazy(() => import('./pages/admin/Account').then(m => ({ default: m.AdminAccount })));
+const AdminInventory = lazy(() => import('./pages/admin/InventoryManager').then(m => ({ default: m.InventoryManager })));
 const DevLogin = lazy(() => import('./pages/dev/DevLogin').then(m => ({ default: m.DevLogin })));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage').then(m => ({ default: m.CategoriesPage })));
 const ProductDetail = lazy(() => import('./pages/ProductDetail').then(m => ({ default: m.ProductDetail })));
@@ -46,7 +47,7 @@ const FlashDeals = lazy(() => import('./pages/FlashDeals').then(m => ({ default:
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const DevPanel = lazy(() => import('./pages/dev/DevPanel').then(m => ({ default: m.DevPanel })));
 
-const ADMIN_PAGES = ['admin', 'admin-login', 'admin-products', 'admin-categories', 'admin-orders', 'admin-product-form', 'admin-account'];
+const ADMIN_PAGES = ['admin', 'admin-login', 'admin-products', 'admin-categories', 'admin-orders', 'admin-inventory', 'admin-product-form', 'admin-account'];
 const DEV_PAGES = ['dev-login', 'dev-panel'];
 
 const CustomerLoadingScreen = () => (
@@ -154,6 +155,7 @@ function Router() {
             {nav.page === 'admin-categories' && <AdminCategories />}
             {nav.page === 'admin-product-form' && <AdminProductForm />}
             {nav.page === 'admin-orders' && <AdminOrders />}
+            {nav.page === 'admin-inventory' && <AdminInventory />}
             {nav.page === 'admin-account' && <AdminAccount />}
           </>
         )}

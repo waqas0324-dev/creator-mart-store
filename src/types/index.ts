@@ -232,6 +232,7 @@ export type Page =
   | 'admin-products'
   | 'admin-categories'
   | 'admin-orders'
+  | 'admin-inventory'
   | 'admin-product-form'
   | 'admin-account'
   | 'notfound'
