@@ -292,6 +292,7 @@ export function InventoryManager() {
         <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs leading-5 text-gray-800">
           <p className="font-bold">Ye kya hai, seedhe lafzon me:</p>
           <p>Ye ABR website ka stock aur sale ka hisab hai. Website pe jo order aata hai, wo yahan sale me dikhta hai. Website ka stock hi yahan stock hai.</p>
+          <p><b>Dashboard saaf hai:</b> is pe sirf total sale, total kharcha, aur BACHAT ya LOSS ka card hai. Products ki list sirf Inventory tab me hai — naam, aage stock, kam ho to LOW ALERT.</p>
           <p><b>Cost nahi hai?</b> Inventory tab me ja kar har product ki asli cost aik dafa likh dein, phir profit aur stock value nikle gi. Cost likhe baghair profit 0 dikhe ga.</p>
           <p><b>Galat cheez edit/delete karni ho to:</b> Manual sale galat ho to Sales tab me Edit/Delete, expense galat ho to Expenses tab me Edit/Delete, cost galat ho to Inventory tab me cost badlein ya Delete dabayen. Website ka order galat ho to wo Orders page se edit/delete hoga, yahan se nahi, taake aik order do jagah se na bigre.</p>
         </div>
@@ -422,29 +423,24 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
         <p className="text-xl font-black mt-2">{rs(totals.totalExpenses)}</p>
         {expenseByName.map(([n, v]) => <p key={n} className="text-sm text-gray-600 flex justify-between"><span>{n}</span><span>{rs(v)}</span></p>)}
       </div>
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <h2 className="font-bold text-gray-900 border-l-4 border-orange-500 pl-2">Net profit</h2>
+      <div className={`rounded-xl border p-4 ${totals.netProfit < 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">{totals.netProfit < 0 ? 'LOSS hai — sab kharcha nikalne ke baad' : 'BACHAT hai — sab kharcha nikalne ke baad'}</h2>
         <p className={`text-xl font-black mt-2 ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>{rs(totals.netProfit)}</p>
-        <p className="text-xs text-gray-500">Sale se profit {rs(totals.saleProfit)} minus expenses {rs(totals.totalExpenses)}</p>
+        <p className="text-sm text-gray-700 mt-1">
+          {totals.netProfit < 0
+            ? `Loss me hain: kharcha sale profit se ${rs(-totals.netProfit)} zyada hai. (Sale profit ${rs(totals.saleProfit)} − kharcha ${rs(totals.totalExpenses)})`
+            : `Bachat hui hai: sale profit ${rs(totals.saleProfit)} − kharcha ${rs(totals.totalExpenses)} = bachat ${rs(totals.netProfit)}`}
+        </p>
       </div>
-      <h2 className="font-bold text-gray-900 border-l-4 border-orange-500 pl-2">In stock</h2>
+      <h2 className="font-bold text-gray-900 border-l-4 border-orange-500 pl-2">In stock (sirf total)</h2>
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Total quantity</p><p className="text-xl font-black">{totalQty}</p></div>
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Stock ki asli value</p><p className="text-xl font-black">{stockValue.known ? rs(stockValue.value) : 'Cost nahi hai'}</p></div>
       </div>
-      {products.map(p => {
-        const cost = costById[p.id];
-        return (
-          <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-3">
-            <div className="flex justify-between gap-3">
-              <p className="text-sm font-semibold leading-5">{p.name}</p>
-              <p className={`text-sm font-bold shrink-0 ${p.stock <= low ? 'text-amber-700' : ''}`}>{p.stock}{p.stock <= low ? ' (kam)' : ''}</p>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{cost != null ? `Cost ${rs(cost)} x ${p.stock} = ${rs(p.stock * cost)}` : `Sale price ${rs(p.price)} x ${p.stock} — Cost nahi hai`}</p>
-            <button type="button" onClick={onGoInventory} className="mt-2 text-xs font-bold text-orange-600">Cost daalein / badlein → Inventory tab</button>
-          </div>
-        );
-      })}
+      <div className="bg-white rounded-xl border border-gray-200 p-3 flex justify-between items-center gap-3">
+        <p className="text-sm">Kam stock wale products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — poori list Inventory tab me hai.</p>
+        <button type="button" onClick={onGoInventory} className="shrink-0 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold">Inventory kholein →</button>
+      </div>
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
         <h2 className="font-bold border-l-4 border-orange-500 pl-2">Settings</h2>
         <label className="flex items-center justify-between gap-3 text-sm font-semibold">Kam stock alert (is se kam ya barabar)
@@ -475,25 +471,32 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
   }, [pid]);
   return (
     <div className="space-y-4">
-      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock list — website stock hi asli stock hai</h2>
-      {products.map(p => {
-        const cost = costById[p.id];
-        return (
-          <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="flex justify-between gap-3">
-              <p className="text-sm font-semibold leading-5">{p.name} {p.stock <= low && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Kam stock</span>}</p>
-              <TwoTapDelete onDelete={() => onDeleteCost(p.id)} />
+      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock list — sirf naam aur stock</h2>
+      <p className="text-xs text-gray-500">Har line me: product ka naam — aage stock — stock kam ho to LOW ALERT. Cost isi line me likhein, galat ho to Delete dabayen.</p>
+      <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+        {products.map(p => {
+          const cost = costById[p.id];
+          const isLow = p.stock <= low;
+          return (
+            <div key={p.id} className="px-3 py-2.5 flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold leading-5 min-w-0">
+                {p.name}
+                {isLow && <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">LOW ALERT</span>}
+              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`text-sm font-bold ${isLow ? 'text-red-700' : ''}`}>Stock: {p.stock}</span>
+                <input type="number" min={0} defaultValue={cost ?? ''} key={`${p.id}-${cost ?? 'none'}`} placeholder="Cost"
+                  aria-label={`${p.name} ki cost`}
+                  onBlur={e => { const v = Number(e.target.value); if (v > 0) onCost(p.id, v); }}
+                  className="border rounded-lg px-2 py-1.5 w-20 text-right text-sm" />
+                {cost != null && <TwoTapDelete onDelete={() => onDeleteCost(p.id)} />}
+              </div>
             </div>
-            <p className="text-sm text-gray-500">Asli price: {cost != null ? rs(cost) : 'Cost nahi hai'} | Quantity: {p.stock} | Stock value: {cost != null ? rs(p.stock * cost) : 'Cost nahi hai'}</p>
-            <label className="flex items-center gap-2 mt-2 text-sm font-semibold">Asli price / cost (1 piece)
-              <input type="number" min={0} defaultValue={cost ?? ''} key={`${p.id}-${cost ?? 'none'}`} placeholder="Cost likhein"
-                onBlur={e => { const v = Number(e.target.value); if (v > 0) onCost(p.id, v); }}
-                className="border rounded-lg px-2 py-1.5 w-28 text-right" />
-            </label>
-            <p className="text-xs text-gray-500">Cost badalne se purani sales ka profit nahi badle ga (snapshot mehfooz hai).</p>
-          </div>
-        );
-      })}
+          );
+        })}
+        {products.length === 0 && <p className="px-3 py-3 text-sm text-gray-500">Koi product nahi hai.</p>}
+      </div>
+      <p className="text-xs text-gray-500">Cost badalne se purani sales ka profit nahi badle ga (snapshot mehfooz hai).</p>
       {products.length > 0 && (
         <form className="bg-white rounded-xl border border-gray-200 p-4 space-y-3" onSubmit={async e => {
           e.preventDefault(); setErr(null);
