@@ -339,23 +339,23 @@ function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, l
   useEffect(() => () => { if (zeroTimer.current) clearTimeout(zeroTimer.current); }, []);
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border-2 border-orange-200 shadow-lg p-5">
-        <p className="text-xs font-black tracking-widest text-orange-600">TOTAL SALE</p>
-        <p className="text-2xl font-black text-gray-900 mt-1">{rs(totals.totalSale)}</p>
-      </div>
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-5">
-        <p className="text-xs font-black tracking-widest text-gray-500">TOTAL KHARCHA</p>
-        <p className="text-2xl font-black text-gray-900 mt-1">{rs(totals.totalExpenses)}</p>
-        {expenseByName.map(([n, v]) => <p key={n} className="text-sm text-gray-600 flex justify-between"><span>{n}</span><span>{rs(v)}</span></p>)}
-      </div>
-      <div className={`rounded-2xl border-2 shadow-lg p-5 ${totals.netProfit < 0 ? 'bg-white border-red-200' : 'bg-white border-green-200'}`}>
-        <p className={`text-xs font-black tracking-widest ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>{totals.netProfit < 0 ? 'LOSS' : 'BACHAT'}</p>
-        <p className={`text-2xl font-black mt-1 ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>{rs(totals.netProfit)}</p>
-      </div>
-      <h2 className="font-bold text-gray-900 border-l-4 border-orange-500 pl-2">In stock (sirf total)</h2>
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-md p-4"><p className="text-xs font-black tracking-widest text-gray-500">TOTAL QUANTITY</p><p className="text-2xl font-black">{totalQty}</p></div>
-        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-md p-4"><p className="text-xs font-black tracking-widest text-gray-500">STOCK VALUE</p><p className="text-2xl font-black">{stockValue.known ? rs(stockValue.value) : 'Cost nahi hai'}</p></div>
+        <div className="bg-white rounded-2xl border-2 border-orange-200 shadow-lg p-4">
+          <p className="text-xs font-black tracking-widest text-orange-600">TOTAL SALE</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{rs(totals.totalSale)}</p>
+        </div>
+        <div className="bg-white rounded-2xl border-2 border-green-200 shadow-lg p-4">
+          <p className="text-xs font-black tracking-widest text-green-700">TOTAL PROFIT</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{rs(totals.saleProfit)}</p>
+        </div>
+        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4">
+          <p className="text-xs font-black tracking-widest text-gray-500">EXPENSES</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{rs(totals.totalExpenses)}</p>
+        </div>
+        <div className={`rounded-2xl border-2 shadow-lg p-4 ${totals.netProfit < 0 ? 'bg-white border-red-200' : 'bg-white border-green-200'}`}>
+          <p className={`text-xs font-black tracking-widest ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>NET PROFIT</p>
+          <p className={`text-2xl font-black mt-1 ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>{rs(totals.netProfit)}</p>
+        </div>
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
         <p className="text-sm">Kam stock wale products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — poori list Inventory tab me hai.</p>
