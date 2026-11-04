@@ -122,28 +122,48 @@ export function InventoryManager() {
   const products: StockProduct[] = useMemo(() => db.manualProducts.map(mp => ({ id: mp.id, name: mp.name, stock: mp.qty })), [db.manualProducts]);
   const [msg, setMsg] = useState<string | null>(null);
   const [backupText, setBackupText] = useState('');
-  // Website totals (READ-ONLY, only for the 2 stock boxes): total pieces and
-  // total amount at website sale prices. Website orders/sales are never used.
+  // Website data (READ-ONLY): total pieces/amount for the stock boxes, and
+  // categories + products for the inventory report. Website orders/sales
+  // are never used here.
   const [webStock, setWebStock] = useState<{ qty: number | null; amount: number | null }>({ qty: null, amount: null });
+  const [webCats, setWebCats] = useState<WebCatGroup[] | null>(null);
+  const [webLoadError, setWebLoadError] = useState(false);
   useEffect(() => {
     if (tab !== 'dashboard') return;
     let cancelled = false;
     (async () => {
       try {
+        const { data: catData, error: catErr } = await supabase.from('categories').select('id,name').order('name');
+        if (catErr) throw catErr;
+        const catName = new Map<string, string>((catData as { id: string; name: string }[]).map(c => [c.id, c.name]));
         let qty = 0, amount = 0, from = 0;
+        const byCat = new Map<string, WebProd[]>();
         for (;;) {
-          const { data, error } = await supabase.from('products').select('stock,price').range(from, from + 999);
-          if (error || !data) { if (!cancelled) setWebStock({ qty: null, amount: null }); return; }
-          for (const r of data as { stock: number | null; price: number | null }[]) {
+          const { data, error } = await supabase.from('products').select('name,price,original_price,image_url,stock,category_id').range(from, from + 999);
+          if (error || !data) throw error ?? new Error('products load failed');
+          for (const r of data as (WebProd & { category_id: string | null })[]) {
             const s = r.stock ?? 0;
             qty += s;
             amount += s * (r.price ?? 0);
+            const key = r.category_id ?? '__none__';
+            const arr = byCat.get(key) ?? [];
+            arr.push({ name: r.name, price: r.price, original_price: r.original_price, image_url: r.image_url, stock: r.stock });
+            byCat.set(key, arr);
           }
           if (data.length < 1000) break;
           from += 1000;
         }
-        if (!cancelled) setWebStock({ qty, amount });
-      } catch { if (!cancelled) setWebStock({ qty: null, amount: null }); }
+        const groups: WebCatGroup[] = [...byCat.entries()].map(([id, products]) => ({
+          id, name: id === '__none__' ? 'Uncategorized' : (catName.get(id) ?? 'Uncategorized'),
+          products: [...products].sort((a, b) => a.name.localeCompare(b.name)),
+        })).sort((a, b) => (a.id === '__none__' ? 1 : b.id === '__none__' ? -1 : a.name.localeCompare(b.name)));
+        if (cancelled) return;
+        setWebStock({ qty, amount });
+        setWebCats(groups);
+        setWebLoadError(false);
+      } catch {
+        if (!cancelled) { setWebStock({ qty: null, amount: null }); setWebCats(null); setWebLoadError(true); }
+      }
     })();
     return () => { cancelled = true; };
   }, [tab]);
@@ -241,7 +261,7 @@ export function InventoryManager() {
         {tab === 'dashboard' && (
           <DashboardTab
             totals={totals} expenseByName={expenseByName} products={products} onGoInventory={() => setTab('inventory')}
-            webStockQty={webStock.qty} webStockAmount={webStock.amount} low={db.low}
+            webStockQty={webStock.qty} webStockAmount={webStock.amount} webCats={webCats} webLoadError={webLoadError} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
@@ -353,15 +373,63 @@ export function InventoryManager() {
   );
 }
 
+
+// ---------------------------------------------------------------- Report
+type WebProd = { name: string; price: number | null; original_price: number | null; image_url: string | null; stock: number | null };
+type WebCatGroup = { id: string; name: string; products: WebProd[] };
+
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const catTotals = (prods: WebProd[]) => ({
+  count: prods.length,
+  pieces: prods.reduce((s, x) => s + (x.stock ?? 0), 0),
+  amount: prods.reduce((s, x) => s + (x.stock ?? 0) * (x.price ?? 0), 0),
+});
+
+function buildReportHtml(groups: WebCatGroup[], scope: string): string {
+  const picked = scope === 'all' ? groups : groups.filter(g => g.id === scope);
+  const rows = picked.map(g => {
+    const tot = catTotals(g.products);
+    const body = g.products.map((x, i) => `<tr><td>${i + 1}</td><td>${x.image_url ? `<img src="${escHtml(x.image_url)}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px" onerror="this.remove()">` : ''}${escHtml(x.name)}</td><td>${x.price == null ? '—' : rs(x.price)}</td><td>${x.original_price == null ? '—' : rs(x.original_price)}</td><td>${x.stock ?? 0}</td><td>${rs((x.stock ?? 0) * (x.price ?? 0))}</td></tr>`).join('');
+    return `<h2>${escHtml(g.name)}</h2><table><thead><tr><th>#</th><th>Product</th><th>Price</th><th>Original Price</th><th>Stock</th><th>Amount</th></tr></thead><tbody>${body || '<tr><td colspan="6">No products</td></tr>'}</tbody></table><p class="tot"><b>Total:</b> ${tot.count} products &nbsp;|&nbsp; ${tot.pieces} pieces &nbsp;|&nbsp; ${rs(tot.amount)}</p>`;
+  }).join('');
+  const all = groups.flatMap(g => g.products);
+  const at = catTotals(all);
+  const summary = scope === 'all'
+    ? `<h2>Summary</h2><p class="tot"><b>Total categories:</b> ${groups.length} &nbsp;|&nbsp; <b>Total products:</b> ${at.count} &nbsp;|&nbsp; <b>Total pieces:</b> ${at.pieces} &nbsp;|&nbsp; <b>Total amount:</b> ${rs(at.amount)}</p>`
+    : '';
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ABR Gadgets — Website Inventory Report</title><style>
+    body{font-family:Arial,sans-serif;color:#111;margin:24px} h1{font-size:22px} h2{font-size:17px;margin:24px 0 8px;border-bottom:2px solid #111;padding-bottom:4px}
+    table{width:100%;border-collapse:collapse;font-size:13px} th,td{border:1px solid #ccc;padding:6px 8px;text-align:left} th{background:#f0f0f0}
+    .tot{font-size:14px} .muted{color:#555} button{padding:10px 18px;font-size:15px;font-weight:bold;background:#f97316;color:#fff;border:0;border-radius:8px;cursor:pointer}
+    @media print{ .no-print{display:none !important} }
+  </style></head><body>
+  <button class="no-print" onclick="window.print()">Print / Save as PDF</button>
+  <h1>ABR Gadgets — Website Inventory Report</h1>
+  <p class="muted">${escHtml(scope === 'all' ? 'All categories' : (picked[0]?.name ?? ''))} &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-PK')}</p>
+  ${rows}${summary}
+  <script>setTimeout(function(){ window.print(); }, 800);<\/script>
+  </body></html>`;
+}
+
+function openReport(groups: WebCatGroup[], scope: string) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(buildReportHtml(groups, scope));
+  w.document.close();
+}
+
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, webStockQty, webStockAmount, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
+function DashboardTab({ totals, expenseByName, products, webStockQty, webStockAmount, webCats, webLoadError, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[];
-  webStockQty: number | null; webStockAmount: number | null; low: number;
+  webStockQty: number | null; webStockAmount: number | null; webCats: WebCatGroup[] | null; webLoadError: boolean; low: number;
   onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void; onZero: () => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
   const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [reportScope, setReportScope] = useState('all');
+  const reportGroup = reportScope === 'all' ? null : (webCats ?? []).find(g => g.id === reportScope);
+  const reportTot = reportGroup ? catTotals(reportGroup.products) : (webCats ? catTotals(webCats.flatMap(g => g.products)) : null);
   useEffect(() => () => { if (zeroTimer.current) clearTimeout(zeroTimer.current); }, []);
   return (
     <div className="space-y-4">
@@ -392,6 +460,23 @@ function DashboardTab({ totals, expenseByName, products, webStockQty, webStockAm
           <p className="text-xs font-black tracking-widest text-gray-500">TOTAL AMOUNT</p>
           <p className="text-2xl font-black text-gray-900 mt-1">{webStockAmount == null ? '—' : rs(webStockAmount)}</p>
         </div>
+      </div>
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4 space-y-3">
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Website Inventory Report</h2>
+        {webLoadError ? (
+          <p className="text-sm text-red-600">Website data could not be loaded.</p>
+        ) : webCats == null ? (
+          <p className="text-sm text-gray-500">Loading website categories…</p>
+        ) : (
+          <>
+            <select value={reportScope} onChange={e => setReportScope(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+              <option value="all">All categories (full inventory)</option>
+              {webCats.map(g => <option key={g.id} value={g.id}>{g.name} ({g.products.length})</option>)}
+            </select>
+            {reportTot && <p className="text-sm font-bold">{reportTot.count} products &nbsp;|&nbsp; {reportTot.pieces} pieces &nbsp;|&nbsp; {rs(reportTot.amount)}</p>}
+            <button type="button" onClick={() => webCats && openReport(webCats, reportScope)} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">Print / Download PDF</button>
+          </>
+        )}
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
         <p className="text-sm">Low stock products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — full list in Inventory tab.</p>
