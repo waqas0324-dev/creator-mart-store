@@ -289,10 +289,16 @@ export function InventoryManager() {
           Website orders: {orders.length} | Naye orders: {newOrders} | Stock website se live hai — alag stock list nahi hai.
           {totals.costMissing && ' | Kuch sales ki cost nahi hai, un ka profit 0 ginna gaya hai (cost invent nahi ki gayi).'}
         </p>
+        <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs leading-5 text-gray-800">
+          <p className="font-bold">Ye kya hai, seedhe lafzon me:</p>
+          <p>Ye ABR website ka stock aur sale ka hisab hai. Website pe jo order aata hai, wo yahan sale me dikhta hai. Website ka stock hi yahan stock hai.</p>
+          <p><b>Cost nahi hai?</b> Inventory tab me ja kar har product ki asli cost aik dafa likh dein, phir profit aur stock value nikle gi. Cost likhe baghair profit 0 dikhe ga.</p>
+          <p><b>Galat cheez edit/delete karni ho to:</b> Manual sale galat ho to Sales tab me Edit/Delete, expense galat ho to Expenses tab me Edit/Delete, cost galat ho to Inventory tab me cost badlein ya Delete dabayen. Website ka order galat ho to wo Orders page se edit/delete hoga, yahan se nahi, taake aik order do jagah se na bigre.</p>
+        </div>
 
         {tab === 'dashboard' && (
           <DashboardTab
-            totals={totals} expenseByName={expenseByName} products={products} costById={db.costById}
+            totals={totals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
           />
@@ -398,27 +404,27 @@ export function InventoryManager() {
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, backupText }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: Product[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
-  onLow: (v: number) => void; onBackup: () => void; backupText: string;
+  onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void;
 }) {
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <h2 className="font-bold text-gray-900 border-l-4 border-orange-500 pl-2">Total sale (return minus hone ke baad)</h2>
-        <p className="text-2xl font-black text-orange-600 mt-2">{rs(totals.totalSale)}</p>
+        <p className="text-xl font-black text-orange-600 mt-2">{rs(totals.totalSale)}</p>
         <p className="text-xs text-gray-500">Website orders + manual sales, dono return minus kar ke.</p>
       </div>
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <h2 className="font-bold text-gray-900 border-l-4 border-orange-500 pl-2">Total expenses</h2>
-        <p className="text-2xl font-black mt-2">{rs(totals.totalExpenses)}</p>
+        <p className="text-xl font-black mt-2">{rs(totals.totalExpenses)}</p>
         {expenseByName.map(([n, v]) => <p key={n} className="text-sm text-gray-600 flex justify-between"><span>{n}</span><span>{rs(v)}</span></p>)}
       </div>
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <h2 className="font-bold text-gray-900 border-l-4 border-orange-500 pl-2">Net profit</h2>
-        <p className={`text-2xl font-black mt-2 ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>{rs(totals.netProfit)}</p>
+        <p className={`text-xl font-black mt-2 ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>{rs(totals.netProfit)}</p>
         <p className="text-xs text-gray-500">Sale se profit {rs(totals.saleProfit)} minus expenses {rs(totals.totalExpenses)}</p>
       </div>
       <h2 className="font-bold text-gray-900 border-l-4 border-orange-500 pl-2">In stock</h2>
@@ -429,12 +435,13 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
       {products.map(p => {
         const cost = costById[p.id];
         return (
-          <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-4 flex justify-between gap-3">
-            <div><p className="font-bold">{p.name}</p><p className="text-sm text-gray-500">{cost != null ? `Cost ${rs(cost)} x ${p.stock}` : `Sale price ${rs(p.price)} x ${p.stock}`}</p></div>
-            <div className="text-right">
-              <p className={`font-black ${p.stock <= low ? 'text-amber-700' : ''}`}>{p.stock}{p.stock <= low ? ' (kam)' : ''}</p>
-              <p className="text-sm text-gray-500">{cost != null ? rs(p.stock * cost) : 'Cost nahi hai'}</p>
+          <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-3">
+            <div className="flex justify-between gap-3">
+              <p className="text-sm font-semibold leading-5">{p.name}</p>
+              <p className={`text-sm font-bold shrink-0 ${p.stock <= low ? 'text-amber-700' : ''}`}>{p.stock}{p.stock <= low ? ' (kam)' : ''}</p>
             </div>
+            <p className="text-xs text-gray-500 mt-1">{cost != null ? `Cost ${rs(cost)} x ${p.stock} = ${rs(p.stock * cost)}` : `Sale price ${rs(p.price)} x ${p.stock} — Cost nahi hai`}</p>
+            <button type="button" onClick={onGoInventory} className="mt-2 text-xs font-bold text-orange-600">Cost daalein / badlein → Inventory tab</button>
           </div>
         );
       })}
@@ -474,7 +481,7 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
         return (
           <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-4">
             <div className="flex justify-between gap-3">
-              <p className="font-bold">{p.name} {p.stock <= low && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Kam stock</span>}</p>
+              <p className="text-sm font-semibold leading-5">{p.name} {p.stock <= low && <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Kam stock</span>}</p>
               <TwoTapDelete onDelete={() => onDeleteCost(p.id)} />
             </div>
             <p className="text-sm text-gray-500">Asli price: {cost != null ? rs(cost) : 'Cost nahi hai'} | Quantity: {p.stock} | Stock value: {cost != null ? rs(p.stock * cost) : 'Cost nahi hai'}</p>
