@@ -1,35 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
-import { supabase } from '../../lib/supabase';
-import type { Order, OrderItem, Product } from '../../types';
 
 // ---------------------------------------------------------------------------
-// ABR Gadgets — Inventory Manager (inside the website admin panel only).
+// ABR Gadgets — Inventory Manager (inside the admin panel, but FULLY
+// SEPARATE from the website — owner decision 2026-11-04, voice notes 172/173).
 //
-// WEBSITE LINK (the rule this page is built around):
-//  * Website products (Supabase table `products`: id, name, price, stock)
-//    are the ONLY stock list. There is no second stock list.
-//  * Website orders (Supabase tables `orders` + `order_items`: order_number,
-//    created_at, status, total; order_items: product_id, product_name,
-//    price, quantity, subtotal) appear here as sales, read-only.
-//  * A manager sale / return / Stock In updates `products.stock` in
-//    Supabase, so the website and the manager always show the same stock.
-//
-// MANAGER-ONLY DATA (the website has no cost, expense or return columns):
-//  * localStorage key "bizmanager-v1":
-//      costById:   { [productId]: asli cost of 1 piece }
-//      webCost:    { [orderItemId]: cost snapshot at first sight, or null }
-//      expenses:   [{ id, cat, amount, date, note }]
-//      manualSales:[{ id, date, items: [{ pid, name, qty, price, cost, ret, rl }] }]
-//      webReturns: [{ id, itemId, orderId, orderNumber, name, pid, qty, price, cost, date }]
-//      low:        low-stock threshold (default 5)
-//  * Website sales are NEVER copied into manualSales, so they are never
-//    counted twice. Website profit uses the webCost snapshot only: if no
-//    cost was ever recorded for that item, its profit is 0 and the UI
-//    says "cost nahi hai" — a cost is never invented.
-//  * React escapes all user text by default; this file uses no
-//    dangerouslySetInnerHTML, and never uses confirm()/alert()/prompt().
+//  * Website admin panel ka system ALAG hai, ye inventory system ALAG hai.
+//  * Website ke saath is ka KOI link nahi: na website orders sale me aate
+//    hain, na website stock yahan aata hai.
+//  * Owner khud add karta hai: inventory (product, quantity, khareed price),
+//    sale (us asli price par jis par us ne becha — website price par mazeed
+//    discount bhi hota hai, is liye website price use nahi hoti), kharcha.
+//  * Profit = sale price − khareed price, phir minus total kharcha.
+//  * Sab kuch sirf is phone/browser ke localStorage "bizmanager-v1" me hai.
+//    Website ke products/orders yahan se delete ya change NAHI hote.
 // ---------------------------------------------------------------------------
+
+type StockProduct = { id: string; name: string; stock: number };
+
 
 const LS_KEY = 'bizmanager-v1';
 const EXPENSE_SUGGESTIONS = ['Stock Bilty', 'Packing', 'Shipping', 'Ads', 'Rent', 'Salary', 'Bills', 'Other'];
@@ -39,6 +27,7 @@ type ManualSale = { id: string; date: string; items: ManualItem[] };
 type Expense = { id: string; cat: string; amount: number; date: string; note: string };
 type WebReturn = { id: string; itemId: string; orderId: string; orderNumber: string; name: string; pid: string | null; qty: number; price: number; cost: number | null; date: string };
 type LocalDb = {
+  manualProducts: { id: string; name: string; qty: number }[];
   costById: Record<string, number>;
   webCost: Record<string, number | null>;
   expenses: Expense[];
@@ -47,7 +36,7 @@ type LocalDb = {
   low: number;
 };
 
-const EMPTY_DB: LocalDb = { costById: {}, webCost: {}, expenses: [], manualSales: [], webReturns: [], low: 5 };
+const EMPTY_DB: LocalDb = { manualProducts: [], costById: {}, webCost: {}, expenses: [], manualSales: [], webReturns: [], low: 5 };
 
 function loadLocal(): LocalDb {
   try {
@@ -71,6 +60,7 @@ function loadLocal(): LocalDb {
         })
       : [];
     return {
+      manualProducts: Array.isArray(parsed.manualProducts) ? parsed.manualProducts : [],
       costById: parsed.costById ?? {},
       webCost: parsed.webCost ?? {},
       expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
@@ -128,75 +118,23 @@ const TABS: { id: Tab; label: string }[] = [
 export function InventoryManager() {
   const [tab, setTab] = useState<Tab>('dashboard');
   const [db, setDb] = useState<LocalDb>(loadLocal);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const products: StockProduct[] = useMemo(() => db.manualProducts.map(mp => ({ id: mp.id, name: mp.name, stock: mp.qty })), [db.manualProducts]);
   const [msg, setMsg] = useState<string | null>(null);
   const [backupText, setBackupText] = useState('');
 
-  // Website data: products.stock is the single stock source; orders are sales.
-  const fetchWebsite = async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const [{ data: prods, error: pErr }, { data: ords, error: oErr }] = await Promise.all([
-        supabase.from('products').select('id,name,price,stock').order('name'),
-        supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }),
-      ]);
-      if (pErr) throw new Error(pErr.message);
-      if (oErr) throw new Error(oErr.message);
-      setProducts(((prods as unknown) as Product[]) || []);
-      const list = ((ords as unknown) as Order[]) || [];
-      setOrders(list);
-      // Snapshot website costs ONCE per order item, so editing a cost later
-      // never rewrites past profit. Unknown cost stays null (never invented).
-      setDb(prev => {
-        const webCost = { ...prev.webCost };
-        let changed = false;
-        for (const o of list) {
-          for (const it of o.order_items ?? []) {
-            if (!(it.id in webCost)) {
-              webCost[it.id] = it.product_id && prev.costById[it.product_id] != null ? prev.costById[it.product_id] : null;
-              changed = true;
-            }
-          }
-        }
-        if (!changed) return prev;
-        const next = { ...prev, webCost };
-        saveLocal(next);
-        return next;
-      });
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : 'Website data load nahi hua.');
-    } finally {
-      setLoading(false);
-    }
+
+  const updateDb = (next: LocalDb | ((prev: LocalDb) => LocalDb)) => {
+    setDb(prev => {
+      const n = typeof next === 'function' ? (next as (p: LocalDb) => LocalDb)(prev) : next;
+      saveLocal(n);
+      return n;
+    });
   };
 
-  useEffect(() => { fetchWebsite(); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const updateDb = (next: LocalDb) => { setDb(next); saveLocal(next); };
-
-  // --- Unified totals: website orders + manual sales, never double-counted.
-  const webReturned = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of db.webReturns) m.set(r.itemId, (m.get(r.itemId) ?? 0) + r.qty);
-    return m;
-  }, [db.webReturns]);
-
+  // --- Totals: SIRF manual sales (owner 2026-11-04). Website orders
+  // sale me nahi ginay jate, kyunki owner khud asli sale price add karta hai.
   const totals = useMemo(() => {
     let totalSale = 0, saleProfit = 0, costMissing = false;
-    for (const o of orders) {
-      for (const it of o.order_items ?? []) {
-        const rem = it.quantity - (webReturned.get(it.id) ?? 0);
-        totalSale += rem * it.price;
-        const cost = db.webCost[it.id];
-        if (cost == null) costMissing = true;
-        else saleProfit += rem * (it.price - cost);
-      }
-    }
     for (const s of db.manualSales) {
       for (const it of s.items) {
         const rem = it.qty - it.ret;
@@ -207,7 +145,7 @@ export function InventoryManager() {
     }
     const totalExpenses = db.expenses.reduce((s, e) => s + e.amount, 0);
     return { totalSale, saleProfit, totalExpenses, netProfit: saleProfit - totalExpenses, costMissing };
-  }, [orders, db, webReturned]);
+  }, [db]);
 
   const stockValue = useMemo(() => {
     let value = 0, known = false;
@@ -219,41 +157,30 @@ export function InventoryManager() {
   }, [products, db.costById]);
 
   const totalQty = products.reduce((s, p) => s + p.stock, 0);
-  const newOrders = orders.filter(o => o.status === 'new').length;
   const expenseByName = useMemo(() => {
     const m = new Map<string, number>();
     for (const e of db.expenses) m.set(e.cat, (m.get(e.cat) ?? 0) + e.amount);
     return [...m.entries()];
   }, [db.expenses]);
 
-  // Update one website product's stock in Supabase, then refresh local list.
-  const setWebsiteStock = async (pid: string, newStock: number) => {
-    const { error } = await supabase.from('products').update({ stock: newStock }).eq('id', pid);
-    if (error) throw new Error(error.message);
-    setProducts(prev => prev.map(p => (p.id === pid ? { ...p, stock: newStock } : p)));
-  };
-
-  // Return helper shared by Returns tab + Sales history buttons.
-  // itemCost: manual snapshot, or website cost snapshot (may be null).
-  // Stock comes back at that original cost (weighted average on costById).
-  const applyReturn = async (kind: 'website' | 'manual', orderId: string, orderNumber: string, itemId: string, pid: string | null, name: string, price: number, itemCost: number | null, q: number) => {
-    const prod = pid ? products.find(p => p.id === pid) : undefined;
-    if (prod) {
-      const oldCost = db.costById[pid as string];
-      const nextCost = itemCost == null ? oldCost : (oldCost == null ? itemCost : wavg(prod.stock, oldCost, q, itemCost));
-      await setWebsiteStock(prod.id, prod.stock + q);
-      if (nextCost != null) updateDb({ ...db, costById: { ...db.costById, [prod.id]: nextCost } });
-    }
-    if (kind === 'website') {
-      updateDb({ ...db, webReturns: [...db.webReturns, { id: uid(), itemId, orderId, orderNumber, name, pid, qty: q, price, cost: itemCost, date: today() }] });
-    } else {
-      updateDb({
-        ...db,
-        manualSales: db.manualSales.map(s => s.id === orderId
+  // Return helper: sirf manual sales ke liye. Stock usi asli cost par
+  // wapis aata hai (weighted average on costById). Aik hi update me
+  // stock + cost + sale ka return, taake koi update doosre ko na mita de.
+  const applyReturn = async (orderId: string, item: ManualItem, q: number) => {
+    const { pid, name, cost: itemCost } = item;
+    updateDb(prev => {
+      const prod = prev.manualProducts.find(mp => mp.id === pid);
+      const oldCost = prev.costById[pid];
+      const nextCost = !prod ? oldCost : (itemCost == null ? oldCost : (oldCost == null ? itemCost : wavg(prod.qty, oldCost, q, itemCost)));
+      return {
+        ...prev,
+        manualProducts: prev.manualProducts.map(mp => mp.id === pid ? { ...mp, qty: mp.qty + q } : mp),
+        costById: nextCost == null ? prev.costById : { ...prev.costById, [pid]: nextCost },
+        manualSales: prev.manualSales.map(s => s.id === orderId
           ? { ...s, items: s.items.map(it => it.pid === pid && it.name === name ? { ...it, ret: it.ret + q, rl: [...it.rl, { q, d: today() }] } : it) }
           : s),
-      });
-    }
+      };
+    });
     setMsg(`Return ho gaya: ${name} x ${q} stock mein wapis.`);
   };
 
@@ -280,64 +207,67 @@ export function InventoryManager() {
               {t.label}
             </button>
           ))}
-          <button type="button" onClick={fetchWebsite} className="ml-auto px-3 py-2 rounded-lg text-xs font-bold bg-black text-white">Refresh website data</button>
         </div>
-        {loadError && <p className="mb-3 rounded-lg bg-red-50 text-red-700 text-sm p-3">Website data load nahi hua: {loadError} — manager-only data phir bhi kaam kare ga, dobara Refresh dabayen.</p>}
-        {loading && <p className="text-sm text-gray-500 mb-3">Website orders aur stock load ho rahe hain...</p>}
         {msg && <p className="mb-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">{msg}</p>}
         <p className="text-xs text-gray-500 mb-4">
-          Website orders: {orders.length} • Naye: {newOrders}
+          Alag hisab: website se koi link nahi. Inventory, sale, kharcha aur cost tum khud add karo, us asli price par jis par becha.
           {totals.costMissing && ' • Kuch sales ki cost nahi hai, un ka profit 0 hai.'}
         </p>
 
 
         {tab === 'dashboard' && (
           <DashboardTab
-            totals={totals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
+            totals={totals} expenseByName={expenseByName} products={products} onGoInventory={() => setTab('inventory')}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
+            onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('Sab kuch zero ho gaya — naya hisab shuru. Purana data backup me save ho gaya hai.'); }}
           />
         )}
         {tab === 'inventory' && (
           <InventoryTab products={products} costById={db.costById} low={db.low}
-            onCost={(pid, cost) => updateDb({ ...db, costById: { ...db.costById, [pid]: cost } })}
+            onCost={(pid, cost) => updateDb(prev => ({ ...prev, costById: { ...prev.costById, [pid]: cost } }))}
+            onAddProduct={(name, qty, cost) => {
+              const id = uid();
+              updateDb(prev => ({ ...prev, manualProducts: [...prev.manualProducts, { id, name, qty }], costById: cost == null ? prev.costById : { ...prev.costById, [id]: cost } }));
+              setMsg(`Inventory me add ho gaya: ${name} x ${qty}.`);
+            }}
+            onEditProduct={(id, name, qty, cost) => updateDb(prev => ({ ...prev, manualProducts: prev.manualProducts.map(mp => mp.id === id ? { ...mp, name, qty } : mp), costById: cost == null ? prev.costById : { ...prev.costById, [id]: cost } }))}
+            onDeleteProduct={id => updateDb(prev => ({ ...prev, manualProducts: prev.manualProducts.filter(mp => mp.id !== id) }))}
             onStockIn={async (pid, addQty, newPrice) => {
               const prod = products.find(p => p.id === pid);
               if (!prod) return 'Product nahi mila.';
-              const oldCost = db.costById[pid];
-              const nextCost = oldCost == null ? newPrice : wavg(prod.stock, oldCost, addQty, newPrice);
-              try {
-                await setWebsiteStock(pid, prod.stock + addQty);
-                updateDb({ ...db, costById: { ...db.costById, [pid]: nextCost } });
-                setMsg(`Stock In: ${prod.name} +${addQty}, nayi asli cost ${rs(nextCost)}.`);
-                return null;
-              } catch (e) { return e instanceof Error ? e.message : 'Stock update nahi hua.'; }
+              updateDb(prev => {
+                const oldCost = prev.costById[pid];
+                const nextCost = oldCost == null ? newPrice : wavg(prod.stock, oldCost, addQty, newPrice);
+                return { ...prev, manualProducts: prev.manualProducts.map(mp => mp.id === pid ? { ...mp, qty: mp.qty + addQty } : mp), costById: { ...prev.costById, [pid]: nextCost } };
+              });
+              setMsg(`Stock In: ${prod.name} +${addQty}.`);
+              return null;
             }}
-            onDeleteCost={pid => { const c = { ...db.costById }; delete c[pid]; updateDb({ ...db, costById: c }); }}
+            onDeleteCost={pid => updateDb(prev => { const c = { ...prev.costById }; delete c[pid]; return { ...prev, costById: c }; })}
           />
         )}
         {tab === 'sales' && (
-          <SalesTab products={products} orders={orders} webReturned={webReturned} webCost={db.webCost}
+          <SalesTab products={products}
             manualSales={db.manualSales} costById={db.costById}
             onManualSale={async (sale) => {
-              // Stock check + Supabase stock update, all items at once.
               for (const it of sale.items) {
                 const prod = products.find(p => p.id === it.pid);
                 if (!prod) return 'Product nahi mila.';
                 if (it.qty > prod.stock) return `Is product ka sirf ${prod.stock} stock bacha hai.`;
               }
-              try {
-                for (const it of sale.items) {
-                  const prod = products.find(p => p.id === it.pid)!;
-                  await setWebsiteStock(it.pid, prod.stock - it.qty);
-                }
-                updateDb({ ...db, manualSales: [sale, ...db.manualSales] });
-                setMsg('Poori sale save ho gayi, stock update ho gaya.');
-                return null;
-              } catch (e) { return e instanceof Error ? e.message : 'Sale save nahi hui.'; }
+              updateDb(prev => ({
+                ...prev,
+                manualProducts: prev.manualProducts.map(mp => {
+                  const used = sale.items.filter(it => it.pid === mp.id).reduce((s, it) => s + it.qty, 0);
+                  return used ? { ...mp, qty: mp.qty - used } : mp;
+                }),
+                manualSales: [sale, ...prev.manualSales],
+              }));
+              setMsg('Poori sale save ho gayi, stock update ho gaya.');
+              return null;
             }}
-            onReturn={(orderId, item, q) => applyReturn('manual', orderId, '', item.pid, item.pid, item.name, item.price, item.cost, q)}
-            onWebReturn={(o, it, q) => applyReturn('website', o.id, o.order_number, it.id, it.product_id, it.product_name, it.price, db.webCost[it.id] ?? null, q)}
+            onReturn={(orderId, item, q) => applyReturn(orderId, item, q)}
             onEditManual={async (sale, edited) => {
               for (const it of edited.items) {
                 const orig = sale.items.find(x => x.pid === it.pid && x.name === it.name);
@@ -347,42 +277,44 @@ export function InventoryManager() {
                 if (it.qty < it.ret) return 'Quantity wapis ki hui quantity se kam nahi ho sakti.';
                 if (diff > 0 && diff > prod.stock) return `Is product ka sirf ${prod.stock} stock bacha hai.`;
               }
-              try {
-                for (const it of edited.items) {
-                  const orig = sale.items.find(x => x.pid === it.pid && x.name === it.name);
-                  const diff = it.qty - (orig?.qty ?? 0);
-                  if (diff !== 0) {
-                    const prod = products.find(p => p.id === it.pid)!;
-                    await setWebsiteStock(it.pid, prod.stock - diff);
-                  }
-                }
-                updateDb({ ...db, manualSales: db.manualSales.map(s => s.id === sale.id ? edited : s) });
-                setMsg('Sale edit ho gayi.');
-                return null;
-              } catch (e) { return e instanceof Error ? e.message : 'Edit save nahi hui.'; }
+              updateDb(prev => ({
+                ...prev,
+                manualProducts: prev.manualProducts.map(mp => {
+                  const diff = edited.items.filter(it => it.pid === mp.id).reduce((s, it) => {
+                    const orig = sale.items.find(x => x.pid === it.pid && x.name === it.name);
+                    return s + (it.qty - (orig?.qty ?? 0));
+                  }, 0);
+                  return diff ? { ...mp, qty: mp.qty - diff } : mp;
+                }),
+                manualSales: prev.manualSales.map(s => s.id === sale.id ? edited : s),
+              }));
+              setMsg('Sale edit ho gayi.');
+              return null;
             }}
             onDeleteManual={async (sale) => {
-              try {
+              updateDb(prev => {
+                let costById = { ...prev.costById };
+                let manualProducts = [...prev.manualProducts];
                 for (const it of sale.items) {
                   const rem = it.qty - it.ret;
                   if (rem <= 0) continue;
-                  const prod = products.find(p => p.id === it.pid);
+                  const prod = manualProducts.find(mp => mp.id === it.pid);
                   if (!prod) continue;
-                  const oldCost = db.costById[it.pid];
-                  const nextCost = it.cost == null ? oldCost : (oldCost == null ? it.cost : wavg(prod.stock, oldCost, rem, it.cost));
-                  await setWebsiteStock(it.pid, prod.stock + rem);
-                  if (nextCost != null) setDb(prev => ({ ...prev, costById: { ...prev.costById, [it.pid]: nextCost } }));
+                  const oldCost = costById[it.pid];
+                  const nextCost = it.cost == null ? oldCost : (oldCost == null ? it.cost : wavg(prod.qty, oldCost, rem, it.cost));
+                  if (nextCost != null) costById[it.pid] = nextCost;
+                  manualProducts = manualProducts.map(mp => mp.id === it.pid ? { ...mp, qty: mp.qty + rem } : mp);
                 }
-                updateDb({ ...db, manualSales: db.manualSales.filter(s => s.id !== sale.id) });
-                setMsg('Sale delete ho gayi, bacha hua stock wapis aa gaya.');
-              } catch (e) { setMsg(e instanceof Error ? e.message : 'Delete nahi hua.'); }
+                return { ...prev, manualProducts, costById, manualSales: prev.manualSales.filter(s => s.id !== sale.id) };
+              });
+              setMsg('Sale delete ho gayi, bacha hua stock wapis aa gaya.');
             }}
           />
         )}
         {tab === 'returns' && (
-          <ReturnsTab orders={orders} webReturned={webReturned} webCost={db.webCost}
-            manualSales={db.manualSales} webReturns={db.webReturns}
-            onReturn={(kind, orderId, orderNumber, itemId, pid, name, price, cost, q) => applyReturn(kind, orderId, orderNumber, itemId, pid, name, price, cost, q)}
+          <ReturnsTab
+            manualSales={db.manualSales}
+            onReturn={(orderId, item, q) => applyReturn(orderId, item, q)}
           />
         )}
         {tab === 'expenses' && (
@@ -399,18 +331,21 @@ export function InventoryManager() {
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory }: {
+function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
-  expenseByName: [string, number][]; products: Product[]; costById: Record<string, number>;
+  expenseByName: [string, number][]; products: StockProduct[];
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
-  onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void;
+  onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void; onZero: () => void;
 }) {
+  const [zeroArmed, setZeroArmed] = useState(false);
+  const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (zeroTimer.current) clearTimeout(zeroTimer.current); }, []);
   return (
     <div className="space-y-4">
       <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl border border-orange-100 shadow-md p-4">
         <p className="text-xs font-bold tracking-wide text-orange-600">TOTAL SALE</p>
         <p className="text-xl font-black text-gray-900 mt-1">{rs(totals.totalSale)}</p>
-        <p className="text-xs text-gray-500 mt-1">Website orders + manual sales, return minus kar ke.</p>
+        <p className="text-xs text-gray-500 mt-1">Sirf wo sales jo tum ne khud add ki hain, return minus kar ke. Website se koi link nahi.</p>
       </div>
       <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 shadow-md p-4">
         <p className="text-xs font-bold tracking-wide text-gray-500">TOTAL KHARCHA</p>
@@ -440,9 +375,17 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
         <label className="flex items-center justify-between gap-3 text-sm font-semibold">Kam stock alert (is se kam ya barabar)
           <input type="number" min={0} value={low} onChange={e => onLow(Number(e.target.value) || 0)} className="border rounded-lg px-2 py-1.5 w-20 text-right" />
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={onBackup} className="px-4 py-2 rounded-lg bg-black text-white text-sm font-bold">Backup download</button>
+          <button type="button" onClick={() => {
+            if (zeroArmed) { if (zeroTimer.current) clearTimeout(zeroTimer.current); setZeroArmed(false); onZero(); return; }
+            setZeroArmed(true);
+            zeroTimer.current = setTimeout(() => setZeroArmed(false), 4000);
+          }} className={`px-4 py-2 rounded-lg text-sm font-bold ${zeroArmed ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}`}>
+            {zeroArmed ? 'Pakka? Dobara dabayen — sab zero ho jaye ga' : 'Sab kuch zero kar dein (naya hisab)'}
+          </button>
         </div>
+        <p className="text-xs text-gray-500">Zero dabane se pehle backup download ho jaye ga. Website ke products/orders is se delete nahi hote — sirf is manager ka hisab zero hota hai.</p>
         {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Backup JSON copy karein" />}
       </div>
     </div>
@@ -466,16 +409,24 @@ function CostField({ initial, onSave }: { initial: number | undefined; onSave: (
   );
 }
 
-function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost }: {
-  products: Product[]; costById: Record<string, number>; low: number;
+function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost, onAddProduct, onEditProduct, onDeleteProduct }: {
+  products: StockProduct[]; costById: Record<string, number>; low: number;
   onCost: (pid: string, cost: number) => void;
   onStockIn: (pid: string, addQty: number, newPrice: number) => Promise<string | null>;
   onDeleteCost: (pid: string) => void;
+  onAddProduct: (name: string, qty: number, cost: number | null) => void;
+  onEditProduct: (id: string, name: string, qty: number, cost: number | null) => void;
+  onDeleteProduct: (id: string) => void;
 }) {
   const [pid, setPid] = useState('');
   const [addQty, setAddQty] = useState(1);
   const [newPrice, setNewPrice] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
+  const [newQty, setNewQty] = useState(1);
+  const [newCost, setNewCost] = useState('');
+  const [addErr, setAddErr] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; name: string; qty: number; cost: string } | null>(null);
   const selected = products.find(p => p.id === pid);
   useEffect(() => { if (selected) setNewPrice(String(costById[pid] ?? '')); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pid]);
@@ -483,10 +434,36 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
     <div className="space-y-4">
       <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock list — sirf naam aur stock</h2>
       <p className="text-xs text-gray-500">Har line me: product ka naam — aage stock — stock kam ho to LOW ALERT. Cost isi line me likh kar Save dabayen, galat ho to Delete dabayen.</p>
+      <form className="bg-white rounded-xl border-2 border-orange-500 p-4 space-y-3" onSubmit={e => {
+        e.preventDefault(); setAddErr(null);
+        if (!newName.trim() || newQty < 1) { setAddErr('Product ka naam aur sahi quantity likhein.'); return; }
+        onAddProduct(newName.trim(), newQty, newCost === '' ? null : Number(newCost));
+        setNewName(''); setNewQty(1); setNewCost('');
+      }}>
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Naya product add karein (inventory khud add karein)</h2>
+        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Product ka naam" className="w-full border rounded-lg px-3 py-2" />
+        <input type="number" min={1} value={newQty} onChange={e => setNewQty(Number(e.target.value))} placeholder="Quantity (kitni inventory hai)" className="w-full border rounded-lg px-3 py-2" />
+        <input type="number" min={0} value={newCost} onChange={e => setNewCost(e.target.value)} placeholder="Khareed price / cost (1 piece, optional)" className="w-full border rounded-lg px-3 py-2" />
+        {addErr && <p className="text-sm text-red-600">{addErr}</p>}
+        <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Inventory me add karein</button>
+      </form>
       <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
         {products.map(p => {
           const cost = costById[p.id];
           const isLow = p.stock <= low;
+          if (editing?.id === p.id) {
+            return (
+              <div key={p.id} className="px-3 py-2.5 space-y-2">
+                <input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} className="w-full border rounded-lg px-2 py-1.5 text-sm" />
+                <input type="number" min={0} value={editing.qty} onChange={e => setEditing({ ...editing, qty: Number(e.target.value) })} className="w-full border rounded-lg px-2 py-1.5 text-sm" />
+                <input value={editing.cost} onChange={e => setEditing({ ...editing, cost: e.target.value })} placeholder="Cost (khali chhorein to purani cost rahe gi)" className="w-full border rounded-lg px-2 py-1.5 text-sm" />
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { onEditProduct(p.id, editing.name.trim() || p.name, editing.qty, editing.cost === '' ? null : Number(editing.cost)); setEditing(null); }} className="px-4 py-2 rounded-lg bg-orange-500 text-white font-bold text-sm">Save</button>
+                  <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg bg-gray-100 font-bold text-sm">Cancel</button>
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={p.id} className="px-3 py-2.5 flex items-center justify-between gap-2">
               <p className="text-sm font-semibold leading-5 min-w-0">
@@ -497,6 +474,8 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
                 <span className={`text-sm font-bold ${isLow ? 'text-red-700' : ''}`}>Stock: {p.stock}</span>
                 <CostField key={`${p.id}-${cost ?? 'none'}`} initial={cost} onSave={v => onCost(p.id, v)} />
                 {cost != null && <TwoTapDelete onDelete={() => onDeleteCost(p.id)} />}
+                <button type="button" onClick={() => setEditing({ id: p.id, name: p.name, qty: p.stock, cost: cost == null ? '' : String(cost) })} className="px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-bold">Edit</button>
+                <TwoTapDelete onDelete={() => onDeleteProduct(p.id)} />
               </div>
             </div>
           );
@@ -531,12 +510,11 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
 // ------------------------------------------------------------------- Sales
 type CartLine = { pid: string; name: string; qty: number; price: number };
 
-function SalesTab({ products, orders, webReturned, webCost, manualSales, costById, onManualSale, onReturn, onWebReturn, onEditManual, onDeleteManual }: {
-  products: Product[]; orders: Order[]; webReturned: Map<string, number>; webCost: Record<string, number | null>;
+function SalesTab({ products, manualSales, costById, onManualSale, onReturn, onEditManual, onDeleteManual }: {
+  products: StockProduct[];
   manualSales: ManualSale[]; costById: Record<string, number>;
   onManualSale: (sale: ManualSale) => Promise<string | null>;
   onReturn: (orderId: string, item: ManualItem, q: number) => void;
-  onWebReturn: (o: Order, it: OrderItem, q: number) => void;
   onEditManual: (sale: ManualSale, edited: ManualSale) => Promise<string | null>;
   onDeleteManual: (sale: ManualSale) => void;
 }) {
@@ -581,7 +559,7 @@ function SalesTab({ products, orders, webReturned, webCost, manualSales, costByI
           })}
         </select>
         <input type="number" min={1} value={qty} onChange={e => setQty(Number(e.target.value))} placeholder="Quantity" className="w-full border rounded-lg px-3 py-2" />
-        <input type="number" min={0} value={price} onChange={e => setPrice(e.target.value)} placeholder="Sale price (1 piece)" className="w-full border rounded-lg px-3 py-2" />
+        <input type="number" min={0} value={price} onChange={e => setPrice(e.target.value)} placeholder="Asli sale price (1 piece) — jis par becha, discount ke baad wali" className="w-full border rounded-lg px-3 py-2" />
         {err && <p className="text-sm text-red-600">{err}</p>}
         <button type="button" onClick={addToCart} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">+ Sale mein add karein</button>
         <h3 className="font-bold">Is sale mein</h3>
@@ -600,30 +578,7 @@ function SalesTab({ products, orders, webReturned, webCost, manualSales, costByI
         }}>Poori sale save karein</button>
       </div>
 
-      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Website sales (live — edit/delete yahan nahi, Orders page se)</h2>
-      {orders.map(o => {
-        const items = o.order_items ?? [];
-        const total = items.reduce((s, it) => s + (it.quantity - (webReturned.get(it.id) ?? 0)) * it.price, 0);
-        const profit = items.reduce((s, it) => { const c = webCost[it.id]; return c == null ? s : s + (it.quantity - (webReturned.get(it.id) ?? 0)) * (it.price - c); }, 0);
-        const costMissing = items.some(it => webCost[it.id] == null);
-        return (
-          <div key={o.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-            <p className="font-bold flex justify-between gap-2"><span>{o.order_number} — {o.created_at.slice(0, 10)}</span><span className="text-sm font-semibold text-gray-500">{o.status}</span></p>
-            <p className="text-sm text-gray-500">{o.customer_name} | Total {rs(total)} | Profit {costMissing ? `${rs(profit)} (kuch cost nahi hai)` : rs(profit)}</p>
-            {items.map(it => {
-              const rem = it.quantity - (webReturned.get(it.id) ?? 0);
-              return (
-                <p key={it.id} className="text-sm flex flex-wrap justify-between gap-2">
-                  <span>{it.product_name} x {it.quantity}{webReturned.get(it.id) ? ` (${webReturned.get(it.id)} wapis)` : ''} — {rs(rem * it.price)}</span>
-                  {rem > 0 && <button type="button" onClick={() => onWebReturn(o, it, 1)} className="text-orange-600 font-bold">1 Return karein</button>}
-                </p>
-              );
-            })}
-          </div>
-        );
-      })}
-
-      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Manual sales history (newest first)</h2>
+      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Sales history (sirf wo sales jo tum ne khud add ki hain)</h2>
       {manualSales.map(s => {
         const profit = s.items.reduce((sum, it) => sum + (it.qty - it.ret) * (it.price - (it.cost ?? it.price)), 0);
         return (
@@ -672,20 +627,15 @@ function EditManualSale({ sale, onCancel, onSave, err }: { sale: ManualSale; onC
 }
 
 // ----------------------------------------------------------------- Returns
-function ReturnsTab({ orders, webReturned, webCost, manualSales, webReturns, onReturn }: {
-  orders: Order[]; webReturned: Map<string, number>; webCost: Record<string, number | null>;
-  manualSales: ManualSale[]; webReturns: WebReturn[];
-  onReturn: (kind: 'website' | 'manual', orderId: string, orderNumber: string, itemId: string, pid: string | null, name: string, price: number, cost: number | null, q: number) => void;
+function ReturnsTab({ manualSales, onReturn }: {
+  manualSales: ManualSale[];
+  onReturn: (orderId: string, item: ManualItem, q: number) => void;
 }) {
-  type Option = { kind: 'website' | 'manual'; orderId: string; orderNumber: string; itemId: string; pid: string | null; name: string; price: number; cost: number | null; remaining: number; date: string };
+  type Option = { orderId: string; item: ManualItem; name: string; price: number; cost: number | null; remaining: number; date: string };
   const options: Option[] = [];
-  for (const o of orders) for (const it of o.order_items ?? []) {
-    const rem = it.quantity - (webReturned.get(it.id) ?? 0);
-    if (rem > 0) options.push({ kind: 'website', orderId: o.id, orderNumber: o.order_number, itemId: it.id, pid: it.product_id, name: it.product_name, price: it.price, cost: webCost[it.id] ?? null, remaining: rem, date: o.created_at.slice(0, 10) });
-  }
   for (const s of manualSales) for (const it of s.items) {
     const rem = it.qty - it.ret;
-    if (rem > 0) options.push({ kind: 'manual', orderId: s.id, orderNumber: '', itemId: it.pid, pid: it.pid, name: it.name, price: it.price, cost: it.cost, remaining: rem, date: s.date });
+    if (rem > 0) options.push({ orderId: s.id, item: it, name: it.name, price: it.price, cost: it.cost, remaining: rem, date: s.date });
   }
   const [sel, setSel] = useState(0);
   const [q, setQ] = useState(1);
@@ -700,15 +650,12 @@ function ReturnsTab({ orders, webReturned, webCost, manualSales, webReturns, onR
         {opt ? (
           <>
             <input type="number" min={1} max={opt.remaining} value={q} onChange={e => setQ(Math.min(opt.remaining, Math.max(1, Number(e.target.value) || 1)))} className="w-full border rounded-lg px-3 py-2" />
-            <p className="text-sm text-gray-600">Sale minus {rs(q * opt.price)} | Profit minus {opt.cost == null ? 'cost nahi hai (0)' : rs(q * (opt.price - opt.cost))} | Stock mein wapis {opt.cost == null ? 'qty + qty, value cost nahi hai' : rs(q * opt.cost)}</p>
-            <button type="button" onClick={() => onReturn(opt.kind, opt.orderId, opt.orderNumber, opt.itemId, opt.pid, opt.name, opt.price, opt.cost, q)} className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Return karein</button>
+            <p className="text-sm text-gray-600">Sale minus {rs(q * opt.price)} | Profit minus {opt.cost == null ? 'cost nahi hai (0)' : rs(q * (opt.price - opt.cost))} | Stock mein wapis {opt.cost == null ? 'qty' : rs(q * opt.cost)}</p>
+            <button type="button" onClick={() => onReturn(opt.orderId, opt.item, q)} className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Return karein</button>
           </>
         ) : <p className="text-sm text-gray-500">Koi wapis karne wali sale nahi hai.</p>}
       </div>
       <h2 className="font-bold border-l-4 border-orange-500 pl-2">Return history</h2>
-      {webReturns.map(r => (
-        <p key={r.id} className="bg-white rounded-xl border border-gray-200 p-4 text-sm">{r.name} x {r.qty} — {r.date} | Sale minus {rs(r.qty * r.price)} | Profit minus {r.cost == null ? 'cost nahi hai' : rs(r.qty * (r.price - r.cost))} | Stock mein wapis {r.cost == null ? 'qty' : rs(r.qty * r.cost)}</p>
-      ))}
       {manualSales.flatMap(s => s.items.flatMap(it => it.rl.map((r, i) => (
         <p key={`${s.id}-${i}`} className="bg-white rounded-xl border border-gray-200 p-4 text-sm">{it.name} x {r.q} — {r.d} | Sale minus {rs(r.q * it.price)} | Profit minus {it.cost == null ? 'cost nahi hai' : rs(r.q * (it.price - it.cost))} | Stock mein wapis {it.cost == null ? 'qty' : rs(r.q * it.cost)}</p>
       ))))}
