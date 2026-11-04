@@ -122,10 +122,10 @@ export function InventoryManager() {
   const products: StockProduct[] = useMemo(() => db.manualProducts.map(mp => ({ id: mp.id, name: mp.name, stock: mp.qty })), [db.manualProducts]);
   const [msg, setMsg] = useState<string | null>(null);
   const [backupText, setBackupText] = useState('');
-  // Website data (READ-ONLY): total pieces/amount for the stock boxes, and
-  // categories + products for the inventory report. Website orders/sales
-  // are never used here.
-  const [webStock, setWebStock] = useState<{ qty: number | null; amount: number | null }>({ qty: null, amount: null });
+  // Website data (READ-ONLY, PDF report only — pending owner's verdict on
+  // whether the PDF should use inventory data instead): categories +
+  // products. Website orders/sales are never used here, and the stock
+  // boxes below use ONLY manual inventory, never website data.
   const [webCats, setWebCats] = useState<WebCatGroup[] | null>(null);
   const [webLoadError, setWebLoadError] = useState(false);
   useEffect(() => {
@@ -136,15 +136,12 @@ export function InventoryManager() {
         const { data: catData, error: catErr } = await supabase.from('categories').select('id,name').order('name');
         if (catErr) throw catErr;
         const catName = new Map<string, string>((catData as { id: string; name: string }[]).map(c => [c.id, c.name]));
-        let qty = 0, amount = 0, from = 0;
+        let from = 0;
         const byCat = new Map<string, WebProd[]>();
         for (;;) {
           const { data, error } = await supabase.from('products').select('name,price,original_price,image_url,stock,category_id').range(from, from + 999);
           if (error || !data) throw error ?? new Error('products load failed');
           for (const r of data as (WebProd & { category_id: string | null })[]) {
-            const s = r.stock ?? 0;
-            qty += s;
-            amount += s * (r.price ?? 0);
             const key = r.category_id ?? '__none__';
             const arr = byCat.get(key) ?? [];
             arr.push({ name: r.name, price: r.price, original_price: r.original_price, image_url: r.image_url, stock: r.stock });
@@ -158,11 +155,10 @@ export function InventoryManager() {
           products: [...products].sort((a, b) => a.name.localeCompare(b.name)),
         })).sort((a, b) => (a.id === '__none__' ? 1 : b.id === '__none__' ? -1 : a.name.localeCompare(b.name)));
         if (cancelled) return;
-        setWebStock({ qty, amount });
         setWebCats(groups);
         setWebLoadError(false);
       } catch {
-        if (!cancelled) { setWebStock({ qty: null, amount: null }); setWebCats(null); setWebLoadError(true); }
+        if (!cancelled) { setWebCats(null); setWebLoadError(true); }
       }
     })();
     return () => { cancelled = true; };
@@ -261,7 +257,7 @@ export function InventoryManager() {
         {tab === 'dashboard' && (
           <DashboardTab
             totals={totals} expenseByName={expenseByName} products={products} onGoInventory={() => setTab('inventory')}
-            webStockQty={webStock.qty} webStockAmount={webStock.amount} webCats={webCats} webLoadError={webLoadError} low={db.low}
+            totalQty={totalQty} stockValue={stockValue} webCats={webCats} webLoadError={webLoadError} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
@@ -419,10 +415,10 @@ function openReport(groups: WebCatGroup[], scope: string) {
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, webStockQty, webStockAmount, webCats, webLoadError, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
+function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, webCats, webLoadError, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[];
-  webStockQty: number | null; webStockAmount: number | null; webCats: WebCatGroup[] | null; webLoadError: boolean; low: number;
+  totalQty: number; stockValue: { value: number; known: boolean }; webCats: WebCatGroup[] | null; webLoadError: boolean; low: number;
   onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void; onZero: () => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
@@ -454,11 +450,11 @@ function DashboardTab({ totals, expenseByName, products, webStockQty, webStockAm
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4">
           <p className="text-xs font-black tracking-widest text-gray-500">TOTAL STOCK</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{webStockQty == null ? '—' : webStockQty.toLocaleString('en-PK')}</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{totalQty}</p>
         </div>
         <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4">
           <p className="text-xs font-black tracking-widest text-gray-500">TOTAL AMOUNT</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{webStockAmount == null ? '—' : rs(webStockAmount)}</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{stockValue.known ? rs(stockValue.value) : 'No cost'}</p>
         </div>
       </div>
       <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4 space-y-3">
