@@ -204,7 +204,7 @@ export function InventoryManager() {
 
         {tab === 'dashboard' && (
           <DashboardTab
-            totals={totals} expenseByName={expenseByName} products={products} onGoInventory={() => setTab('inventory')}
+            totals={totals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
@@ -215,7 +215,7 @@ export function InventoryManager() {
             onCost={(pid, cost) => updateDb(prev => ({ ...prev, costById: { ...prev.costById, [pid]: cost } }))}
             onAddProduct={(name, qty, cost) => {
               const id = uid();
-              updateDb(prev => ({ ...prev, manualProducts: [...prev.manualProducts, { id, name, qty }], costById: cost == null ? prev.costById : { ...prev.costById, [id]: cost } }));
+              updateDb(prev => ({ ...prev, manualProducts: [{ id, name, qty }, ...prev.manualProducts], costById: cost == null ? prev.costById : { ...prev.costById, [id]: cost } }));
               setMsg(`Added to inventory: ${name} x ${qty}.`);
             }}
             onEditProduct={(id, name, qty, cost) => updateDb(prev => ({ ...prev, manualProducts: prev.manualProducts.map(mp => mp.id === id ? { ...mp, name, qty } : mp), costById: cost == null ? prev.costById : { ...prev.costById, [id]: cost } }))}
@@ -318,10 +318,43 @@ export function InventoryManager() {
 }
 
 
+
+// ---------------------------------------------------------------- Report
+// Manual inventory PDF only: products the owner added here himself.
+// No website data, no categories — just the collected manual inventory.
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function buildManualReportHtml(items: { name: string; stock: number; cost: number | null }[]): string {
+  const body = items.map((x, i) => `<tr><td>${i + 1}</td><td>${escHtml(x.name)}</td><td>${x.cost == null ? 'No cost' : rs(x.cost)}</td><td>${x.stock}</td><td>${x.cost == null ? 'No cost' : rs(x.stock * x.cost)}</td></tr>`).join('');
+  const pieces = items.reduce((s, x) => s + x.stock, 0);
+  const amount = items.reduce((s, x) => s + (x.cost == null ? 0 : x.stock * x.cost), 0);
+  const known = items.some(x => x.cost != null);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ABR Gadgets — Inventory Report</title><style>
+    body{font-family:Arial,sans-serif;color:#111;margin:24px} h1{font-size:22px}
+    table{width:100%;border-collapse:collapse;font-size:13px} th,td{border:1px solid #ccc;padding:6px 8px;text-align:left} th{background:#f0f0f0}
+    .tot{font-size:14px} .muted{color:#555} button{padding:10px 18px;font-size:15px;font-weight:bold;background:#f97316;color:#fff;border:0;border-radius:8px;cursor:pointer}
+    @media print{ .no-print{display:none !important} }
+  </style></head><body>
+  <button class="no-print" onclick="window.print()">Print / Save as PDF</button>
+  <h1>ABR Gadgets — Inventory Report</h1>
+  <p class="muted">${new Date().toLocaleDateString('en-PK')}</p>
+  <table><thead><tr><th>#</th><th>Product</th><th>Cost (per piece)</th><th>Stock</th><th>Amount</th></tr></thead><tbody>${body || '<tr><td colspan="5">No products</td></tr>'}</tbody></table>
+  <p class="tot"><b>Total:</b> ${items.length} products &nbsp;|&nbsp; ${pieces} pieces &nbsp;|&nbsp; ${known ? rs(amount) : 'No cost'}</p>
+  <script>setTimeout(function(){ window.print(); }, 800);<\/script>
+  </body></html>`;
+}
+
+function openManualReport(items: { name: string; stock: number; cost: number | null }[]) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(buildManualReportHtml(items));
+  w.document.close();
+}
+
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
-  expenseByName: [string, number][]; products: StockProduct[];
+  expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
   onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void; onZero: () => void;
 }) {
@@ -357,6 +390,11 @@ function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, l
           <p className="text-xs font-black tracking-widest text-gray-500">TOTAL AMOUNT</p>
           <p className="text-2xl font-black text-gray-900 mt-1">{stockValue.known ? rs(stockValue.value) : 'No cost'}</p>
         </div>
+      </div>
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4 space-y-3">
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Inventory Report</h2>
+        <p className="text-sm font-bold">{products.length} products &nbsp;|&nbsp; {totalQty} pieces &nbsp;|&nbsp; {stockValue.known ? rs(stockValue.value) : 'No cost'}</p>
+        <button type="button" onClick={() => openManualReport(products.map(pr => ({ name: pr.name, stock: pr.stock, cost: costById[pr.id] ?? null })))} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">Print / Download PDF</button>
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
         <p className="text-sm">Low stock products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — full list in Inventory tab.</p>
@@ -425,19 +463,19 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
   return (
     <div className="space-y-4">
       <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock list</h2>
-      <form className="bg-white rounded-xl border-2 border-orange-500 p-4 space-y-3" onSubmit={e => {
-        e.preventDefault(); setAddErr(null);
-        if (!newName.trim() || newQty < 1) { setAddErr('Enter product name and valid quantity.'); return; }
-        onAddProduct(newName.trim(), newQty, newCost === '' ? null : Number(newCost));
-        setNewName(''); setNewQty(1); setNewCost('');
-      }}>
+      <div className="bg-white rounded-xl border-2 border-orange-500 p-4 space-y-3">
         <h2 className="font-bold border-l-4 border-orange-500 pl-2">Add new product</h2>
         <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Product name" className="w-full border rounded-lg px-3 py-2" />
-        <input type="number" min={1} value={newQty} onChange={e => setNewQty(Number(e.target.value))} placeholder="Quantity (in stock)" className="w-full border rounded-lg px-3 py-2" />
-        <input type="number" min={0} value={newCost} onChange={e => setNewCost(e.target.value)} placeholder="Purchase price / cost (per piece, optional)" className="w-full border rounded-lg px-3 py-2" />
+        <input type="number" value={newQty} onChange={e => setNewQty(Number(e.target.value))} placeholder="Quantity (in stock)" className="w-full border rounded-lg px-3 py-2" />
+        <input type="number" value={newCost} onChange={e => setNewCost(e.target.value)} placeholder="Purchase price / cost (per piece, optional)" className="w-full border rounded-lg px-3 py-2" />
         {addErr && <p className="text-sm text-red-600">{addErr}</p>}
-        <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Add to inventory</button>
-      </form>
+        <button type="button" onClick={() => {
+          setAddErr(null);
+          if (!newName.trim() || !(newQty >= 1)) { setAddErr('Enter product name and valid quantity.'); return; }
+          onAddProduct(newName.trim(), newQty, newCost === '' ? null : Number(newCost));
+          setNewName(''); setNewQty(1); setNewCost('');
+        }} className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Save</button>
+      </div>
       <div className="space-y-3">
         {products.map(p => {
           const cost = costById[p.id];
