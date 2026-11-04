@@ -85,7 +85,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const wavg = (oldQty: number, oldCost: number, addQty: number, newPrice: number) =>
   oldQty + addQty === 0 ? newPrice : round2((oldQty * oldCost + addQty * newPrice) / (oldQty + addQty));
 
-// Two-tap delete: first tap arms ("Pakka? Dobara dabayen"), second deletes.
+// Two-tap delete: first tap arms ("Sure? Tap again"), second deletes.
 // Resets after 4 seconds. No confirm()/alert()/prompt() anywhere.
 function TwoTapDelete({ onDelete }: { onDelete: () => void }) {
   const [armed, setArmed] = useState(false);
@@ -101,7 +101,7 @@ function TwoTapDelete({ onDelete }: { onDelete: () => void }) {
       }}
       className={`px-3 py-1.5 rounded-lg text-xs font-bold ${armed ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}`}
     >
-      {armed ? 'Pakka? Dobara dabayen' : 'Delete'}
+      {armed ? 'Sure? Tap again' : 'Delete'}
     </button>
   );
 }
@@ -181,7 +181,7 @@ export function InventoryManager() {
           : s),
       };
     });
-    setMsg(`Return ho gaya: ${name} x ${q} stock mein wapis.`);
+    setMsg(`Returned: ${name} x ${q} back in stock.`);
   };
 
   const downloadBackup = () => {
@@ -209,7 +209,7 @@ export function InventoryManager() {
           ))}
         </div>
         {msg && <p className="mb-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">{msg}</p>}
-        {totals.costMissing && <p className="text-xs text-amber-700 mb-4">Kuch sales ki cost nahi hai, un ka profit 0 hai.</p>}
+        {totals.costMissing && <p className="text-xs text-amber-700 mb-4">Some sales have no cost, their profit is 0.</p>}
 
 
         {tab === 'dashboard' && (
@@ -217,7 +217,7 @@ export function InventoryManager() {
             totals={totals} expenseByName={expenseByName} products={products} onGoInventory={() => setTab('inventory')}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
-            onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('Sab kuch zero ho gaya — naya hisab shuru. Purana data backup me save ho gaya hai.'); }}
+            onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
         )}
         {tab === 'inventory' && (
@@ -226,13 +226,13 @@ export function InventoryManager() {
             onAddProduct={(name, qty, cost) => {
               const id = uid();
               updateDb(prev => ({ ...prev, manualProducts: [...prev.manualProducts, { id, name, qty }], costById: cost == null ? prev.costById : { ...prev.costById, [id]: cost } }));
-              setMsg(`Inventory me add ho gaya: ${name} x ${qty}.`);
+              setMsg(`Added to inventory: ${name} x ${qty}.`);
             }}
             onEditProduct={(id, name, qty, cost) => updateDb(prev => ({ ...prev, manualProducts: prev.manualProducts.map(mp => mp.id === id ? { ...mp, name, qty } : mp), costById: cost == null ? prev.costById : { ...prev.costById, [id]: cost } }))}
             onDeleteProduct={id => updateDb(prev => ({ ...prev, manualProducts: prev.manualProducts.filter(mp => mp.id !== id) }))}
             onStockIn={async (pid, addQty, newPrice) => {
               const prod = products.find(p => p.id === pid);
-              if (!prod) return 'Product nahi mila.';
+              if (!prod) return 'Product not found.';
               updateDb(prev => {
                 const oldCost = prev.costById[pid];
                 const nextCost = oldCost == null ? newPrice : wavg(prod.stock, oldCost, addQty, newPrice);
@@ -250,8 +250,8 @@ export function InventoryManager() {
             onManualSale={async (sale) => {
               for (const it of sale.items) {
                 const prod = products.find(p => p.id === it.pid);
-                if (!prod) return 'Product nahi mila.';
-                if (it.qty > prod.stock) return `Is product ka sirf ${prod.stock} stock bacha hai.`;
+                if (!prod) return 'Product not found.';
+                if (it.qty > prod.stock) return `Only ${prod.stock} in stock for this product.`;
               }
               updateDb(prev => ({
                 ...prev,
@@ -261,7 +261,7 @@ export function InventoryManager() {
                 }),
                 manualSales: [sale, ...prev.manualSales],
               }));
-              setMsg('Poori sale save ho gayi, stock update ho gaya.');
+              setMsg('Sale saved, stock updated.');
               return null;
             }}
             onReturn={(orderId, item, q) => applyReturn(orderId, item, q)}
@@ -270,9 +270,9 @@ export function InventoryManager() {
                 const orig = sale.items.find(x => x.pid === it.pid && x.name === it.name);
                 const diff = it.qty - (orig?.qty ?? 0);
                 const prod = products.find(p => p.id === it.pid);
-                if (!prod) return 'Product nahi mila.';
-                if (it.qty < it.ret) return 'Quantity wapis ki hui quantity se kam nahi ho sakti.';
-                if (diff > 0 && diff > prod.stock) return `Is product ka sirf ${prod.stock} stock bacha hai.`;
+                if (!prod) return 'Product not found.';
+                if (it.qty < it.ret) return 'Quantity cannot be less than returned quantity.';
+                if (diff > 0 && diff > prod.stock) return `Only ${prod.stock} in stock for this product.`;
               }
               updateDb(prev => ({
                 ...prev,
@@ -285,7 +285,7 @@ export function InventoryManager() {
                 }),
                 manualSales: prev.manualSales.map(s => s.id === sale.id ? edited : s),
               }));
-              setMsg('Sale edit ho gayi.');
+              setMsg('Sale updated.');
               return null;
             }}
             onDeleteManual={async (sale) => {
@@ -304,7 +304,7 @@ export function InventoryManager() {
                 }
                 return { ...prev, manualProducts, costById, manualSales: prev.manualSales.filter(s => s.id !== sale.id) };
               });
-              setMsg('Sale delete ho gayi, bacha hua stock wapis aa gaya.');
+              setMsg('Sale deleted, remaining stock returned.');
             }}
           />
         )}
@@ -358,12 +358,12 @@ function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, l
         </div>
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
-        <p className="text-sm">Kam stock wale products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — poori list Inventory tab me hai.</p>
-        <button type="button" onClick={onGoInventory} className="shrink-0 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold">Inventory kholein →</button>
+        <p className="text-sm">Low stock products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — full list in Inventory tab.</p>
+        <button type="button" onClick={onGoInventory} className="shrink-0 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold">Open Inventory →</button>
       </div>
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
         <h2 className="font-bold border-l-4 border-orange-500 pl-2">Settings</h2>
-        <label className="flex items-center justify-between gap-3 text-sm font-semibold">Kam stock alert (is se kam ya barabar)
+        <label className="flex items-center justify-between gap-3 text-sm font-semibold">Low stock alert (at or below)
           <input type="number" min={0} value={low} onChange={e => onLow(Number(e.target.value) || 0)} className="border rounded-lg px-2 py-1.5 w-20 text-right" />
         </label>
         <div className="flex flex-wrap gap-2">
@@ -373,11 +373,11 @@ function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, l
             setZeroArmed(true);
             zeroTimer.current = setTimeout(() => setZeroArmed(false), 4000);
           }} className={`px-4 py-2 rounded-lg text-sm font-bold ${zeroArmed ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}`}>
-            {zeroArmed ? 'Pakka? Dobara dabayen — sab zero ho jaye ga' : 'Sab kuch zero kar dein (naya hisab)'}
+            {zeroArmed ? 'Sure? Tap again — all will be cleared' : 'Clear all (new record)'}
           </button>
         </div>
-        <p className="text-xs text-gray-500">Zero dabane se pehle backup download ho jaye ga. Website ke products/orders is se delete nahi hote — sirf is manager ka hisab zero hota hai.</p>
-        {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Backup JSON copy karein" />}
+        <p className="text-xs text-gray-500">Backup downloads first. Website products/orders are not deleted.</p>
+        {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Copy backup JSON" />}
       </div>
     </div>
   );
@@ -395,7 +395,7 @@ function CostField({ initial, onSave }: { initial: number | undefined; onSave: (
         className="border rounded-lg px-2 py-1.5 flex-1 min-w-0 text-right text-sm" />
       <button type="button" onClick={() => { const v = Number(val); if (v > 0) { onSave(v); setSaved(true); } }}
         className="shrink-0 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold">Save</button>
-      {saved && <span className="text-xs font-bold text-green-700">✓ Save ho gaya</span>}
+      {saved && <span className="text-xs font-bold text-green-700">✓ Saved</span>}
     </span>
   );
 }
@@ -426,16 +426,16 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
       <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock list</h2>
       <form className="bg-white rounded-xl border-2 border-orange-500 p-4 space-y-3" onSubmit={e => {
         e.preventDefault(); setAddErr(null);
-        if (!newName.trim() || newQty < 1) { setAddErr('Product ka naam aur sahi quantity likhein.'); return; }
+        if (!newName.trim() || newQty < 1) { setAddErr('Enter product name and valid quantity.'); return; }
         onAddProduct(newName.trim(), newQty, newCost === '' ? null : Number(newCost));
         setNewName(''); setNewQty(1); setNewCost('');
       }}>
-        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Naya product add karein</h2>
-        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Product ka naam" className="w-full border rounded-lg px-3 py-2" />
-        <input type="number" min={1} value={newQty} onChange={e => setNewQty(Number(e.target.value))} placeholder="Quantity (kitni inventory hai)" className="w-full border rounded-lg px-3 py-2" />
-        <input type="number" min={0} value={newCost} onChange={e => setNewCost(e.target.value)} placeholder="Khareed price / cost (1 piece, optional)" className="w-full border rounded-lg px-3 py-2" />
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Add new product</h2>
+        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Product name" className="w-full border rounded-lg px-3 py-2" />
+        <input type="number" min={1} value={newQty} onChange={e => setNewQty(Number(e.target.value))} placeholder="Quantity (in stock)" className="w-full border rounded-lg px-3 py-2" />
+        <input type="number" min={0} value={newCost} onChange={e => setNewCost(e.target.value)} placeholder="Purchase price / cost (per piece, optional)" className="w-full border rounded-lg px-3 py-2" />
         {addErr && <p className="text-sm text-red-600">{addErr}</p>}
-        <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Inventory me add karein</button>
+        <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Add to inventory</button>
       </form>
       <div className="space-y-3">
         {products.map(p => {
@@ -446,7 +446,7 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
               <div key={p.id} className="bg-white rounded-2xl border-2 border-orange-500 shadow-sm p-4 space-y-2">
                 <input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} className="w-full border rounded-lg px-2 py-1.5 text-sm" />
                 <input type="number" min={0} value={editing.qty} onChange={e => setEditing({ ...editing, qty: Number(e.target.value) })} className="w-full border rounded-lg px-2 py-1.5 text-sm" />
-                <input value={editing.cost} onChange={e => setEditing({ ...editing, cost: e.target.value })} placeholder="Cost (khali chhorein to purani cost rahe gi)" className="w-full border rounded-lg px-2 py-1.5 text-sm" />
+                <input value={editing.cost} onChange={e => setEditing({ ...editing, cost: e.target.value })} placeholder="Cost (leave empty to keep old cost)" className="w-full border rounded-lg px-2 py-1.5 text-sm" />
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { onEditProduct(p.id, editing.name.trim() || p.name, editing.qty, editing.cost === '' ? null : Number(editing.cost)); setEditing(null); }} className="px-4 py-2 rounded-lg bg-orange-500 text-white font-bold text-sm">Save</button>
                   <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg bg-gray-100 font-bold text-sm">Cancel</button>
@@ -463,7 +463,7 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
               <p className="text-sm text-gray-700">
                 <span className="font-bold">Stock: {p.stock}</span>
                 <span className="text-gray-400"> &nbsp;|&nbsp; </span>
-                <span>{cost != null ? `Cost: ${rs(cost)}` : 'Cost nahi hai'}</span>
+                <span>{cost != null ? `Cost: ${rs(cost)}` : 'No cost'}</span>
               </p>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold shrink-0">Cost:</span>
@@ -476,25 +476,25 @@ function InventoryTab({ products, costById, low, onCost, onStockIn, onDeleteCost
             </div>
           );
         })}
-      {products.length === 0 && <p className="bg-white rounded-2xl border-2 border-gray-200 p-4 text-sm text-gray-500">Koi product nahi hai.</p>}
+      {products.length === 0 && <p className="bg-white rounded-2xl border-2 border-gray-200 p-4 text-sm text-gray-500">No products.</p>}
       </div>
       {products.length > 0 && (
         <form className="bg-white rounded-xl border border-gray-200 p-4 space-y-3" onSubmit={async e => {
           e.preventDefault(); setErr(null);
-          if (!pid) { setErr('Product chunein.'); return; }
-          if (addQty < 1 || !newPrice || Number(newPrice) <= 0) { setErr('Sahi quantity aur asli price likhein.'); return; }
+          if (!pid) { setErr('Select a product.'); return; }
+          if (addQty < 1 || !newPrice || Number(newPrice) <= 0) { setErr('Enter valid quantity and actual price.'); return; }
           const errMsg = await onStockIn(pid, addQty, Number(newPrice));
           if (errMsg) setErr(errMsg);
         }}>
-          <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock In (naya maal aaya)</h2>
+          <h2 className="font-bold border-l-4 border-orange-500 pl-2">Stock In (new stock arrived)</h2>
           <select value={pid} onChange={e => setPid(e.target.value)} className="w-full border rounded-lg px-3 py-2">
-            <option value="">Product chunein</option>
+            <option value="">Select product</option>
             {products.map(p => <option key={p.id} value={p.id}>{p.name} (stock {p.stock})</option>)}
           </select>
-          <input type="number" min={1} value={addQty} onChange={e => setAddQty(Number(e.target.value))} placeholder="Kitna maal aaya" className="w-full border rounded-lg px-3 py-2" />
-          <input type="number" min={0} value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="Asli price (1 piece)" className="w-full border rounded-lg px-3 py-2" />
+          <input type="number" min={1} value={addQty} onChange={e => setAddQty(Number(e.target.value))} placeholder="Quantity received" className="w-full border rounded-lg px-3 py-2" />
+          <input type="number" min={0} value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="Actual price (per piece)" className="w-full border rounded-lg px-3 py-2" />
           {err && <p className="text-sm text-red-600">{err}</p>}
-          <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Stock In karein</button>
+          <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Add stock</button>
         </form>
       )}
     </div>
@@ -527,11 +527,11 @@ function SalesTab({ products, manualSales, costById, onManualSale, onReturn, onE
   const addToCart = () => {
     setErr(null);
     const prod = products.find(p => p.id === selPid);
-    if (!prod) { setErr('Product chunein.'); return; }
-    if (!price || Number(price) <= 0) { setErr('Sale price likhein.'); return; }
+    if (!prod) { setErr('Select a product.'); return; }
+    if (!price || Number(price) <= 0) { setErr('Enter sale price.'); return; }
     const inCart = cart.filter(l => l.pid === selPid).reduce((s, l) => s + l.qty, 0);
     const remaining = prod.stock - inCart;
-    if (qty < 1 || qty > remaining) { setErr(`Is product ka sirf ${remaining} stock bacha hai.`); return; }
+    if (qty < 1 || qty > remaining) { setErr(`Only ${remaining} in stock for this product.`); return; }
     const p = Number(price);
     setCart(prev => {
       const same = prev.find(l => l.pid === selPid && l.price === p);
@@ -544,35 +544,35 @@ function SalesTab({ products, manualSales, costById, onManualSale, onReturn, onE
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Nayi sale (ek ya zyada products)</h2>
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">New sale (one or more products)</h2>
         <select value={selPid} onChange={e => setSelPid(e.target.value)} className="w-full border rounded-lg px-3 py-2">
-          <option value="">Product chunein</option>
+          <option value="">Select product</option>
           {products.map(p => {
             const inCart = cart.filter(l => l.pid === p.id).reduce((s, l) => s + l.qty, 0);
             return <option key={p.id} value={p.id}>{p.name} (stock {p.stock - inCart})</option>;
           })}
         </select>
         <input type="number" min={1} value={qty} onChange={e => setQty(Number(e.target.value))} placeholder="Quantity" className="w-full border rounded-lg px-3 py-2" />
-        <input type="number" min={0} value={price} onChange={e => setPrice(e.target.value)} placeholder="Asli sale price (1 piece) — jis par becha, discount ke baad wali" className="w-full border rounded-lg px-3 py-2" />
+        <input type="number" min={0} value={price} onChange={e => setPrice(e.target.value)} placeholder="Actual sale price (per piece) — price sold at, after discount" className="w-full border rounded-lg px-3 py-2" />
         {err && <p className="text-sm text-red-600">{err}</p>}
-        <button type="button" onClick={addToCart} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">+ Sale mein add karein</button>
-        <h3 className="font-bold">Is sale mein</h3>
+        <button type="button" onClick={addToCart} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">+ Add to sale</button>
+        <h3 className="font-bold">In this sale</h3>
         {cart.map((l, i) => (
           <p key={i} className="text-sm flex justify-between gap-2"><span>{l.name} x {l.qty} — {rs(l.qty * l.price)}</span>
-            <button type="button" onClick={() => setCart(cart.filter((_, j) => j !== i))} className="text-red-600 font-bold">Hatayen</button></p>
+            <button type="button" onClick={() => setCart(cart.filter((_, j) => j !== i))} className="text-red-600 font-bold">Remove</button></p>
         ))}
         <p className="text-sm font-bold flex justify-between"><span>Total sale</span><span>{rs(cartTotal)}</span></p>
-        <p className="text-sm text-gray-500 flex justify-between"><span>Profit (cost maloom ho to)</span><span>{rs(cartProfit)}</span></p>
+        <p className="text-sm text-gray-500 flex justify-between"><span>Profit (if cost known)</span><span>{rs(cartProfit)}</span></p>
         <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
         <button type="button" className="w-full py-3 rounded-lg bg-orange-500 text-white font-black" onClick={async () => {
-          if (cart.length === 0) { setErr('Cart khaali hai.'); return; }
+          if (cart.length === 0) { setErr('Cart is empty.'); return; }
           const sale: ManualSale = { id: uid(), date, items: cart.map(l => ({ pid: l.pid, name: l.name, qty: l.qty, price: l.price, cost: costById[l.pid] ?? null, ret: 0, rl: [] })) };
           const errMsg = await onManualSale(sale);
           if (errMsg) setErr(errMsg); else { setCart([]); setErr(null); }
-        }}>Poori sale save karein</button>
+        }}>Save full sale</button>
       </div>
 
-      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Sales history (sirf wo sales jo tum ne khud add ki hain)</h2>
+      <h2 className="font-bold border-l-4 border-orange-500 pl-2">Sales history (sales you added yourself)</h2>
       {manualSales.map(s => {
         const profit = s.items.reduce((sum, it) => sum + (it.qty - it.ret) * (it.price - (it.cost ?? it.price)), 0);
         return (
@@ -580,8 +580,8 @@ function SalesTab({ products, manualSales, costById, onManualSale, onReturn, onE
             <p className="font-bold flex justify-between"><span>{s.date}</span><span>Profit {rs(profit)}</span></p>
             {s.items.map((it, i) => (
               <p key={i} className="text-sm flex flex-wrap justify-between gap-2">
-                <span>{it.name} x {it.qty}{it.ret ? ` (${it.ret} wapis)` : ''} — {rs((it.qty - it.ret) * it.price)}</span>
-                {it.qty - it.ret > 0 && <button type="button" onClick={() => onReturn(s.id, it, 1)} className="text-orange-600 font-bold">1 Return karein</button>}
+                <span>{it.name} x {it.qty}{it.ret ? ` (${it.ret} returned)` : ''} — {rs((it.qty - it.ret) * it.price)}</span>
+                {it.qty - it.ret > 0 && <button type="button" onClick={() => onReturn(s.id, it, 1)} className="text-orange-600 font-bold">Return 1</button>}
               </p>
             ))}
             <div className="flex gap-2">
@@ -604,14 +604,14 @@ function EditManualSale({ sale, onCancel, onSave, err }: { sale: ManualSale; onC
   const [items, setItems] = useState(sale.items.map(it => ({ ...it })));
   return (
     <form className="bg-white rounded-xl border-2 border-orange-500 p-4 space-y-3" onSubmit={e => { e.preventDefault(); onSave({ ...sale, date, items }); }}>
-      <h3 className="font-bold">Sale edit karein</h3>
+      <h3 className="font-bold">Edit sale</h3>
       <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
       {items.map((it, i) => (
         <div key={i} className="border rounded-lg p-3 space-y-2">
-          <p className="font-bold text-sm">{it.name} (wapis: {it.ret})</p>
+          <p className="font-bold text-sm">{it.name} (returned: {it.ret})</p>
           <label className="block text-sm">Quantity <input type="number" min={it.ret} value={it.qty} onChange={e => setItems(items.map((x, j) => j === i ? { ...x, qty: Number(e.target.value) } : x))} className="w-full border rounded-lg px-2 py-1.5" /></label>
           <label className="block text-sm">Sale price <input type="number" min={0} value={it.price} onChange={e => setItems(items.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} className="w-full border rounded-lg px-2 py-1.5" /></label>
-          <label className="block text-sm">Asli price <input type="number" min={0} value={it.cost ?? ''} onChange={e => setItems(items.map((x, j) => j === i ? { ...x, cost: e.target.value === '' ? null : Number(e.target.value) } : x))} className="w-full border rounded-lg px-2 py-1.5" /></label>
+          <label className="block text-sm">Cost price <input type="number" min={0} value={it.cost ?? ''} onChange={e => setItems(items.map((x, j) => j === i ? { ...x, cost: e.target.value === '' ? null : Number(e.target.value) } : x))} className="w-full border rounded-lg px-2 py-1.5" /></label>
         </div>
       ))}
       {err && <p className="text-sm text-red-600">{err}</p>}
@@ -637,21 +637,21 @@ function ReturnsTab({ manualSales, onReturn }: {
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Return daalein</h2>
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Add return</h2>
         <select value={sel} onChange={e => { setSel(Number(e.target.value)); setQ(1); }} className="w-full border rounded-lg px-3 py-2">
           {options.map((o, i) => <option key={i} value={i}>{o.name} | {o.date} | sale {rs(o.price)} x {o.remaining}</option>)}
         </select>
         {opt ? (
           <>
             <input type="number" min={1} max={opt.remaining} value={q} onChange={e => setQ(Math.min(opt.remaining, Math.max(1, Number(e.target.value) || 1)))} className="w-full border rounded-lg px-3 py-2" />
-            <p className="text-sm text-gray-600">Sale minus {rs(q * opt.price)} | Profit minus {opt.cost == null ? 'cost nahi hai (0)' : rs(q * (opt.price - opt.cost))} | Stock mein wapis {opt.cost == null ? 'qty' : rs(q * opt.cost)}</p>
-            <button type="button" onClick={() => onReturn(opt.orderId, opt.item, q)} className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Return karein</button>
+            <p className="text-sm text-gray-600">Sale minus {rs(q * opt.price)} | Profit minus {opt.cost == null ? 'no cost (0)' : rs(q * (opt.price - opt.cost))} | Back in stock {opt.cost == null ? 'qty' : rs(q * opt.cost)}</p>
+            <button type="button" onClick={() => onReturn(opt.orderId, opt.item, q)} className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Add return</button>
           </>
-        ) : <p className="text-sm text-gray-500">Koi wapis karne wali sale nahi hai.</p>}
+        ) : <p className="text-sm text-gray-500">No sale available for return.</p>}
       </div>
       <h2 className="font-bold border-l-4 border-orange-500 pl-2">Return history</h2>
       {manualSales.flatMap(s => s.items.flatMap(it => it.rl.map((r, i) => (
-        <p key={`${s.id}-${i}`} className="bg-white rounded-xl border border-gray-200 p-4 text-sm">{it.name} x {r.q} — {r.d} | Sale minus {rs(r.q * it.price)} | Profit minus {it.cost == null ? 'cost nahi hai' : rs(r.q * (it.price - it.cost))} | Stock mein wapis {it.cost == null ? 'qty' : rs(r.q * it.cost)}</p>
+        <p key={`${s.id}-${i}`} className="bg-white rounded-xl border border-gray-200 p-4 text-sm">{it.name} x {r.q} — {r.d} | Sale minus {rs(r.q * it.price)} | Profit minus {it.cost == null ? 'no cost' : rs(r.q * (it.price - it.cost))} | Back in stock {it.cost == null ? 'qty' : rs(r.q * it.cost)}</p>
       ))))}
     </div>
   );
@@ -672,18 +672,18 @@ function ExpensesTab({ expenses, suggestions, total, onAdd, onEdit, onDelete }: 
     <div className="space-y-4">
       <form className="bg-white rounded-xl border border-gray-200 p-4 space-y-3" onSubmit={e => {
         e.preventDefault(); setErr(null);
-        if (!cat.trim() || !amount || Number(amount) <= 0) { setErr('Expense ka naam aur sahi amount likhein.'); return; }
+        if (!cat.trim() || !amount || Number(amount) <= 0) { setErr('Enter expense name and valid amount.'); return; }
         onAdd({ id: uid(), cat: cat.trim(), amount: Number(amount), date, note: note.trim() });
         setCat(''); setAmount(''); setNote(''); setDate(today());
       }}>
-        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Naya expense add karein</h2>
-        <input list="exp-names" value={cat} onChange={e => setCat(e.target.value)} placeholder="Expense ka naam (khud likhein)" className="w-full border rounded-lg px-3 py-2" />
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Add new expense</h2>
+        <input list="exp-names" value={cat} onChange={e => setCat(e.target.value)} placeholder="Expense name (type your own)" className="w-full border rounded-lg px-3 py-2" />
         <datalist id="exp-names">{suggestions.map(s => <option key={s} value={s} />)}</datalist>
         <input type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount" className="w-full border rounded-lg px-3 py-2" />
         <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
         <input value={note} onChange={e => setNote(e.target.value)} placeholder="Note (optional)" className="w-full border rounded-lg px-3 py-2" />
         {err && <p className="text-sm text-red-600">{err}</p>}
-        <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Expense add karein</button>
+        <button type="submit" className="w-full py-2.5 rounded-lg bg-orange-500 text-white font-bold">Add expense</button>
       </form>
       <h2 className="font-bold border-l-4 border-orange-500 pl-2">Total expenses: {rs(total)}</h2>
       {expenses.map(ex => editing?.id === ex.id ? (
