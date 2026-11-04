@@ -357,6 +357,16 @@ function DashboardTab({ totals, expenseByName, products, totalQty, stockValue, l
           <p className={`text-2xl font-black mt-1 ${totals.netProfit < 0 ? 'text-red-600' : 'text-green-700'}`}>{rs(totals.netProfit)}</p>
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4">
+          <p className="text-xs font-black tracking-widest text-gray-500">TOTAL STOCK</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{totalQty}</p>
+        </div>
+        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4">
+          <p className="text-xs font-black tracking-widest text-gray-500">TOTAL AMOUNT</p>
+          <p className="text-2xl font-black text-gray-900 mt-1">{stockValue.known ? rs(stockValue.value) : 'No cost'}</p>
+        </div>
+      </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
         <p className="text-sm">Low stock products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — full list in Inventory tab.</p>
         <button type="button" onClick={onGoInventory} className="shrink-0 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold">Open Inventory →</button>
