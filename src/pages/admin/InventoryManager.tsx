@@ -197,6 +197,11 @@ export function InventoryManager() {
 
   return (
     <AdminLayout>
+      <style>{`
+        input[type='number']::-webkit-outer-spin-button,
+        input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+      `}</style>
       <div className="max-w-[720px] mx-auto w-full overflow-x-hidden">
         <div className="flex flex-wrap gap-2 mb-4">
           {TABS.map(t => (
