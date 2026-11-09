@@ -78,6 +78,20 @@ function saveLocal(db: LocalDb) {
 }
 
 const rs = (n: number) => `Rs ${Math.round(n).toLocaleString('en-PK')}`;
+export function calcTotals(sales: ManualSale[], expenses: Expense[]) {
+  let totalSale = 0, saleProfit = 0, costMissing = false;
+  for (const s of sales) {
+    for (const it of s.items) {
+      const rem = it.qty - it.ret;
+      totalSale += rem * it.price;
+      if (it.cost == null) costMissing = true;
+      else saleProfit += rem * (it.price - it.cost);
+    }
+  }
+  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+  return { totalSale, saleProfit, totalExpenses, netProfit: saleProfit - totalExpenses, costMissing };
+}
+
 const today = () => new Date().toISOString().slice(0, 10);
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -131,19 +145,20 @@ export function InventoryManager() {
   };
   // --- Totals: SIRF manual sales (owner 2026-11-04). Website orders
   // sale me nahi ginay jate, kyunki owner khud asli sale price add karta hai.
-  const totals = useMemo(() => {
-    let totalSale = 0, saleProfit = 0, costMissing = false;
-    for (const s of db.manualSales) {
-      for (const it of s.items) {
-        const rem = it.qty - it.ret;
-        totalSale += rem * it.price;
-        if (it.cost == null) costMissing = true;
-        else saleProfit += rem * (it.price - it.cost);
-      }
-    }
-    const totalExpenses = db.expenses.reduce((s, e) => s + e.amount, 0);
-    return { totalSale, saleProfit, totalExpenses, netProfit: saleProfit - totalExpenses, costMissing };
-  }, [db]);
+  const totals = useMemo(() => calcTotals(db.manualSales, db.expenses), [db]);
+
+  // --- Date range: From/To + Search se upar wale 4 boxes us range ke
+  // totals dikhate hain. Total Stock / Total Amount hamesha current
+  // stock rehte hain — range se nahi badalte. "Show all" se wapas all-time.
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [rangeOn, setRangeOn] = useState(false);
+  const shownTotals = useMemo(() => {
+    if (!rangeOn) return totals;
+    const fs = db.manualSales.filter(s => s.date >= dateFrom && s.date <= dateTo);
+    const fe = db.expenses.filter(e => e.date >= dateFrom && e.date <= dateTo);
+    return calcTotals(fs, fe);
+  }, [db, rangeOn, dateFrom, dateTo, totals]);
 
   const stockValue = useMemo(() => {
     let value = 0, known = false;
@@ -212,13 +227,17 @@ export function InventoryManager() {
           ))}
         </div>
         {msg && <p className="mb-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">{msg}</p>}
-        {totals.costMissing && <p className="text-xs text-amber-700 mb-4">Some sales have no cost, their profit is 0.</p>}
+        {shownTotals.costMissing && <p className="text-xs text-amber-700 mb-4">Some sales have no cost, their profit is 0.</p>}
 
 
         {tab === 'dashboard' && (
           <DashboardTab
-            totals={totals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
+            totals={shownTotals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
+            dateFrom={dateFrom} dateTo={dateTo} rangeOn={rangeOn}
+            onFrom={setDateFrom} onTo={setDateTo}
+            onSearch={() => setRangeOn(true)}
+            onClear={() => { setRangeOn(false); setDateFrom(''); setDateTo(''); }}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
@@ -365,17 +384,35 @@ function openManualReport(items: { name: string; stock: number; cost: number | n
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory, onZero }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
   onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void; onZero: () => void;
+  dateFrom: string; dateTo: string; rangeOn: boolean;
+  onFrom: (v: string) => void; onTo: (v: string) => void; onSearch: () => void; onClear: () => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
   const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (zeroTimer.current) clearTimeout(zeroTimer.current); }, []);
+  const rangeInvalid = !!dateFrom && !!dateTo && dateFrom > dateTo;
   return (
     <div className="space-y-4">
+      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4 space-y-3">
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Date Range</h2>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="text-xs font-bold text-gray-600">From
+            <input type="date" value={dateFrom} onChange={e => onFrom(e.target.value)} className="block mt-1 border rounded-lg px-2 py-1.5 text-sm" />
+          </label>
+          <label className="text-xs font-bold text-gray-600">To
+            <input type="date" value={dateTo} onChange={e => onTo(e.target.value)} className="block mt-1 border rounded-lg px-2 py-1.5 text-sm" />
+          </label>
+          <button type="button" onClick={onSearch} disabled={!dateFrom || !dateTo || rangeInvalid} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-bold disabled:opacity-40">Search</button>
+          {rangeOn && <button type="button" onClick={onClear} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-bold">Show all</button>}
+        </div>
+        {rangeInvalid && <p className="text-xs text-red-600 font-bold">From date must be before To date.</p>}
+        {rangeOn && <p className="text-xs font-bold text-gray-600">Showing {dateFrom} to {dateTo} — the 4 boxes below are for this range only. Total Stock and Total Amount never change.</p>}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border-2 border-orange-200 shadow-lg p-4">
           <p className="text-xs font-black tracking-widest text-orange-600">TOTAL SALE</p>
