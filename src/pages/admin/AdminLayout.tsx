@@ -2,6 +2,8 @@ import { LayoutDashboard, Package, ShoppingBag, LogOut, Menu, X, type LucideIcon
 import { useState, useEffect } from 'react';
 import { useNavigation } from '../../context/NavigationContext';
 import { adminLogout, syncAdminSession } from '../../lib/adminAuth';
+import { scheduleWebsiteBackup } from '../../lib/websiteBackup';
+import { supabase } from '../../lib/supabase';
 import { Logo } from '../../components/UI/Logo';
 import type { Page } from '../../types';
 
@@ -33,6 +35,32 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       setChecking(false);
     });
   }, []);
+
+  // WHOLE-WEBSITE BACKUP (2026-11-10, Waqas): admin area khulte hi +
+  // har 5 minute + tab wapis aane par website ka snapshot Supabase me
+  // save hota hai. Realtime bhi try karte hain (products/orders/
+  // categories change hon to foran backup) — agar channel na bane to
+  // interval hi kaafi hai. Sirf authorized admin ke liye chalta hai.
+  useEffect(() => {
+    if (!authorized) return;
+    scheduleWebsiteBackup(1500);
+    const iv = setInterval(() => scheduleWebsiteBackup(), 5 * 60 * 1000);
+    const onFocus = () => scheduleWebsiteBackup();
+    window.addEventListener('focus', onFocus);
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase.channel('abr-website-backup')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => scheduleWebsiteBackup())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => scheduleWebsiteBackup())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => scheduleWebsiteBackup())
+        .subscribe();
+    } catch { /* realtime optional hai */ }
+    return () => {
+      clearInterval(iv);
+      window.removeEventListener('focus', onFocus);
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [authorized]);
 
   if (checking) {
     return (

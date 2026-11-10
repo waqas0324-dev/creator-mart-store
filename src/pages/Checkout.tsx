@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useNavigation } from '../context/NavigationContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { supabase } from '../lib/supabase';
+import { scheduleWebsiteBackup } from '../lib/websiteBackup';
 import { onImageError, resolveProductImage } from '../lib/imageFallback';
 
 const PROVINCES = ['Azad Kashmir', 'Balochistan', 'FATA', 'Gilgit Baltistan', 'Islamabad Capital Territory', 'Khyber Pakhtunkhwa', 'Punjab', 'Sindh'];
@@ -153,6 +154,8 @@ export function Checkout() {
         return;
       }
 
+      // Naya order aa gaya — poori website ka backup bhi update kar dein.
+      scheduleWebsiteBackup();
       clearCart();
       setLoading(false);
       navigate('order-success', { orderId: order.id });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
 import { supabase } from '../../lib/supabase';
+import { backupWebsiteData, getWebsiteBackupInfo, restoreWebsiteBackup, type WebsiteBackupInfo } from '../../lib/websiteBackup';
 
 // ---------------------------------------------------------------------------
 // ABR Gadgets — Inventory Manager (inside the admin panel, but FULLY
@@ -31,6 +32,12 @@ import { supabase } from '../../lib/supabase';
 //    (BACKUP_CODE). Cloud sync khamoshi se chalta rehta hai, taake
 //    owner ke har add kiye huwe item ka backup cloud me maujood rahe.
 //    "Print / Download PDF" sab ko nazar aata hai — woh chhupa nahi hai.
+//  * WHOLE-WEBSITE BACKUP (2026-11-10, Waqas): poori website ka data
+//    (products, categories, orders, order_items, reviews, site_settings)
+//    khud-ba-khud "abr_inventory_backup" row id=2 me save hota hai —
+//    trigger AdminLayout (admin area khulte hi + har 5 min) aur Checkout
+//    (naya order aate hi). Restore SIRF yahan secret area se hota hai
+//    (upsert-only — maujooda data delete nahi hota).
 // ---------------------------------------------------------------------------
 
 type StockProduct = { id: string; name: string; stock: number };
@@ -340,17 +347,12 @@ export function InventoryManager() {
     return calcTotals(fs, fe);
   }, [db, rangeOn, dateFrom, dateTo, totals]);
 
-  // FULL REPORT (2026-11-10): period = Overall, ya Date Range card ki
-  // From/To. Quick buttons: Overall / This Month / Today — wahi range
-  // upar wale 4 boxes ko bhi filter karta hai, taake report aur boxes
-  // hamesha aik hi period ke hon.
-  const report = useMemo(() => calcReportRows(products, db.costById, db.manualSales, rangeOn, dateFrom, dateTo), [products, db.costById, db.manualSales, rangeOn, dateFrom, dateTo]);
-  const periodLabel = rangeOn ? `${dateFrom} to ${dateTo}` : 'Overall — all time';
-  const onQuickPeriod = (k: 'overall' | 'month' | 'today') => {
-    if (k === 'overall') { setRangeOn(false); setDateFrom(''); setDateTo(''); return; }
-    if (k === 'month') { setDateFrom(new Date().toISOString().slice(0, 8) + '01'); setDateTo(today()); setRangeOn(true); return; }
-    setDateFrom(today()); setDateTo(today()); setRangeOn(true);
-  };
+  // FULL REPORT (2026-11-10, VN 316 correction): report Dashboard par
+  // SHOW NAHI hota — sirf aik button hai. Click par poora record (saari
+  // products, stock, cost, sale price, sold, total sale, profit) PDF me
+  // download hota hai. Overall / This Month / Today buttons NAHI rakhne.
+  const report = useMemo(() => calcReportRows(products, db.costById, db.manualSales, false, '', ''), [products, db.costById, db.manualSales]);
+  const periodLabel = 'Overall — all time';
 
   const stockValue = useMemo(() => {
     let value = 0, known = false;
@@ -480,7 +482,7 @@ export function InventoryManager() {
         {tab === 'dashboard' && (
           <DashboardTab
             totals={shownTotals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
-            report={report} periodLabel={periodLabel} onQuickPeriod={onQuickPeriod}
+            report={report} periodLabel={periodLabel}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             dateFrom={dateFrom} dateTo={dateTo} rangeOn={rangeOn}
             onFrom={setDateFrom} onTo={setDateTo}
@@ -636,7 +638,7 @@ function openFullReport(periodLabel: string, rows: ReportRow[], totals: { produc
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear, backupUnlocked, onUnlock, onLock, report, periodLabel, onQuickPeriod }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear, backupUnlocked, onUnlock, onLock, report, periodLabel }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
@@ -648,7 +650,7 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
   onFrom: (v: string) => void; onTo: (v: string) => void; onSearch: () => void; onClear: () => void;
   backupUnlocked: boolean; onUnlock: () => void; onLock: () => void;
   report: { rows: ReportRow[]; totals: { products: number; pieces: number; soldQty: number; totalSale: number; totalProfit: number | null } };
-  periodLabel: string; onQuickPeriod: (k: 'overall' | 'month' | 'today') => void;
+  periodLabel: string;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
   const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -688,6 +690,16 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
     }
   };
   const [restoreErr, setRestoreErr] = useState<string | null>(null);
+  // WHOLE-WEBSITE BACKUP (2026-11-10): status sirf unlock hone par
+  // load hoti hai; website restore two-tap hai (galti se na dab jaye).
+  const [websiteInfo, setWebsiteInfo] = useState<WebsiteBackupInfo | null>(null);
+  const [websiteMsg, setWebsiteMsg] = useState<string | null>(null);
+  const [webRestoreArmed, setWebRestoreArmed] = useState(false);
+  const webRestoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (webRestoreTimer.current) clearTimeout(webRestoreTimer.current); }, []);
+  useEffect(() => {
+    if (backupUnlocked) getWebsiteBackupInfo().then(setWebsiteInfo);
+  }, [backupUnlocked]);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const onRestoreFile = (f: File | undefined) => {
     if (!f) return;
@@ -758,35 +770,7 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
       </div>
       <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4 space-y-3">
         <h2 className="font-bold border-l-4 border-orange-500 pl-2">Full Report</h2>
-        <p className="text-sm font-bold">{periodLabel}</p>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => onQuickPeriod('overall')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${!rangeOn ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Overall</button>
-          <button type="button" onClick={() => onQuickPeriod('month')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${rangeOn && dateFrom === new Date().toISOString().slice(0, 8) + '01' && dateTo === today() ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'}`}>This Month</button>
-          <button type="button" onClick={() => onQuickPeriod('today')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${rangeOn && dateFrom === today() && dateTo === today() ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Today</button>
-        </div>
-        <p className="text-xs text-gray-500">Date Range card se kisi bhi date ka data bhi nikaal sakte hain — From/To + Search dabayein, report aur upar wale 4 boxes wahi range dikhayenge.</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead><tr className="text-left text-gray-500 border-b">
-              <th className="py-1 pr-2">Product</th><th className="py-1 pr-2 text-right">Stock</th><th className="py-1 pr-2 text-right">Cost</th><th className="py-1 pr-2 text-right">Sale Price</th><th className="py-1 pr-2 text-right">Sold</th><th className="py-1 pr-2 text-right">Total Sale</th><th className="py-1 text-right">Profit</th>
-            </tr></thead>
-            <tbody>
-              {report.rows.map(r => (
-                <tr key={r.id} className="border-b">
-                  <td className="py-1.5 pr-2 font-semibold">{r.name}</td>
-                  <td className="py-1.5 pr-2 text-right">{r.stock}</td>
-                  <td className="py-1.5 pr-2 text-right">{r.cost == null ? 'No cost' : rs(r.cost)}</td>
-                  <td className="py-1.5 pr-2 text-right">{r.salePrice == null ? '—' : rs(r.salePrice)}</td>
-                  <td className="py-1.5 pr-2 text-right">{r.sold}</td>
-                  <td className="py-1.5 pr-2 text-right">{rs(r.totalSale)}</td>
-                  <td className="py-1.5 text-right">{r.profit == null ? '—' : rs(r.profit)}</td>
-                </tr>
-              ))}
-              {report.rows.length === 0 && <tr><td colSpan={7} className="py-2 text-gray-500">No products yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-sm font-bold">{report.totals.products} products &nbsp;|&nbsp; {report.totals.pieces} pieces in stock &nbsp;|&nbsp; {report.totals.soldQty} sold &nbsp;|&nbsp; Total Sale {rs(report.totals.totalSale)} &nbsp;|&nbsp; Profit {report.totals.totalProfit == null ? '—' : rs(report.totals.totalProfit)}</p>
+        <p className="text-sm text-gray-600">Saari products ka poora record — stock, cost, sale price, sold, total sale, profit — PDF me download karein.</p>
         <button type="button" onClick={() => openFullReport(periodLabel, report.rows, report.totals, totals.totalExpenses, totals.netProfit)} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">Print / Download PDF</button>
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
@@ -826,6 +810,35 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
             </div>
             {restoreErr && <p className="text-xs text-red-600 font-semibold">{restoreErr}</p>}
             {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Copy backup JSON" />}
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
+              <p className="text-sm font-bold">Website backup</p>
+              <p className="text-xs text-gray-600">{websiteInfo ? `Poori website ka data: ${websiteInfo.products} products, ${websiteInfo.orders} orders${websiteInfo.savedAt ? ` — ${new Date(websiteInfo.savedAt).toLocaleString('en-PK')}` : ''}` : 'Website backup: abhi koi backup nahi hai.'}</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={async () => {
+                  setWebsiteMsg('Website backup ho raha hai…');
+                  const r = await backupWebsiteData();
+                  setWebsiteInfo(await getWebsiteBackupInfo());
+                  setWebsiteMsg(r === 'saved' ? 'Website backup saved.' : r === 'kept' ? 'Website backup kept — cloud me pehle se zyada data hai.' : r === 'empty' ? 'Website me abhi koi data nahi hai.' : 'Website backup fail — internet check karein.');
+                }} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Sync website now</button>
+                <button type="button" onClick={async () => {
+                  if (!webRestoreArmed) {
+                    setWebRestoreArmed(true);
+                    webRestoreTimer.current = setTimeout(() => setWebRestoreArmed(false), 4000);
+                    return;
+                  }
+                  if (webRestoreTimer.current) clearTimeout(webRestoreTimer.current);
+                  setWebRestoreArmed(false);
+                  setWebsiteMsg('Website restore ho raha hai…');
+                  const res = await restoreWebsiteBackup();
+                  if (!res) { setWebsiteMsg('Website backup nahi mila.'); return; }
+                  const r = res.restored;
+                  setWebsiteMsg(`Website restored: ${r.products} products, ${r.categories} categories, ${r.orders} orders, ${r.order_items} order items, ${r.reviews} reviews${res.failed.length ? ` — fail: ${res.failed.join(', ')}` : ''}`);
+                }} className={`px-4 py-2 rounded-lg text-sm font-bold ${webRestoreArmed ? 'bg-red-600 text-white' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                  {webRestoreArmed ? 'Sure? Tap again — website data restore hoga' : 'Restore website backup'}
+                </button>
+              </div>
+              {websiteMsg && <p className="text-xs text-gray-600 font-semibold">{websiteMsg}</p>}
+            </div>
             <button type="button" onClick={onLock} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-bold">Lock karein</button>
           </>
         )}
