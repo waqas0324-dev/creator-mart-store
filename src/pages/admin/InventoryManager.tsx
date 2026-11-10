@@ -566,6 +566,7 @@ function buildInventoryPdfHtml(items: { name: string; stock: number; price: numb
     thead th{background:#f97316;color:#fff;font-weight:900;font-size:15px}
     tbody td{border-bottom:1px solid #eee} tbody tr.alt td{background:#fff7ed}
     td.name{font-weight:700} td.num{text-align:right;font-weight:700} th.num{text-align:right}
+    tfoot td{border-top:3px solid #f97316;background:#fff7ed;font-weight:900;font-size:15px}
     .tot{font-size:16px;font-weight:900;margin-top:16px;border-top:3px solid #f97316;padding-top:10px}
     .tot span{color:#f97316}
     button{padding:10px 18px;font-size:15px;font-weight:bold;background:#f97316;color:#fff;border:0;border-radius:8px;cursor:pointer}
@@ -574,7 +575,7 @@ function buildInventoryPdfHtml(items: { name: string; stock: number; price: numb
   <button class="no-print" onclick="window.print()">Print / Save as PDF</button>
   <h1>ABR Gadgets <span class="brand">— Inventory</span></h1>
   <p class="sub">${new Date().toLocaleDateString('en-PK')}</p>
-  <table><thead><tr><th>#</th><th>Title</th><th class="num">Quantity</th><th class="num">Price</th></tr></thead><tbody>${body || '<tr><td colspan="4">No products</td></tr>'}</tbody></table>
+  <table><thead><tr><th>#</th><th>Title</th><th class="num">Quantity</th><th class="num">Price</th></tr></thead><tbody>${body || '<tr><td colspan="4">No products</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${items.length} products</td><td class="num">${pieces}</td><td class="num">${known ? rs(amount) : 'No price'}</td></tr></tfoot></table>
   <p class="tot">Total: ${items.length} products &nbsp;|&nbsp; ${pieces} pieces &nbsp;|&nbsp; <span>Total Amount ${known ? rs(amount) : 'No price'}</span></p>
   <script>setTimeout(function(){ window.print(); }, 800);<\/script>
   </body></html>`;
