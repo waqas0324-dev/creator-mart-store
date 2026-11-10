@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
+import { supabase } from '../../lib/supabase';
 
 // ---------------------------------------------------------------------------
 // ABR Gadgets — Inventory Manager (inside the admin panel, but FULLY
@@ -17,6 +18,10 @@ import { AdminLayout } from './AdminLayout';
 //  * AUTO-BACKUP (2026-11-10): har save ke saath aakhri bhari hui state
 //    "bizmanager-v1-backup" me bhi save hoti hai — agar data kabhi khaali
 //    ho jaye to wahi se wapis aa jata hai (Settings → Restore auto-backup).
+//  * CLOUD BACKUP (2026-11-10): har save ke saath data Supabase table
+//    "abr_inventory_backup" (row id=1) me bhi sync hota hai — taake
+//    browser ka data poora clear ho jaye to bhi cloud se wapis aa sake.
+//    Khaali state cloud ko overwrite NAHI karti.
 // ---------------------------------------------------------------------------
 
 type StockProduct = { id: string; name: string; stock: number };
@@ -106,6 +111,25 @@ function readAutoBackup(): { exportedAt: string; localDb: LocalDb } | null {
   } catch { return null; }
 }
 
+// Cloud backup (Supabase): aik row (id=1) me poora db. Khaali db kabhi
+// cloud ko overwrite nahi karta.
+const CLOUD_TABLE = 'abr_inventory_backup';
+async function cloudSave(db: LocalDb): Promise<boolean> {
+  try {
+    const { error } = await supabase.from(CLOUD_TABLE).upsert({ id: 1, data: db, updated_at: new Date().toISOString() });
+    return !error;
+  } catch { return false; }
+}
+async function cloudLoad(): Promise<{ exportedAt: string; localDb: LocalDb } | null> {
+  try {
+    const { data, error } = await supabase.from(CLOUD_TABLE).select('data,updated_at').eq('id', 1).maybeSingle();
+    if (error || !data) return null;
+    const norm = normalizeDb((data as { data: unknown }).data);
+    if (!norm) return null;
+    return { exportedAt: String((data as { updated_at: string }).updated_at ?? ''), localDb: norm };
+  } catch { return null; }
+}
+
 const rs = (n: number) => `Rs ${Math.round(n).toLocaleString('en-PK')}`;
 const today = () => new Date().toISOString().slice(0, 10);
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -154,6 +178,28 @@ export function InventoryManager() {
   const [backupBannerOff, setBackupBannerOff] = useState(false);
   useEffect(() => { setAutoBackup(readAutoBackup()); }, [db]);
   const dbIsEmpty = db.manualProducts.length === 0 && db.manualSales.length === 0 && db.expenses.length === 0;
+  const [cloudBackup, setCloudBackup] = useState<{ exportedAt: string; localDb: LocalDb } | null>(null);
+  const [cloudState, setCloudState] = useState<string | null>(null);
+  const cloudTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mount par: local khaali ho to cloud se backup uthao.
+  useEffect(() => {
+    if (!dbIsEmpty) return;
+    let cancelled = false;
+    cloudLoad().then(b => { if (!cancelled && b) setCloudBackup(b); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Har save ke 1.5s baad cloud sync (khaali db kabhi sync nahi hota).
+  useEffect(() => {
+    if (dbIsEmpty) return;
+    if (cloudTimer.current) clearTimeout(cloudTimer.current);
+    cloudTimer.current = setTimeout(() => {
+      cloudSave(db).then(ok => setCloudState(ok
+        ? `Cloud backup saved ${new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}`
+        : 'Cloud backup failed — check internet'));
+    }, 1500);
+    return () => { if (cloudTimer.current) clearTimeout(cloudTimer.current); };
+  }, [db, dbIsEmpty]);
 
   const updateDb = (next: LocalDb | ((prev: LocalDb) => LocalDb)) => {
     setDb(prev => {
@@ -240,6 +286,27 @@ export function InventoryManager() {
     setBackupBannerOff(false);
   };
 
+  const restoreCloudBackup = () => {
+    if (!cloudBackup) return;
+    restoreBackup(cloudBackup.localDb);
+    setBackupBannerOff(false);
+  };
+
+  const restoreFromCloudNow = () => {
+    cloudLoad().then(b => {
+      if (b) { restoreBackup(b.localDb); setCloudBackup(b); }
+      else setCloudState('Cloud me koi backup nahi mila.');
+    });
+  };
+
+  const syncCloudNow = () => {
+    if (dbIsEmpty) { setCloudState('Cloud sync: data khaali hai, kuch save nahi hua.'); return; }
+    setCloudState('Cloud backup sync ho raha hai…');
+    cloudSave(db).then(ok => setCloudState(ok
+      ? `Cloud backup saved ${new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}`
+      : 'Cloud backup failed — check internet'));
+  };
+
   return (
     <AdminLayout>
       <style>{`
@@ -267,6 +334,16 @@ export function InventoryManager() {
             </div>
           </div>
         )}
+        {dbIsEmpty && !autoBackup && cloudBackup && !backupBannerOff && (
+          <div className="mb-3 rounded-lg bg-blue-50 border border-blue-300 text-blue-900 text-sm p-3">
+            <p className="font-bold">Cloud backup mil gaya hai — {cloudBackup.localDb.manualProducts.length} products, {cloudBackup.localDb.manualSales.length} sales{cloudBackup.exportedAt ? ` (${new Date(cloudBackup.exportedAt).toLocaleString('en-PK')})` : ''}</p>
+            <p>Data khaali hai — cloud se wapis la sakte hain.</p>
+            <div className="flex gap-2 mt-2">
+              <button type="button" onClick={restoreCloudBackup} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold">Restore karein</button>
+              <button type="button" onClick={() => setBackupBannerOff(true)} className="px-3 py-1.5 rounded-lg bg-white border border-blue-300 text-xs font-bold">Nahi, rehne dein</button>
+            </div>
+          </div>
+        )}
         {totals.costMissing && <p className="text-xs text-amber-700 mb-4">Some sales have no cost, their profit is 0.</p>}
 
 
@@ -276,6 +353,7 @@ export function InventoryManager() {
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} onRestore={restoreBackup} backupText={backupText}
             autoBackup={autoBackup ? { products: autoBackup.localDb.manualProducts.length, sales: autoBackup.localDb.manualSales.length, expenses: autoBackup.localDb.expenses.length, savedAt: autoBackup.exportedAt } : null} onRestoreAuto={restoreAutoBackup}
+            cloudState={cloudState} onRestoreCloud={restoreFromCloudNow} onSyncCloud={syncCloudNow}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
         )}
@@ -421,12 +499,13 @@ function openManualReport(items: { name: string; stock: number; cost: number | n
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, onGoInventory, onZero }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
   onLow: (v: number) => void; onBackup: () => void; onRestore: (db: LocalDb) => void; backupText: string;
   autoBackup: { products: number; sales: number; expenses: number; savedAt: string } | null; onRestoreAuto: () => void;
+  cloudState: string | null; onRestoreCloud: () => void; onSyncCloud: () => void;
   onGoInventory: () => void; onZero: () => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
@@ -518,6 +597,11 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
           <p className="text-xs text-gray-500">Auto-backup: abhi koi backup nahi hai — pehli sale ya product add hote hi ban jaye ga.</p>
         )}
         <button type="button" onClick={onRestoreAuto} disabled={!autoBackup} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold disabled:opacity-40">Restore auto-backup</button>
+        {cloudState && <p className="text-xs text-gray-600">{cloudState}</p>}
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={onSyncCloud} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Sync cloud now</button>
+          <button type="button" onClick={onRestoreCloud} className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-bold">Restore from cloud</button>
+        </div>
         {restoreErr && <p className="text-xs text-red-600 font-semibold">{restoreErr}</p>}
         {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Copy backup JSON" />}
       </div>
