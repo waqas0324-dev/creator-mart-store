@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
 import { supabase } from '../../lib/supabase';
-import { backupWebsiteData, getWebsiteBackupInfo, restoreWebsiteBackup, type WebsiteBackupInfo } from '../../lib/websiteBackup';
 
 // ---------------------------------------------------------------------------
 // ABR Gadgets — Inventory Manager (inside the admin panel, but FULLY
@@ -32,12 +31,6 @@ import { backupWebsiteData, getWebsiteBackupInfo, restoreWebsiteBackup, type Web
 //    (BACKUP_CODE). Cloud sync khamoshi se chalta rehta hai, taake
 //    owner ke har add kiye huwe item ka backup cloud me maujood rahe.
 //    "Print / Download PDF" sab ko nazar aata hai — woh chhupa nahi hai.
-//  * WHOLE-WEBSITE BACKUP (2026-11-10, Waqas): poori website ka data
-//    (products, categories, orders, order_items, reviews, site_settings)
-//    khud-ba-khud "abr_inventory_backup" row id=2 me save hota hai —
-//    trigger AdminLayout (admin area khulte hi + har 5 min) aur Checkout
-//    (naya order aate hi). Restore SIRF yahan secret area se hota hai
-//    (upsert-only — maujooda data delete nahi hota).
 // ---------------------------------------------------------------------------
 
 type StockProduct = { id: string; name: string; stock: number };
@@ -191,51 +184,6 @@ export function calcTotals(sales: ManualSale[], expenses: Expense[]) {
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   return { totalSale, saleProfit, totalExpenses, netProfit: saleProfit - totalExpenses, costMissing };
 }
-// FULL REPORT (2026-11-10, Waqas): har product ki aik row — naam, stock,
-// khareed price, sale price, period me kitna bika, total sale, profit.
-// Period = Overall, ya Date Range card ki From/To. Becha hua lekin ab
-// inventory me na hone wala product bhi aata hai (stock 0). Sale price =
-// period ki aakhri sale wali price; period me sale na ho to overall ki
-// aakhri sale price. Profit null = us period ki kisi sale ki cost nahi hai.
-export type ReportRow = { id: string; name: string; stock: number; cost: number | null; salePrice: number | null; sold: number; totalSale: number; profit: number | null };
-export function calcReportRows(products: StockProduct[], costById: Record<string, number>, sales: ManualSale[], rangeOn: boolean, dateFrom: string, dateTo: string) {
-  const inRange = (d: string) => !rangeOn || (d >= dateFrom && d <= dateTo);
-  const byId = new Map<string, ReportRow>();
-  const ensure = (id: string, name: string, stock: number, cost: number | null): ReportRow => {
-    let r = byId.get(id);
-    if (!r) { r = { id, name, stock, cost, salePrice: null, sold: 0, totalSale: 0, profit: 0 }; byId.set(id, r); }
-    return r;
-  };
-  for (const p of products) ensure(p.id, p.name, p.stock, costById[p.id] ?? null);
-  const latestOverall = new Map<string, number>();
-  const sorted = [...sales].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-  for (const s of sorted) {
-    for (const it of s.items) {
-      latestOverall.set(it.pid, it.price);
-      if (!inRange(s.date)) continue;
-      const rem = it.qty - it.ret;
-      const r = ensure(it.pid, it.name, 0, it.cost);
-      r.sold += rem;
-      r.totalSale += rem * it.price;
-      r.salePrice = it.price;
-      if (it.cost == null) r.profit = null;
-      else if (r.profit != null) r.profit += rem * (it.price - it.cost);
-    }
-  }
-  for (const r of byId.values()) if (r.salePrice == null) r.salePrice = latestOverall.get(r.id) ?? null;
-  const rows = [...byId.values()];
-  const profitKnown = rows.every(r => r.profit != null);
-  return {
-    rows,
-    totals: {
-      products: rows.length,
-      pieces: products.reduce((s, p) => s + p.stock, 0),
-      soldQty: rows.reduce((s, r) => s + r.sold, 0),
-      totalSale: rows.reduce((s, r) => s + r.totalSale, 0),
-      totalProfit: profitKnown ? rows.reduce((s, r) => s + (r.profit ?? 0), 0) : null as number | null,
-    },
-  };
-}
 const today = () => new Date().toISOString().slice(0, 10);
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -346,13 +294,6 @@ export function InventoryManager() {
     const fe = db.expenses.filter(e => e.date >= dateFrom && e.date <= dateTo);
     return calcTotals(fs, fe);
   }, [db, rangeOn, dateFrom, dateTo, totals]);
-
-  // FULL REPORT (2026-11-10, VN 316 correction): report Dashboard par
-  // SHOW NAHI hota — sirf aik button hai. Click par poora record (saari
-  // products, stock, cost, sale price, sold, total sale, profit) PDF me
-  // download hota hai. Overall / This Month / Today buttons NAHI rakhne.
-  const report = useMemo(() => calcReportRows(products, db.costById, db.manualSales, false, '', ''), [products, db.costById, db.manualSales]);
-  const periodLabel = 'Overall — all time';
 
   const stockValue = useMemo(() => {
     let value = 0, known = false;
@@ -482,7 +423,6 @@ export function InventoryManager() {
         {tab === 'dashboard' && (
           <DashboardTab
             totals={shownTotals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
-            report={report} periodLabel={periodLabel}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             dateFrom={dateFrom} dateTo={dateTo} rangeOn={rangeOn}
             onFrom={setDateFrom} onTo={setDateTo}
@@ -609,36 +549,46 @@ export function InventoryManager() {
 // No website data, no categories — just the collected manual inventory.
 const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-// FULL REPORT print (2026-11-10): period + har product ki row (stock,
-// cost, sale price, sold, total sale, profit) + period totals. Print
-// button se naya tab khulta hai aur khud print dialog aata hai.
-function buildFullReportHtml(periodLabel: string, rows: ReportRow[], totals: { products: number; pieces: number; soldQty: number; totalSale: number; totalProfit: number | null }, expenses: number, netProfit: number): string {
-  const body = rows.map((x, i) => `<tr><td>${i + 1}</td><td>${escHtml(x.name)}</td><td>${x.stock}</td><td>${x.cost == null ? 'No cost' : rs(x.cost)}</td><td>${x.salePrice == null ? '—' : rs(x.salePrice)}</td><td>${x.sold}</td><td>${rs(x.totalSale)}</td><td>${x.profit == null ? '—' : rs(x.profit)}</td></tr>`).join('');
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ABR Gadgets — Full Report</title><style>
-    body{font-family:Arial,sans-serif;color:#111;margin:24px} h1{font-size:22px}
-    table{width:100%;border-collapse:collapse;font-size:13px} th,td{border:1px solid #ccc;padding:6px 8px;text-align:left} th{background:#f0f0f0}
-    .tot{font-size:14px} .muted{color:#555} button{padding:10px 18px;font-size:15px;font-weight:bold;background:#f97316;color:#fff;border:0;border-radius:8px;cursor:pointer}
+// INVENTORY PDF (2026-11-10, VN 318 — Waqas): sirf TEEN columns —
+// Title, Quantity, Price. Cost / sale price / sold / profit NAHI
+// dikhane. Bold + ABR orange/black theme. Print button se naya tab
+// khulta hai aur khud print dialog aata hai.
+function buildInventoryPdfHtml(items: { name: string; stock: number; price: number | null }[]): string {
+  const body = items.map((x, i) => `<tr class="${i % 2 ? 'alt' : ''}"><td>${i + 1}</td><td class="name">${escHtml(x.name)}</td><td class="num">${x.stock}</td><td class="num">${x.price == null ? 'No price' : rs(x.price)}</td></tr>`).join('');
+  const pieces = items.reduce((s, x) => s + x.stock, 0);
+  const amount = items.reduce((s, x) => s + (x.price == null ? 0 : x.stock * x.price), 0);
+  const known = items.some(x => x.price != null);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ABR Gadgets — Inventory</title><style>
+    *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body{font-family:Arial,sans-serif;color:#111;margin:24px} h1{font-size:26px;font-weight:900;margin:0}
+    .brand{color:#f97316} .sub{font-size:14px;color:#555;margin:4px 0 16px}
+    table{width:100%;border-collapse:collapse;font-size:15px} th,td{padding:10px 12px;text-align:left}
+    thead th{background:#f97316;color:#fff;font-weight:900;font-size:15px}
+    tbody td{border-bottom:1px solid #eee} tbody tr.alt td{background:#fff7ed}
+    td.name{font-weight:700} td.num{text-align:right;font-weight:700} th.num{text-align:right}
+    .tot{font-size:16px;font-weight:900;margin-top:16px;border-top:3px solid #f97316;padding-top:10px}
+    .tot span{color:#f97316}
+    button{padding:10px 18px;font-size:15px;font-weight:bold;background:#f97316;color:#fff;border:0;border-radius:8px;cursor:pointer}
     @media print{ .no-print{display:none !important} }
   </style></head><body>
   <button class="no-print" onclick="window.print()">Print / Save as PDF</button>
-  <h1>ABR Gadgets — Full Report</h1>
-  <p class="muted">${escHtml(periodLabel)} &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-PK')}</p>
-  <table><thead><tr><th>#</th><th>Product</th><th>Stock</th><th>Cost</th><th>Sale Price</th><th>Sold</th><th>Total Sale</th><th>Profit</th></tr></thead><tbody>${body || '<tr><td colspan="8">No products</td></tr>'}</tbody></table>
-  <p class="tot"><b>Total:</b> ${totals.products} products &nbsp;|&nbsp; ${totals.pieces} pieces in stock &nbsp;|&nbsp; ${totals.soldQty} sold &nbsp;|&nbsp; Total Sale ${rs(totals.totalSale)} &nbsp;|&nbsp; Profit ${totals.totalProfit == null ? '—' : rs(totals.totalProfit)}</p>
-  <p class="tot"><b>Expenses:</b> ${rs(expenses)} &nbsp;|&nbsp; <b>Net Profit:</b> ${rs(netProfit)}</p>
+  <h1>ABR Gadgets <span class="brand">— Inventory</span></h1>
+  <p class="sub">${new Date().toLocaleDateString('en-PK')}</p>
+  <table><thead><tr><th>#</th><th>Title</th><th class="num">Quantity</th><th class="num">Price</th></tr></thead><tbody>${body || '<tr><td colspan="4">No products</td></tr>'}</tbody></table>
+  <p class="tot">Total: ${items.length} products &nbsp;|&nbsp; ${pieces} pieces &nbsp;|&nbsp; <span>Total Amount ${known ? rs(amount) : 'No price'}</span></p>
   <script>setTimeout(function(){ window.print(); }, 800);<\/script>
   </body></html>`;
 }
 
-function openFullReport(periodLabel: string, rows: ReportRow[], totals: { products: number; pieces: number; soldQty: number; totalSale: number; totalProfit: number | null }, expenses: number, netProfit: number) {
+function openInventoryPdf(items: { name: string; stock: number; price: number | null }[]) {
   const w = window.open('', '_blank');
   if (!w) return;
-  w.document.write(buildFullReportHtml(periodLabel, rows, totals, expenses, netProfit));
+  w.document.write(buildInventoryPdfHtml(items));
   w.document.close();
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear, backupUnlocked, onUnlock, onLock, report, periodLabel }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear, backupUnlocked, onUnlock, onLock }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
@@ -649,8 +599,6 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
   dateFrom: string; dateTo: string; rangeOn: boolean;
   onFrom: (v: string) => void; onTo: (v: string) => void; onSearch: () => void; onClear: () => void;
   backupUnlocked: boolean; onUnlock: () => void; onLock: () => void;
-  report: { rows: ReportRow[]; totals: { products: number; pieces: number; soldQty: number; totalSale: number; totalProfit: number | null } };
-  periodLabel: string;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
   const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -690,16 +638,6 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
     }
   };
   const [restoreErr, setRestoreErr] = useState<string | null>(null);
-  // WHOLE-WEBSITE BACKUP (2026-11-10): status sirf unlock hone par
-  // load hoti hai; website restore two-tap hai (galti se na dab jaye).
-  const [websiteInfo, setWebsiteInfo] = useState<WebsiteBackupInfo | null>(null);
-  const [websiteMsg, setWebsiteMsg] = useState<string | null>(null);
-  const [webRestoreArmed, setWebRestoreArmed] = useState(false);
-  const webRestoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (webRestoreTimer.current) clearTimeout(webRestoreTimer.current); }, []);
-  useEffect(() => {
-    if (backupUnlocked) getWebsiteBackupInfo().then(setWebsiteInfo);
-  }, [backupUnlocked]);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const onRestoreFile = (f: File | undefined) => {
     if (!f) return;
@@ -770,8 +708,8 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
       </div>
       <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4 space-y-3">
         <h2 className="font-bold border-l-4 border-orange-500 pl-2">Full Report</h2>
-        <p className="text-sm text-gray-600">Saari products ka poora record — stock, cost, sale price, sold, total sale, profit — PDF me download karein.</p>
-        <button type="button" onClick={() => openFullReport(periodLabel, report.rows, report.totals, totals.totalExpenses, totals.netProfit)} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">Print / Download PDF</button>
+        <p className="text-sm text-gray-600">Inventory ki poori list — title, quantity aur price — PDF me download karein.</p>
+        <button type="button" onClick={() => openInventoryPdf(products.map(pr => ({ name: pr.name, stock: pr.stock, price: costById[pr.id] ?? null })))} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">Print / Download PDF</button>
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
         <p className="text-sm">Low stock products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — full list in Inventory tab.</p>
@@ -810,35 +748,6 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
             </div>
             {restoreErr && <p className="text-xs text-red-600 font-semibold">{restoreErr}</p>}
             {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Copy backup JSON" />}
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
-              <p className="text-sm font-bold">Website backup</p>
-              <p className="text-xs text-gray-600">{websiteInfo ? `Poori website ka data: ${websiteInfo.products} products, ${websiteInfo.orders} orders${websiteInfo.savedAt ? ` — ${new Date(websiteInfo.savedAt).toLocaleString('en-PK')}` : ''}` : 'Website backup: abhi koi backup nahi hai.'}</p>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={async () => {
-                  setWebsiteMsg('Website backup ho raha hai…');
-                  const r = await backupWebsiteData();
-                  setWebsiteInfo(await getWebsiteBackupInfo());
-                  setWebsiteMsg(r === 'saved' ? 'Website backup saved.' : r === 'kept' ? 'Website backup kept — cloud me pehle se zyada data hai.' : r === 'empty' ? 'Website me abhi koi data nahi hai.' : 'Website backup fail — internet check karein.');
-                }} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Sync website now</button>
-                <button type="button" onClick={async () => {
-                  if (!webRestoreArmed) {
-                    setWebRestoreArmed(true);
-                    webRestoreTimer.current = setTimeout(() => setWebRestoreArmed(false), 4000);
-                    return;
-                  }
-                  if (webRestoreTimer.current) clearTimeout(webRestoreTimer.current);
-                  setWebRestoreArmed(false);
-                  setWebsiteMsg('Website restore ho raha hai…');
-                  const res = await restoreWebsiteBackup();
-                  if (!res) { setWebsiteMsg('Website backup nahi mila.'); return; }
-                  const r = res.restored;
-                  setWebsiteMsg(`Website restored: ${r.products} products, ${r.categories} categories, ${r.orders} orders, ${r.order_items} order items, ${r.reviews} reviews${res.failed.length ? ` — fail: ${res.failed.join(', ')}` : ''}`);
-                }} className={`px-4 py-2 rounded-lg text-sm font-bold ${webRestoreArmed ? 'bg-red-600 text-white' : 'bg-white border border-gray-300 text-gray-700'}`}>
-                  {webRestoreArmed ? 'Sure? Tap again — website data restore hoga' : 'Restore website backup'}
-                </button>
-              </div>
-              {websiteMsg && <p className="text-xs text-gray-600 font-semibold">{websiteMsg}</p>}
-            </div>
             <button type="button" onClick={onLock} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-bold">Lock karein</button>
           </>
         )}
