@@ -17,11 +17,20 @@ import { supabase } from '../../lib/supabase';
 //    Website ke products/orders yahan se delete ya change NAHI hote.
 //  * AUTO-BACKUP (2026-11-10): har save ke saath aakhri bhari hui state
 //    "bizmanager-v1-backup" me bhi save hoti hai — agar data kabhi khaali
-//    ho jaye to wahi se wapis aa jata hai (Settings → Restore auto-backup).
+//    ho jaye to wahi se wapis aa jata hai. FULLEST-STATE GUARD: backup
+//    sirf tab overwrite hota hai jab nayi state me products pehle se
+//    kam na hon — taake delete hui state achha backup kharab na kare.
 //  * CLOUD BACKUP (2026-11-10): har save ke saath data Supabase table
 //    "abr_inventory_backup" (row id=1) me bhi sync hota hai — taake
 //    browser ka data poora clear ho jaye to bhi cloud se wapis aa sake.
-//    Khaali state cloud ko overwrite NAHI karti.
+//    Khaali state cloud ko overwrite NAHI karti; wahi fullest-state
+//    guard cloud par bhi lagta hai.
+//  * SECRET ACCESS (2026-11-10, Waqas): backup/restore/clear ke buttons
+//    sirf hamare liye hain — owner ko nazar NAHI aate. Unlock: Dashboard
+//    → "Settings" heading par 5 dafa tap karein, phir code daalein
+//    (BACKUP_CODE). Cloud sync khamoshi se chalta rehta hai, taake
+//    owner ke har add kiye huwe item ka backup cloud me maujood rahe.
+//    "Print / Download PDF" sab ko nazar aata hai — woh chhupa nahi hai.
 // ---------------------------------------------------------------------------
 
 type StockProduct = { id: string; name: string; stock: number };
@@ -29,6 +38,12 @@ type StockProduct = { id: string; name: string; stock: number };
 
 const LS_KEY = 'bizmanager-v1';
 const BACKUP_KEY = 'bizmanager-v1-backup';
+// SECRET BACKUP ACCESS (2026-11-10, Waqas): backup/restore/clear ke
+// buttons sirf hamare liye hain — owner ko nazar NAHI aane chahiye.
+// Unlock: Dashboard → "Settings" heading par 5 dafa tap karein, phir
+// ye code daalein. Code badalna ho to sirf ye line badlein.
+const BACKUP_CODE = 'abr123';
+const UNLOCK_KEY = 'abr-backup-unlocked';
 const EXPENSE_SUGGESTIONS = ['Stock Bilty', 'Packing', 'Shipping', 'Ads', 'Rent', 'Salary', 'Bills', 'Other'];
 
 type ManualItem = { pid: string; name: string; qty: number; price: number; cost: number | null; ret: number; rl: { q: number; d: string }[] };
@@ -93,9 +108,20 @@ function saveLocal(db: LocalDb) {
   // save hoti hai. Khaali state backup ko overwrite NAHI karti — taake
   // ghalti se "Clear all" dab jaye ya data khaali ho jaye to bhi
   // aakhri achhi state wapis aa sake.
+  // FULLEST-STATE GUARD (2026-11-10): backup sirf tab overwrite hota hai
+  // jab nayi state me products pehle se KAM na hon. 2026-11-10 ko aisa
+  // hua tha: product delete hone ke baad 0-product/1-sale wali state ne
+  // achha backup overwrite kar diya tha. Ab backup hamesha sab se bhari
+  // hui state rakhta hai — product delete ho bhi jaye to backup me woh
+  // product maujood rehta hai.
   try {
     const hasData = db.manualProducts.length > 0 || db.manualSales.length > 0 || db.expenses.length > 0;
-    if (hasData) localStorage.setItem(BACKUP_KEY, JSON.stringify({ exportedAt: new Date().toISOString(), localDb: db }));
+    if (!hasData) return;
+    const stored = readAutoBackup();
+    const storedProducts = stored ? stored.localDb.manualProducts.length : -1;
+    if (db.manualProducts.length >= storedProducts) {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify({ exportedAt: new Date().toISOString(), localDb: db }));
+    }
   } catch { /* ignore */ }
 }
 
@@ -119,6 +145,20 @@ async function cloudSave(db: LocalDb): Promise<boolean> {
     const { error } = await supabase.from(CLOUD_TABLE).upsert({ id: 1, data: db, updated_at: new Date().toISOString() });
     return !error;
   } catch { return false; }
+}
+// FULLEST-STATE GUARD (2026-11-10): cloud sirf tab overwrite hota hai
+// jab nayi state me products cloud wali state se KAM na hon. 2026-11-10
+// ko auto-backup ki tarah cloud bhi 0-product wali state se kharab ho
+// sakta tha. 'kept' ka matlab: cloud me pehle se zyada products hain,
+// is liye purana backup rehne diya gaya.
+async function cloudSaveGuarded(db: LocalDb): Promise<'saved' | 'kept' | 'failed'> {
+  try {
+    const stored = await cloudLoad();
+    const storedProducts = stored ? stored.localDb.manualProducts.length : -1;
+    if (db.manualProducts.length < storedProducts) return 'kept';
+    const ok = await cloudSave(db);
+    return ok ? 'saved' : 'failed';
+  } catch { return 'failed'; }
 }
 async function cloudLoad(): Promise<{ exportedAt: string; localDb: LocalDb } | null> {
   try {
@@ -194,6 +234,20 @@ export function InventoryManager() {
   const [cloudBackup, setCloudBackup] = useState<{ exportedAt: string; localDb: LocalDb } | null>(null);
   const [cloudState, setCloudState] = useState<string | null>(null);
   const cloudTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // SECRET BACKUP ACCESS (2026-11-10, Waqas): backup ke buttons sirf
+  // hamare liye — Settings heading par 5 tap + code se khulta hai.
+  // sessionStorage me rehta hai, browser band hote hi phir lock.
+  const [backupUnlocked, setBackupUnlocked] = useState<boolean>(() => {
+    try { return sessionStorage.getItem(UNLOCK_KEY) === '1'; } catch { return false; }
+  });
+  const unlockBackup = () => {
+    try { sessionStorage.setItem(UNLOCK_KEY, '1'); } catch { /* ignore */ }
+    setBackupUnlocked(true);
+  };
+  const lockBackup = () => {
+    try { sessionStorage.removeItem(UNLOCK_KEY); } catch { /* ignore */ }
+    setBackupUnlocked(false);
+  };
   // Mount par: local khaali ho to cloud se backup uthao.
   useEffect(() => {
     if (!dbIsEmpty) return;
@@ -203,13 +257,16 @@ export function InventoryManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Har save ke 1.5s baad cloud sync (khaali db kabhi sync nahi hota).
+  // Guard: cloud sirf tab overwrite hota hai jab products kam na hon.
   useEffect(() => {
     if (dbIsEmpty) return;
     if (cloudTimer.current) clearTimeout(cloudTimer.current);
     cloudTimer.current = setTimeout(() => {
-      cloudSave(db).then(ok => setCloudState(ok
+      cloudSaveGuarded(db).then(res => setCloudState(res === 'saved'
         ? `Cloud backup saved ${new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}`
-        : 'Cloud backup failed — check internet'));
+        : res === 'kept'
+          ? 'Cloud backup kept — cloud me pehle se zyada products hain.'
+          : 'Cloud backup failed — check internet'));
     }, 1500);
     return () => { if (cloudTimer.current) clearTimeout(cloudTimer.current); };
   }, [db, dbIsEmpty]);
@@ -316,9 +373,11 @@ export function InventoryManager() {
   const syncCloudNow = () => {
     if (dbIsEmpty) { setCloudState('Cloud sync: data khaali hai, kuch save nahi hua.'); return; }
     setCloudState('Cloud backup sync ho raha hai…');
-    cloudSave(db).then(ok => setCloudState(ok
+    cloudSaveGuarded(db).then(res => setCloudState(res === 'saved'
       ? `Cloud backup saved ${new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}`
-      : 'Cloud backup failed — check internet'));
+      : res === 'kept'
+        ? 'Cloud backup kept — cloud me pehle se zyada products hain, overwrite nahi hua.'
+        : 'Cloud backup failed — check internet'));
   };
 
   return (
@@ -338,7 +397,7 @@ export function InventoryManager() {
           ))}
         </div>
         {msg && <p className="mb-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">{msg}</p>}
-        {dbIsEmpty && autoBackup && !backupBannerOff && (
+        {backupUnlocked && dbIsEmpty && autoBackup && !backupBannerOff && (
           <div className="mb-3 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-sm p-3">
             <p className="font-bold">Auto-backup mil gaya hai — {autoBackup.localDb.manualProducts.length} products, {autoBackup.localDb.manualSales.length} sales{autoBackup.exportedAt ? ` (${new Date(autoBackup.exportedAt).toLocaleString('en-PK')})` : ''}</p>
             <p>Data khaali hai — backup se wapis la sakte hain.</p>
@@ -348,7 +407,7 @@ export function InventoryManager() {
             </div>
           </div>
         )}
-        {dbIsEmpty && !autoBackup && cloudBackup && !backupBannerOff && (
+        {backupUnlocked && dbIsEmpty && !autoBackup && cloudBackup && !backupBannerOff && (
           <div className="mb-3 rounded-lg bg-blue-50 border border-blue-300 text-blue-900 text-sm p-3">
             <p className="font-bold">Cloud backup mil gaya hai — {cloudBackup.localDb.manualProducts.length} products, {cloudBackup.localDb.manualSales.length} sales{cloudBackup.exportedAt ? ` (${new Date(cloudBackup.exportedAt).toLocaleString('en-PK')})` : ''}</p>
             <p>Data khaali hai — cloud se wapis la sakte hain.</p>
@@ -372,6 +431,7 @@ export function InventoryManager() {
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} onRestore={restoreBackup} backupText={backupText}
             autoBackup={autoBackup ? { products: autoBackup.localDb.manualProducts.length, sales: autoBackup.localDb.manualSales.length, expenses: autoBackup.localDb.expenses.length, savedAt: autoBackup.exportedAt } : null} onRestoreAuto={restoreAutoBackup}
             cloudState={cloudState} onRestoreCloud={restoreFromCloudNow} onSyncCloud={syncCloudNow}
+            backupUnlocked={backupUnlocked} onUnlock={unlockBackup} onLock={lockBackup}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
         )}
@@ -517,7 +577,7 @@ function openManualReport(items: { name: string; stock: number; cost: number | n
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear, backupUnlocked, onUnlock, onLock }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
@@ -527,10 +587,41 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
   onGoInventory: () => void; onZero: () => void;
   dateFrom: string; dateTo: string; rangeOn: boolean;
   onFrom: (v: string) => void; onTo: (v: string) => void; onSearch: () => void; onClear: () => void;
+  backupUnlocked: boolean; onUnlock: () => void; onLock: () => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
   const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (zeroTimer.current) clearTimeout(zeroTimer.current); }, []);
+  // SECRET BACKUP ACCESS: "Settings" heading par 5 dafa tap karein (2s
+  // ke andar) to code wala box khulta hai. Sahi code par backup ke
+  // buttons nazar aate hain. Ghalat code par kuch nahi khulta.
+  const [unlockPrompt, setUnlockPrompt] = useState(false);
+  const [unlockCode, setUnlockCode] = useState('');
+  const [unlockErr, setUnlockErr] = useState<string | null>(null);
+  const tapCount = useRef(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (tapTimer.current) clearTimeout(tapTimer.current); }, []);
+  const onSettingsHeadingTap = () => {
+    if (backupUnlocked) return;
+    tapCount.current += 1;
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+    tapTimer.current = setTimeout(() => { tapCount.current = 0; }, 2000);
+    if (tapCount.current >= 5) {
+      tapCount.current = 0;
+      setUnlockErr(null);
+      setUnlockPrompt(true);
+    }
+  };
+  const tryUnlock = () => {
+    if (unlockCode.trim() === BACKUP_CODE) {
+      setUnlockPrompt(false);
+      setUnlockCode('');
+      setUnlockErr(null);
+      onUnlock();
+    } else {
+      setUnlockErr('Ghalat code.');
+    }
+  };
   const [restoreErr, setRestoreErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const onRestoreFile = (f: File | undefined) => {
@@ -610,36 +701,53 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
         <button type="button" onClick={onGoInventory} className="shrink-0 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold">Open Inventory →</button>
       </div>
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Settings</h2>
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2" onClick={onSettingsHeadingTap}>Settings</h2>
         <label className="flex items-center justify-between gap-3 text-sm font-semibold">Low stock alert (at or below)
           <input type="number" min={0} value={low} onChange={e => onLow(Number(e.target.value) || 0)} className="border rounded-lg px-2 py-1.5 w-20 text-right" />
         </label>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onBackup} className="px-4 py-2 rounded-lg bg-black text-white text-sm font-bold">Backup download</button>
-          <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" aria-label="Restore backup file" onChange={e => { onRestoreFile(e.target.files?.[0]); e.target.value = ''; }} />
-          <button type="button" onClick={() => fileRef.current?.click()} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold">Restore backup</button>
-          <button type="button" onClick={() => {
-            if (zeroArmed) { if (zeroTimer.current) clearTimeout(zeroTimer.current); setZeroArmed(false); onZero(); return; }
-            setZeroArmed(true);
-            zeroTimer.current = setTimeout(() => setZeroArmed(false), 4000);
-          }} className={`px-4 py-2 rounded-lg text-sm font-bold ${zeroArmed ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}`}>
-            {zeroArmed ? 'Sure? Tap again — all will be cleared' : 'Clear all (new record)'}
-          </button>
-        </div>
-        <p className="text-xs text-gray-500">Backup downloads first. Website products/orders are not deleted.</p>
-        {autoBackup ? (
-          <p className="text-xs text-gray-600">Auto-backup: {autoBackup.products} products, {autoBackup.sales} sales, {autoBackup.expenses} expenses{autoBackup.savedAt ? ` — ${new Date(autoBackup.savedAt).toLocaleString('en-PK')}` : ''}</p>
-        ) : (
-          <p className="text-xs text-gray-500">Auto-backup: abhi koi backup nahi hai — pehli sale ya product add hote hi ban jaye ga.</p>
+        {backupUnlocked && (
+          <>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={onBackup} className="px-4 py-2 rounded-lg bg-black text-white text-sm font-bold">Backup download</button>
+              <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" aria-label="Restore backup file" onChange={e => { onRestoreFile(e.target.files?.[0]); e.target.value = ''; }} />
+              <button type="button" onClick={() => fileRef.current?.click()} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold">Restore backup</button>
+              <button type="button" onClick={() => {
+                if (zeroArmed) { if (zeroTimer.current) clearTimeout(zeroTimer.current); setZeroArmed(false); onZero(); return; }
+                setZeroArmed(true);
+                zeroTimer.current = setTimeout(() => setZeroArmed(false), 4000);
+              }} className={`px-4 py-2 rounded-lg text-sm font-bold ${zeroArmed ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}`}>
+                {zeroArmed ? 'Sure? Tap again — all will be cleared' : 'Clear all (new record)'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">Backup downloads first. Website products/orders are not deleted.</p>
+            {autoBackup ? (
+              <p className="text-xs text-gray-600">Auto-backup: {autoBackup.products} products, {autoBackup.sales} sales, {autoBackup.expenses} expenses{autoBackup.savedAt ? ` — ${new Date(autoBackup.savedAt).toLocaleString('en-PK')}` : ''}</p>
+            ) : (
+              <p className="text-xs text-gray-500">Auto-backup: abhi koi backup nahi hai — pehli sale ya product add hote hi ban jaye ga.</p>
+            )}
+            <button type="button" onClick={onRestoreAuto} disabled={!autoBackup} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold disabled:opacity-40">Restore auto-backup</button>
+            {cloudState && <p className="text-xs text-gray-600">{cloudState}</p>}
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={onSyncCloud} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Sync cloud now</button>
+              <button type="button" onClick={onRestoreCloud} className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-bold">Restore from cloud</button>
+            </div>
+            {restoreErr && <p className="text-xs text-red-600 font-semibold">{restoreErr}</p>}
+            {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Copy backup JSON" />}
+            <button type="button" onClick={onLock} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-bold">Lock karein</button>
+          </>
         )}
-        <button type="button" onClick={onRestoreAuto} disabled={!autoBackup} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold disabled:opacity-40">Restore auto-backup</button>
-        {cloudState && <p className="text-xs text-gray-600">{cloudState}</p>}
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onSyncCloud} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Sync cloud now</button>
-          <button type="button" onClick={onRestoreCloud} className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-bold">Restore from cloud</button>
-        </div>
-        {restoreErr && <p className="text-xs text-red-600 font-semibold">{restoreErr}</p>}
-        {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Copy backup JSON" />}
+        {!backupUnlocked && unlockPrompt && (
+          <div className="space-y-2 rounded-lg border border-gray-300 p-3">
+            <label className="block text-sm font-bold">Secret code
+              <input type="password" value={unlockCode} onChange={e => setUnlockCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') tryUnlock(); }} className="block mt-1 w-full border rounded-lg px-2 py-1.5 text-sm" placeholder="Code daalein" />
+            </label>
+            {unlockErr && <p className="text-xs text-red-600 font-semibold">{unlockErr}</p>}
+            <div className="flex gap-2">
+              <button type="button" onClick={tryUnlock} className="px-4 py-2 rounded-lg bg-black text-white text-sm font-bold">Unlock</button>
+              <button type="button" onClick={() => { setUnlockPrompt(false); setUnlockCode(''); setUnlockErr(null); }} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-bold">Cancel</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
