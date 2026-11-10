@@ -38,36 +38,41 @@ type LocalDb = {
 
 const EMPTY_DB: LocalDb = { manualProducts: [], costById: {}, webCost: {}, expenses: [], manualSales: [], webReturns: [], low: 5 };
 
+function normalizeDb(parsed: unknown): LocalDb | null {
+  if (!parsed || typeof parsed !== 'object') return null;
+  const p = parsed as Partial<LocalDb>;
+  // Old-format manual sales {pid,name,qty,price,cost,date} -> order format.
+  const manualSales: ManualSale[] = Array.isArray(p.manualSales)
+    ? p.manualSales.map((s, i) => {
+        const anySale = s as unknown as Record<string, unknown>;
+        if (Array.isArray(anySale.items)) return s as ManualSale;
+        return {
+          id: String(anySale.id ?? `old-${i}`),
+          date: String(anySale.date ?? new Date().toISOString().slice(0, 10)),
+          items: [{
+            pid: String(anySale.pid ?? ''), name: String(anySale.name ?? ''),
+            qty: Number(anySale.qty ?? 0), price: Number(anySale.price ?? 0),
+            cost: anySale.cost == null ? null : Number(anySale.cost), ret: 0, rl: [],
+          }],
+        };
+      })
+    : [];
+  return {
+    manualProducts: Array.isArray(p.manualProducts) ? p.manualProducts : [],
+    costById: p.costById ?? {},
+    webCost: p.webCost ?? {},
+    expenses: Array.isArray(p.expenses) ? p.expenses : [],
+    manualSales,
+    webReturns: Array.isArray(p.webReturns) ? p.webReturns : [],
+    low: typeof p.low === 'number' ? p.low : 5,
+  };
+}
+
 function loadLocal(): LocalDb {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return { ...EMPTY_DB };
-    const parsed = JSON.parse(raw) as Partial<LocalDb>;
-    // Old-format manual sales {pid,name,qty,price,cost,date} -> order format.
-    const manualSales: ManualSale[] = Array.isArray(parsed.manualSales)
-      ? parsed.manualSales.map((s, i) => {
-          const anySale = s as unknown as Record<string, unknown>;
-          if (Array.isArray(anySale.items)) return s as ManualSale;
-          return {
-            id: String(anySale.id ?? `old-${i}`),
-            date: String(anySale.date ?? new Date().toISOString().slice(0, 10)),
-            items: [{
-              pid: String(anySale.pid ?? ''), name: String(anySale.name ?? ''),
-              qty: Number(anySale.qty ?? 0), price: Number(anySale.price ?? 0),
-              cost: anySale.cost == null ? null : Number(anySale.cost), ret: 0, rl: [],
-            }],
-          };
-        })
-      : [];
-    return {
-      manualProducts: Array.isArray(parsed.manualProducts) ? parsed.manualProducts : [],
-      costById: parsed.costById ?? {},
-      webCost: parsed.webCost ?? {},
-      expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
-      manualSales,
-      webReturns: Array.isArray(parsed.webReturns) ? parsed.webReturns : [],
-      low: typeof parsed.low === 'number' ? parsed.low : 5,
-    };
+    return normalizeDb(JSON.parse(raw)) ?? { ...EMPTY_DB };
   } catch {
     return { ...EMPTY_DB };
   }
@@ -78,20 +83,6 @@ function saveLocal(db: LocalDb) {
 }
 
 const rs = (n: number) => `Rs ${Math.round(n).toLocaleString('en-PK')}`;
-export function calcTotals(sales: ManualSale[], expenses: Expense[]) {
-  let totalSale = 0, saleProfit = 0, costMissing = false;
-  for (const s of sales) {
-    for (const it of s.items) {
-      const rem = it.qty - it.ret;
-      totalSale += rem * it.price;
-      if (it.cost == null) costMissing = true;
-      else saleProfit += rem * (it.price - it.cost);
-    }
-  }
-  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-  return { totalSale, saleProfit, totalExpenses, netProfit: saleProfit - totalExpenses, costMissing };
-}
-
 const today = () => new Date().toISOString().slice(0, 10);
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -145,20 +136,19 @@ export function InventoryManager() {
   };
   // --- Totals: SIRF manual sales (owner 2026-11-04). Website orders
   // sale me nahi ginay jate, kyunki owner khud asli sale price add karta hai.
-  const totals = useMemo(() => calcTotals(db.manualSales, db.expenses), [db]);
-
-  // --- Date range: From/To + Search se upar wale 4 boxes us range ke
-  // totals dikhate hain. Total Stock / Total Amount hamesha current
-  // stock rehte hain — range se nahi badalte. "Show all" se wapas all-time.
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [rangeOn, setRangeOn] = useState(false);
-  const shownTotals = useMemo(() => {
-    if (!rangeOn) return totals;
-    const fs = db.manualSales.filter(s => s.date >= dateFrom && s.date <= dateTo);
-    const fe = db.expenses.filter(e => e.date >= dateFrom && e.date <= dateTo);
-    return calcTotals(fs, fe);
-  }, [db, rangeOn, dateFrom, dateTo, totals]);
+  const totals = useMemo(() => {
+    let totalSale = 0, saleProfit = 0, costMissing = false;
+    for (const s of db.manualSales) {
+      for (const it of s.items) {
+        const rem = it.qty - it.ret;
+        totalSale += rem * it.price;
+        if (it.cost == null) costMissing = true;
+        else saleProfit += rem * (it.price - it.cost);
+      }
+    }
+    const totalExpenses = db.expenses.reduce((s, e) => s + e.amount, 0);
+    return { totalSale, saleProfit, totalExpenses, netProfit: saleProfit - totalExpenses, costMissing };
+  }, [db]);
 
   const stockValue = useMemo(() => {
     let value = 0, known = false;
@@ -210,6 +200,11 @@ export function InventoryManager() {
     } catch { /* copy box below is the fallback */ }
   };
 
+  const restoreBackup = (restored: LocalDb) => {
+    updateDb(restored);
+    setMsg(`Backup restored: ${restored.manualProducts.length} products, ${restored.manualSales.length} sales, ${restored.expenses.length} expenses.`);
+  };
+
   return (
     <AdminLayout>
       <style>{`
@@ -227,18 +222,14 @@ export function InventoryManager() {
           ))}
         </div>
         {msg && <p className="mb-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">{msg}</p>}
-        {shownTotals.costMissing && <p className="text-xs text-amber-700 mb-4">Some sales have no cost, their profit is 0.</p>}
+        {totals.costMissing && <p className="text-xs text-amber-700 mb-4">Some sales have no cost, their profit is 0.</p>}
 
 
         {tab === 'dashboard' && (
           <DashboardTab
-            totals={shownTotals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
+            totals={totals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
-            dateFrom={dateFrom} dateTo={dateTo} rangeOn={rangeOn}
-            onFrom={setDateFrom} onTo={setDateTo}
-            onSearch={() => setRangeOn(true)}
-            onClear={() => { setRangeOn(false); setDateFrom(''); setDateTo(''); }}
-            onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} backupText={backupText}
+            onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} onRestore={restoreBackup} backupText={backupText}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
         )}
@@ -384,35 +375,40 @@ function openManualReport(items: { name: string; stock: number; cost: number | n
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, backupText, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, onGoInventory, onZero }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
-  onLow: (v: number) => void; onBackup: () => void; backupText: string; onGoInventory: () => void; onZero: () => void;
-  dateFrom: string; dateTo: string; rangeOn: boolean;
-  onFrom: (v: string) => void; onTo: (v: string) => void; onSearch: () => void; onClear: () => void;
+  onLow: (v: number) => void; onBackup: () => void; onRestore: (db: LocalDb) => void; backupText: string; onGoInventory: () => void; onZero: () => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
   const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (zeroTimer.current) clearTimeout(zeroTimer.current); }, []);
-  const rangeInvalid = !!dateFrom && !!dateTo && dateFrom > dateTo;
+  const [restoreErr, setRestoreErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const onRestoreFile = (f: File | undefined) => {
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result)) as unknown;
+        const raw = (parsed && typeof parsed === 'object' && 'localDb' in (parsed as Record<string, unknown>))
+          ? (parsed as Record<string, unknown>).localDb
+          : parsed;
+        if (!raw || typeof raw !== 'object' || !Array.isArray((raw as Record<string, unknown>).manualProducts)) throw new Error('bad shape');
+        const norm = normalizeDb(raw);
+        if (!norm) throw new Error('bad shape');
+        setRestoreErr(null);
+        onRestore(norm);
+      } catch {
+        setRestoreErr('Backup file theek nahi hai — sahi abr-inventory-backup.json file chunein.');
+      }
+    };
+    reader.onerror = () => setRestoreErr('File parhi nahi gayi — dobara try karein.');
+    reader.readAsText(f);
+  };
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4 space-y-3">
-        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Date Range</h2>
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="text-xs font-bold text-gray-600">From
-            <input type="date" value={dateFrom} onChange={e => onFrom(e.target.value)} className="block mt-1 border rounded-lg px-2 py-1.5 text-sm" />
-          </label>
-          <label className="text-xs font-bold text-gray-600">To
-            <input type="date" value={dateTo} onChange={e => onTo(e.target.value)} className="block mt-1 border rounded-lg px-2 py-1.5 text-sm" />
-          </label>
-          <button type="button" onClick={onSearch} disabled={!dateFrom || !dateTo || rangeInvalid} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-bold disabled:opacity-40">Search</button>
-          {rangeOn && <button type="button" onClick={onClear} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-bold">Show all</button>}
-        </div>
-        {rangeInvalid && <p className="text-xs text-red-600 font-bold">From date must be before To date.</p>}
-        {rangeOn && <p className="text-xs font-bold text-gray-600">Showing {dateFrom} to {dateTo} — the 4 boxes below are for this range only. Total Stock and Total Amount never change.</p>}
-      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border-2 border-orange-200 shadow-lg p-4">
           <p className="text-xs font-black tracking-widest text-orange-600">TOTAL SALE</p>
@@ -457,6 +453,8 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
         </label>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={onBackup} className="px-4 py-2 rounded-lg bg-black text-white text-sm font-bold">Backup download</button>
+          <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" aria-label="Restore backup file" onChange={e => { onRestoreFile(e.target.files?.[0]); e.target.value = ''; }} />
+          <button type="button" onClick={() => fileRef.current?.click()} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold">Restore backup</button>
           <button type="button" onClick={() => {
             if (zeroArmed) { if (zeroTimer.current) clearTimeout(zeroTimer.current); setZeroArmed(false); onZero(); return; }
             setZeroArmed(true);
@@ -466,6 +464,7 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
           </button>
         </div>
         <p className="text-xs text-gray-500">Backup downloads first. Website products/orders are not deleted.</p>
+        {restoreErr && <p className="text-xs text-red-600 font-semibold">{restoreErr}</p>}
         {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Copy backup JSON" />}
       </div>
     </div>
