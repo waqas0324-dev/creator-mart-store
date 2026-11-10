@@ -14,12 +14,16 @@ import { AdminLayout } from './AdminLayout';
 //  * Profit = sale price − khareed price, phir minus total kharcha.
 //  * Sab kuch sirf is phone/browser ke localStorage "bizmanager-v1" me hai.
 //    Website ke products/orders yahan se delete ya change NAHI hote.
+//  * AUTO-BACKUP (2026-11-10): har save ke saath aakhri bhari hui state
+//    "bizmanager-v1-backup" me bhi save hoti hai — agar data kabhi khaali
+//    ho jaye to wahi se wapis aa jata hai (Settings → Restore auto-backup).
 // ---------------------------------------------------------------------------
 
 type StockProduct = { id: string; name: string; stock: number };
 
 
 const LS_KEY = 'bizmanager-v1';
+const BACKUP_KEY = 'bizmanager-v1-backup';
 const EXPENSE_SUGGESTIONS = ['Stock Bilty', 'Packing', 'Shipping', 'Ads', 'Rent', 'Salary', 'Bills', 'Other'];
 
 type ManualItem = { pid: string; name: string; qty: number; price: number; cost: number | null; ret: number; rl: { q: number; d: string }[] };
@@ -80,6 +84,26 @@ function loadLocal(): LocalDb {
 
 function saveLocal(db: LocalDb) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(db)); } catch { /* page must work when storage is empty/blocked */ }
+  // Auto-backup: har save ke saath aakhri BHARI hui state alag key me bhi
+  // save hoti hai. Khaali state backup ko overwrite NAHI karti — taake
+  // ghalti se "Clear all" dab jaye ya data khaali ho jaye to bhi
+  // aakhri achhi state wapis aa sake.
+  try {
+    const hasData = db.manualProducts.length > 0 || db.manualSales.length > 0 || db.expenses.length > 0;
+    if (hasData) localStorage.setItem(BACKUP_KEY, JSON.stringify({ exportedAt: new Date().toISOString(), localDb: db }));
+  } catch { /* ignore */ }
+}
+
+function readAutoBackup(): { exportedAt: string; localDb: LocalDb } | null {
+  try {
+    const raw = localStorage.getItem(BACKUP_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { exportedAt?: string; localDb?: unknown };
+    if (!parsed.localDb || typeof parsed.localDb !== 'object' || !Array.isArray((parsed.localDb as Record<string, unknown>).manualProducts)) return null;
+    const norm = normalizeDb(parsed.localDb);
+    if (!norm) return null;
+    return { exportedAt: String(parsed.exportedAt ?? ''), localDb: norm };
+  } catch { return null; }
 }
 
 const rs = (n: number) => `Rs ${Math.round(n).toLocaleString('en-PK')}`;
@@ -126,6 +150,10 @@ export function InventoryManager() {
   const products: StockProduct[] = useMemo(() => db.manualProducts.map(mp => ({ id: mp.id, name: mp.name, stock: mp.qty })), [db.manualProducts]);
   const [msg, setMsg] = useState<string | null>(null);
   const [backupText, setBackupText] = useState('');
+  const [autoBackup, setAutoBackup] = useState<{ exportedAt: string; localDb: LocalDb } | null>(() => readAutoBackup());
+  const [backupBannerOff, setBackupBannerOff] = useState(false);
+  useEffect(() => { setAutoBackup(readAutoBackup()); }, [db]);
+  const dbIsEmpty = db.manualProducts.length === 0 && db.manualSales.length === 0 && db.expenses.length === 0;
 
   const updateDb = (next: LocalDb | ((prev: LocalDb) => LocalDb)) => {
     setDb(prev => {
@@ -205,6 +233,13 @@ export function InventoryManager() {
     setMsg(`Backup restored: ${restored.manualProducts.length} products, ${restored.manualSales.length} sales, ${restored.expenses.length} expenses.`);
   };
 
+  const restoreAutoBackup = () => {
+    const b = readAutoBackup();
+    if (!b) return;
+    restoreBackup(b.localDb);
+    setBackupBannerOff(false);
+  };
+
   return (
     <AdminLayout>
       <style>{`
@@ -222,6 +257,16 @@ export function InventoryManager() {
           ))}
         </div>
         {msg && <p className="mb-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">{msg}</p>}
+        {dbIsEmpty && autoBackup && !backupBannerOff && (
+          <div className="mb-3 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-sm p-3">
+            <p className="font-bold">Auto-backup mil gaya hai — {autoBackup.localDb.manualProducts.length} products, {autoBackup.localDb.manualSales.length} sales{autoBackup.exportedAt ? ` (${new Date(autoBackup.exportedAt).toLocaleString('en-PK')})` : ''}</p>
+            <p>Data khaali hai — backup se wapis la sakte hain.</p>
+            <div className="flex gap-2 mt-2">
+              <button type="button" onClick={restoreAutoBackup} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold">Restore karein</button>
+              <button type="button" onClick={() => setBackupBannerOff(true)} className="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-xs font-bold">Nahi, rehne dein</button>
+            </div>
+          </div>
+        )}
         {totals.costMissing && <p className="text-xs text-amber-700 mb-4">Some sales have no cost, their profit is 0.</p>}
 
 
@@ -230,6 +275,7 @@ export function InventoryManager() {
             totals={totals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             onLow={v => updateDb({ ...db, low: v })} onBackup={downloadBackup} onRestore={restoreBackup} backupText={backupText}
+            autoBackup={autoBackup ? { products: autoBackup.localDb.manualProducts.length, sales: autoBackup.localDb.manualSales.length, expenses: autoBackup.localDb.expenses.length, savedAt: autoBackup.exportedAt } : null} onRestoreAuto={restoreAutoBackup}
             onZero={() => { downloadBackup(); updateDb({ ...EMPTY_DB, low: db.low }); setMsg('All cleared — new record started. Old data saved in backup.'); }}
           />
         )}
@@ -375,11 +421,13 @@ function openManualReport(items: { name: string; stock: number; cost: number | n
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, onGoInventory, onZero }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, onGoInventory, onZero }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
-  onLow: (v: number) => void; onBackup: () => void; onRestore: (db: LocalDb) => void; backupText: string; onGoInventory: () => void; onZero: () => void;
+  onLow: (v: number) => void; onBackup: () => void; onRestore: (db: LocalDb) => void; backupText: string;
+  autoBackup: { products: number; sales: number; expenses: number; savedAt: string } | null; onRestoreAuto: () => void;
+  onGoInventory: () => void; onZero: () => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
   const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -464,6 +512,12 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
           </button>
         </div>
         <p className="text-xs text-gray-500">Backup downloads first. Website products/orders are not deleted.</p>
+        {autoBackup ? (
+          <p className="text-xs text-gray-600">Auto-backup: {autoBackup.products} products, {autoBackup.sales} sales, {autoBackup.expenses} expenses{autoBackup.savedAt ? ` — ${new Date(autoBackup.savedAt).toLocaleString('en-PK')}` : ''}</p>
+        ) : (
+          <p className="text-xs text-gray-500">Auto-backup: abhi koi backup nahi hai — pehli sale ya product add hote hi ban jaye ga.</p>
+        )}
+        <button type="button" onClick={onRestoreAuto} disabled={!autoBackup} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-bold disabled:opacity-40">Restore auto-backup</button>
         {restoreErr && <p className="text-xs text-red-600 font-semibold">{restoreErr}</p>}
         {backupText && <textarea readOnly value={backupText} rows={6} className="w-full border rounded-lg p-2 text-xs font-mono" aria-label="Copy backup JSON" />}
       </div>
