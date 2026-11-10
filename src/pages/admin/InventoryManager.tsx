@@ -184,6 +184,51 @@ export function calcTotals(sales: ManualSale[], expenses: Expense[]) {
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   return { totalSale, saleProfit, totalExpenses, netProfit: saleProfit - totalExpenses, costMissing };
 }
+// FULL REPORT (2026-11-10, Waqas): har product ki aik row — naam, stock,
+// khareed price, sale price, period me kitna bika, total sale, profit.
+// Period = Overall, ya Date Range card ki From/To. Becha hua lekin ab
+// inventory me na hone wala product bhi aata hai (stock 0). Sale price =
+// period ki aakhri sale wali price; period me sale na ho to overall ki
+// aakhri sale price. Profit null = us period ki kisi sale ki cost nahi hai.
+export type ReportRow = { id: string; name: string; stock: number; cost: number | null; salePrice: number | null; sold: number; totalSale: number; profit: number | null };
+export function calcReportRows(products: StockProduct[], costById: Record<string, number>, sales: ManualSale[], rangeOn: boolean, dateFrom: string, dateTo: string) {
+  const inRange = (d: string) => !rangeOn || (d >= dateFrom && d <= dateTo);
+  const byId = new Map<string, ReportRow>();
+  const ensure = (id: string, name: string, stock: number, cost: number | null): ReportRow => {
+    let r = byId.get(id);
+    if (!r) { r = { id, name, stock, cost, salePrice: null, sold: 0, totalSale: 0, profit: 0 }; byId.set(id, r); }
+    return r;
+  };
+  for (const p of products) ensure(p.id, p.name, p.stock, costById[p.id] ?? null);
+  const latestOverall = new Map<string, number>();
+  const sorted = [...sales].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  for (const s of sorted) {
+    for (const it of s.items) {
+      latestOverall.set(it.pid, it.price);
+      if (!inRange(s.date)) continue;
+      const rem = it.qty - it.ret;
+      const r = ensure(it.pid, it.name, 0, it.cost);
+      r.sold += rem;
+      r.totalSale += rem * it.price;
+      r.salePrice = it.price;
+      if (it.cost == null) r.profit = null;
+      else if (r.profit != null) r.profit += rem * (it.price - it.cost);
+    }
+  }
+  for (const r of byId.values()) if (r.salePrice == null) r.salePrice = latestOverall.get(r.id) ?? null;
+  const rows = [...byId.values()];
+  const profitKnown = rows.every(r => r.profit != null);
+  return {
+    rows,
+    totals: {
+      products: rows.length,
+      pieces: products.reduce((s, p) => s + p.stock, 0),
+      soldQty: rows.reduce((s, r) => s + r.sold, 0),
+      totalSale: rows.reduce((s, r) => s + r.totalSale, 0),
+      totalProfit: profitKnown ? rows.reduce((s, r) => s + (r.profit ?? 0), 0) : null as number | null,
+    },
+  };
+}
 const today = () => new Date().toISOString().slice(0, 10);
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -294,6 +339,18 @@ export function InventoryManager() {
     const fe = db.expenses.filter(e => e.date >= dateFrom && e.date <= dateTo);
     return calcTotals(fs, fe);
   }, [db, rangeOn, dateFrom, dateTo, totals]);
+
+  // FULL REPORT (2026-11-10): period = Overall, ya Date Range card ki
+  // From/To. Quick buttons: Overall / This Month / Today — wahi range
+  // upar wale 4 boxes ko bhi filter karta hai, taake report aur boxes
+  // hamesha aik hi period ke hon.
+  const report = useMemo(() => calcReportRows(products, db.costById, db.manualSales, rangeOn, dateFrom, dateTo), [products, db.costById, db.manualSales, rangeOn, dateFrom, dateTo]);
+  const periodLabel = rangeOn ? `${dateFrom} to ${dateTo}` : 'Overall — all time';
+  const onQuickPeriod = (k: 'overall' | 'month' | 'today') => {
+    if (k === 'overall') { setRangeOn(false); setDateFrom(''); setDateTo(''); return; }
+    if (k === 'month') { setDateFrom(new Date().toISOString().slice(0, 8) + '01'); setDateTo(today()); setRangeOn(true); return; }
+    setDateFrom(today()); setDateTo(today()); setRangeOn(true);
+  };
 
   const stockValue = useMemo(() => {
     let value = 0, known = false;
@@ -423,6 +480,7 @@ export function InventoryManager() {
         {tab === 'dashboard' && (
           <DashboardTab
             totals={shownTotals} expenseByName={expenseByName} products={products} costById={db.costById} onGoInventory={() => setTab('inventory')}
+            report={report} periodLabel={periodLabel} onQuickPeriod={onQuickPeriod}
             totalQty={totalQty} stockValue={stockValue} low={db.low}
             dateFrom={dateFrom} dateTo={dateTo} rangeOn={rangeOn}
             onFrom={setDateFrom} onTo={setDateTo}
@@ -549,35 +607,36 @@ export function InventoryManager() {
 // No website data, no categories — just the collected manual inventory.
 const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-function buildManualReportHtml(items: { name: string; stock: number; cost: number | null }[]): string {
-  const body = items.map((x, i) => `<tr><td>${i + 1}</td><td>${escHtml(x.name)}</td><td>${x.cost == null ? 'No cost' : rs(x.cost)}</td><td>${x.stock}</td><td>${x.cost == null ? 'No cost' : rs(x.stock * x.cost)}</td></tr>`).join('');
-  const pieces = items.reduce((s, x) => s + x.stock, 0);
-  const amount = items.reduce((s, x) => s + (x.cost == null ? 0 : x.stock * x.cost), 0);
-  const known = items.some(x => x.cost != null);
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ABR Gadgets — Inventory Report</title><style>
+// FULL REPORT print (2026-11-10): period + har product ki row (stock,
+// cost, sale price, sold, total sale, profit) + period totals. Print
+// button se naya tab khulta hai aur khud print dialog aata hai.
+function buildFullReportHtml(periodLabel: string, rows: ReportRow[], totals: { products: number; pieces: number; soldQty: number; totalSale: number; totalProfit: number | null }, expenses: number, netProfit: number): string {
+  const body = rows.map((x, i) => `<tr><td>${i + 1}</td><td>${escHtml(x.name)}</td><td>${x.stock}</td><td>${x.cost == null ? 'No cost' : rs(x.cost)}</td><td>${x.salePrice == null ? '—' : rs(x.salePrice)}</td><td>${x.sold}</td><td>${rs(x.totalSale)}</td><td>${x.profit == null ? '—' : rs(x.profit)}</td></tr>`).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ABR Gadgets — Full Report</title><style>
     body{font-family:Arial,sans-serif;color:#111;margin:24px} h1{font-size:22px}
     table{width:100%;border-collapse:collapse;font-size:13px} th,td{border:1px solid #ccc;padding:6px 8px;text-align:left} th{background:#f0f0f0}
     .tot{font-size:14px} .muted{color:#555} button{padding:10px 18px;font-size:15px;font-weight:bold;background:#f97316;color:#fff;border:0;border-radius:8px;cursor:pointer}
     @media print{ .no-print{display:none !important} }
   </style></head><body>
   <button class="no-print" onclick="window.print()">Print / Save as PDF</button>
-  <h1>ABR Gadgets — Inventory Report</h1>
-  <p class="muted">${new Date().toLocaleDateString('en-PK')}</p>
-  <table><thead><tr><th>#</th><th>Product</th><th>Cost (per piece)</th><th>Stock</th><th>Amount</th></tr></thead><tbody>${body || '<tr><td colspan="5">No products</td></tr>'}</tbody></table>
-  <p class="tot"><b>Total:</b> ${items.length} products &nbsp;|&nbsp; ${pieces} pieces &nbsp;|&nbsp; ${known ? rs(amount) : 'No cost'}</p>
+  <h1>ABR Gadgets — Full Report</h1>
+  <p class="muted">${escHtml(periodLabel)} &nbsp;|&nbsp; ${new Date().toLocaleDateString('en-PK')}</p>
+  <table><thead><tr><th>#</th><th>Product</th><th>Stock</th><th>Cost</th><th>Sale Price</th><th>Sold</th><th>Total Sale</th><th>Profit</th></tr></thead><tbody>${body || '<tr><td colspan="8">No products</td></tr>'}</tbody></table>
+  <p class="tot"><b>Total:</b> ${totals.products} products &nbsp;|&nbsp; ${totals.pieces} pieces in stock &nbsp;|&nbsp; ${totals.soldQty} sold &nbsp;|&nbsp; Total Sale ${rs(totals.totalSale)} &nbsp;|&nbsp; Profit ${totals.totalProfit == null ? '—' : rs(totals.totalProfit)}</p>
+  <p class="tot"><b>Expenses:</b> ${rs(expenses)} &nbsp;|&nbsp; <b>Net Profit:</b> ${rs(netProfit)}</p>
   <script>setTimeout(function(){ window.print(); }, 800);<\/script>
   </body></html>`;
 }
 
-function openManualReport(items: { name: string; stock: number; cost: number | null }[]) {
+function openFullReport(periodLabel: string, rows: ReportRow[], totals: { products: number; pieces: number; soldQty: number; totalSale: number; totalProfit: number | null }, expenses: number, netProfit: number) {
   const w = window.open('', '_blank');
   if (!w) return;
-  w.document.write(buildManualReportHtml(items));
+  w.document.write(buildFullReportHtml(periodLabel, rows, totals, expenses, netProfit));
   w.document.close();
 }
 
 // ---------------------------------------------------------------- Dashboard
-function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear, backupUnlocked, onUnlock, onLock }: {
+function DashboardTab({ totals, expenseByName, products, costById, totalQty, stockValue, low, onLow, onBackup, onRestore, backupText, autoBackup, onRestoreAuto, cloudState, onRestoreCloud, onSyncCloud, onGoInventory, onZero, dateFrom, dateTo, rangeOn, onFrom, onTo, onSearch, onClear, backupUnlocked, onUnlock, onLock, report, periodLabel, onQuickPeriod }: {
   totals: { totalSale: number; saleProfit: number; totalExpenses: number; netProfit: number };
   expenseByName: [string, number][]; products: StockProduct[]; costById: Record<string, number>;
   totalQty: number; stockValue: { value: number; known: boolean }; low: number;
@@ -588,6 +647,8 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
   dateFrom: string; dateTo: string; rangeOn: boolean;
   onFrom: (v: string) => void; onTo: (v: string) => void; onSearch: () => void; onClear: () => void;
   backupUnlocked: boolean; onUnlock: () => void; onLock: () => void;
+  report: { rows: ReportRow[]; totals: { products: number; pieces: number; soldQty: number; totalSale: number; totalProfit: number | null } };
+  periodLabel: string; onQuickPeriod: (k: 'overall' | 'month' | 'today') => void;
 }) {
   const [zeroArmed, setZeroArmed] = useState(false);
   const zeroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -598,6 +659,10 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
   const [unlockPrompt, setUnlockPrompt] = useState(false);
   const [unlockCode, setUnlockCode] = useState('');
   const [unlockErr, setUnlockErr] = useState<string | null>(null);
+  // VIEW TOGGLE (2026-11-10, Waqas): aankh wale button se code dikha ya
+  // chhupa sakte hain — taake type karte waqt check kar sakein ke code
+  // theek likha hai.
+  const [showCode, setShowCode] = useState(false);
   const tapCount = useRef(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (tapTimer.current) clearTimeout(tapTimer.current); }, []);
@@ -692,9 +757,37 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
         </div>
       </div>
       <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg p-4 space-y-3">
-        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Inventory Report</h2>
-        <p className="text-sm font-bold">{products.length} products &nbsp;|&nbsp; {totalQty} pieces &nbsp;|&nbsp; {stockValue.known ? rs(stockValue.value) : 'No cost'}</p>
-        <button type="button" onClick={() => openManualReport(products.map(pr => ({ name: pr.name, stock: pr.stock, cost: costById[pr.id] ?? null })))} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">Print / Download PDF</button>
+        <h2 className="font-bold border-l-4 border-orange-500 pl-2">Full Report</h2>
+        <p className="text-sm font-bold">{periodLabel}</p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => onQuickPeriod('overall')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${!rangeOn ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Overall</button>
+          <button type="button" onClick={() => onQuickPeriod('month')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${rangeOn && dateFrom === new Date().toISOString().slice(0, 8) + '01' && dateTo === today() ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'}`}>This Month</button>
+          <button type="button" onClick={() => onQuickPeriod('today')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${rangeOn && dateFrom === today() && dateTo === today() ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Today</button>
+        </div>
+        <p className="text-xs text-gray-500">Date Range card se kisi bhi date ka data bhi nikaal sakte hain — From/To + Search dabayein, report aur upar wale 4 boxes wahi range dikhayenge.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead><tr className="text-left text-gray-500 border-b">
+              <th className="py-1 pr-2">Product</th><th className="py-1 pr-2 text-right">Stock</th><th className="py-1 pr-2 text-right">Cost</th><th className="py-1 pr-2 text-right">Sale Price</th><th className="py-1 pr-2 text-right">Sold</th><th className="py-1 pr-2 text-right">Total Sale</th><th className="py-1 text-right">Profit</th>
+            </tr></thead>
+            <tbody>
+              {report.rows.map(r => (
+                <tr key={r.id} className="border-b">
+                  <td className="py-1.5 pr-2 font-semibold">{r.name}</td>
+                  <td className="py-1.5 pr-2 text-right">{r.stock}</td>
+                  <td className="py-1.5 pr-2 text-right">{r.cost == null ? 'No cost' : rs(r.cost)}</td>
+                  <td className="py-1.5 pr-2 text-right">{r.salePrice == null ? '—' : rs(r.salePrice)}</td>
+                  <td className="py-1.5 pr-2 text-right">{r.sold}</td>
+                  <td className="py-1.5 pr-2 text-right">{rs(r.totalSale)}</td>
+                  <td className="py-1.5 text-right">{r.profit == null ? '—' : rs(r.profit)}</td>
+                </tr>
+              ))}
+              {report.rows.length === 0 && <tr><td colSpan={7} className="py-2 text-gray-500">No products yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-sm font-bold">{report.totals.products} products &nbsp;|&nbsp; {report.totals.pieces} pieces in stock &nbsp;|&nbsp; {report.totals.soldQty} sold &nbsp;|&nbsp; Total Sale {rs(report.totals.totalSale)} &nbsp;|&nbsp; Profit {report.totals.totalProfit == null ? '—' : rs(report.totals.totalProfit)}</p>
+        <button type="button" onClick={() => openFullReport(periodLabel, report.rows, report.totals, totals.totalExpenses, totals.netProfit)} className="w-full py-2.5 rounded-lg bg-black text-white font-bold">Print / Download PDF</button>
       </div>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 flex justify-between items-center gap-3">
         <p className="text-sm">Low stock products: <b className="text-amber-700">{products.filter(p => p.stock <= low).length}</b> — full list in Inventory tab.</p>
@@ -739,7 +832,10 @@ function DashboardTab({ totals, expenseByName, products, costById, totalQty, sto
         {!backupUnlocked && unlockPrompt && (
           <div className="space-y-2 rounded-lg border border-gray-300 p-3">
             <label className="block text-sm font-bold">Secret code
-              <input type="password" value={unlockCode} onChange={e => setUnlockCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') tryUnlock(); }} className="block mt-1 w-full border rounded-lg px-2 py-1.5 text-sm" placeholder="Code daalein" />
+              <span className="mt-1 flex gap-2">
+                <input type={showCode ? 'text' : 'password'} value={unlockCode} onChange={e => setUnlockCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') tryUnlock(); }} className="flex-1 min-w-0 border rounded-lg px-2 py-1.5 text-sm" placeholder="Code daalein" />
+                <button type="button" onClick={() => setShowCode(v => !v)} aria-label={showCode ? 'Hide code' : 'Show code'} className="shrink-0 px-3 rounded-lg bg-gray-100 text-sm font-bold">{showCode ? '🙈' : '👁'}</button>
+              </span>
             </label>
             {unlockErr && <p className="text-xs text-red-600 font-semibold">{unlockErr}</p>}
             <div className="flex gap-2">
